@@ -18,11 +18,6 @@
 #ifndef HAVE_BITS_INSN_H
 #define HAVE_BITS_INSN_H
 
-static const char *le_jit_label_name = "jit label";
-static       int   le_jit_label;
-
-ZEND_RSRC_DTOR_FUNC(php_jit_label_dtor);
-
 #define PHP_JIT_INSN_FUNCTIONS \
 	JIT_FE(jit_insn_mul) \
 	JIT_FE(jit_insn_mul_ovf) \
@@ -231,9 +226,6 @@ PHP_FUNCTION(jit_insn_label);
 PHP_FUNCTION(jit_insn_return);
 
 static inline php_jit_minit_insn(int module_number TSRMLS_DC) {
-	le_jit_label = zend_register_list_destructors_ex
-		(php_jit_label_dtor, NULL, le_jit_label_name, module_number);
-
 	REGISTER_LONG_CONSTANT("JIT_CALL_NOTHROW",  JIT_CALL_NOTHROW,  CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_CALL_NORETURN", JIT_CALL_NORETURN, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_CALL_TAIL",     JIT_CALL_TAIL, CONST_CS|CONST_PERSISTENT);
@@ -242,11 +234,6 @@ static inline php_jit_minit_insn(int module_number TSRMLS_DC) {
 #else
 #ifndef HAVE_BITS_INSN
 #define HAVE_BITS_INSN
-
-/* {{{ php_jit_label_dtor */
-ZEND_RSRC_DTOR_FUNC(php_jit_label_dtor) {
-	
-} /* }}} */
 
 typedef jit_value_t (*jit_binary_insn_func) (jit_function_t, jit_value_t, jit_value_t);
 typedef jit_value_t (*jit_unary_insn_func) (jit_function_t, jit_value_t);
