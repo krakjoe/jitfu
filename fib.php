@@ -1,6 +1,16 @@
 <?php
 /**
 * This example is based loosely on ...
+*
+* [joe@localhost jit]$ /opt/bin/php -dextension=jit.so fib.php
+* resource(6) of type (jit function)
+* resource(4) of type (jit context)
+* resource(5) of type (jit type)
+* int(102334155)
+* jit: 0.997 seconds
+* int(102334155)
+* php: 56.782 seconds
+* :o
 */
 $context = jit_context_create();
 
