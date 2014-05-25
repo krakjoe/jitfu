@@ -129,7 +129,7 @@ PHP_FUNCTION(jit_type_free) {
 	
 	ZEND_FETCH_RESOURCE(type, jit_type_t, &resource, -1, le_jit_type_name, le_jit_type);
 	
-	zend_list_del(Z_RESVAL_P(resource));
+	zend_list_delete(Z_RESVAL_P(resource));
 } /* }}} */
 
 /* {{{ jit_type_t jit_type_create_struct(array fields [, int incref = 0]) */

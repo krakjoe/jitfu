@@ -21,6 +21,8 @@ $function = jit_function_create($context, $signature);
 
 var_dump($function, $context, $signature);
 
+jit_type_free($signature);
+
 $x = jit_value_get_param($function, 0);
 $y = jit_value_get_param($function, 1);
 $z = jit_value_get_param($function, 2);

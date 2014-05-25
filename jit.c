@@ -90,7 +90,8 @@ PHP_MINIT_FUNCTION(jit)
 	php_jit_minit_type(module_number TSRMLS_CC);
 	php_jit_minit_function(module_number TSRMLS_CC);
 	php_jit_minit_value(module_number TSRMLS_CC);
-	
+	php_jit_minit_insn(module_number TSRMLS_CC);	
+
 	zend_hash_init(&JG(ctx), 8, NULL, NULL, 1);
 	
 	return SUCCESS;

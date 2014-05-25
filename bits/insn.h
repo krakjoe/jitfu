@@ -18,6 +18,11 @@
 #ifndef HAVE_BITS_INSN_H
 #define HAVE_BITS_INSN_H
 
+static const char *le_jit_label_name = "jit label";
+static       int   le_jit_label;
+
+ZEND_RSRC_DTOR_FUNC(php_jit_label_dtor);
+
 #define PHP_JIT_INSN_FUNCTIONS \
 	JIT_FE(jit_insn_mul) \
 	JIT_FE(jit_insn_mul_ovf) \
@@ -73,6 +78,10 @@
 	JIT_FE(jit_insn_min) \
 	JIT_FE(jit_insn_max) \
 	JIT_FE(jit_insn_sign) \
+	JIT_FE(jit_insn_branch) \
+	JIT_FE(jit_insn_branch_if) \
+	JIT_FE(jit_insn_branch_if_not) \
+	JIT_FE(jit_insn_label) \
 	JIT_FE(jit_insn_return)
 
 #define PHP_JIT_BINARY_ARGINFO(n) \
@@ -143,6 +152,18 @@ PHP_JIT_BINARY_ARGINFO(jit_insn_min_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_max_arginfo)
 PHP_JIT_UNARY_ARGINFO(jit_insn_sign_arginfo)
 
+ZEND_BEGIN_ARG_INFO_EX(jit_insn_branch_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, function)
+ZEND_END_ARG_INFO()
+
+PHP_JIT_UNARY_ARGINFO(jit_insn_branch_if_arginfo)
+PHP_JIT_UNARY_ARGINFO(jit_insn_branch_if_not_arginfo)
+
+ZEND_BEGIN_ARG_INFO_EX(jit_insn_label_arginfo, 0, 0, 2)
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, label)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(jit_insn_return_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, function)
 	ZEND_ARG_INFO(0, result)
@@ -202,11 +223,30 @@ PHP_FUNCTION(jit_insn_min);
 PHP_FUNCTION(jit_insn_max);
 PHP_FUNCTION(jit_insn_abs);
 PHP_FUNCTION(jit_insn_sign);
+PHP_FUNCTION(jit_insn_branch);
+PHP_FUNCTION(jit_insn_branch_if);
+PHP_FUNCTION(jit_insn_branch_if_not);
+PHP_FUNCTION(jit_insn_label);
 
 PHP_FUNCTION(jit_insn_return);
+
+static inline php_jit_minit_insn(int module_number TSRMLS_DC) {
+	le_jit_label = zend_register_list_destructors_ex
+		(php_jit_label_dtor, NULL, le_jit_label_name, module_number);
+
+	REGISTER_LONG_CONSTANT("JIT_CALL_NOTHROW",  JIT_CALL_NOTHROW,  CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_CALL_NORETURN", JIT_CALL_NORETURN, CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_CALL_TAIL",     JIT_CALL_TAIL, CONST_CS|CONST_PERSISTENT);
+}
+
 #else
 #ifndef HAVE_BITS_INSN
 #define HAVE_BITS_INSN
+
+/* {{{ php_jit_label_dtor */
+ZEND_RSRC_DTOR_FUNC(php_jit_label_dtor) {
+	
+} /* }}} */
 
 typedef jit_value_t (*jit_binary_insn_func) (jit_function_t, jit_value_t, jit_value_t);
 typedef jit_value_t (*jit_unary_insn_func) (jit_function_t, jit_value_t);
@@ -830,6 +870,77 @@ PHP_FUNCTION(jit_insn_sign) {
 	}
 	
 	php_jit_do_unary_op(jit_insn_sign, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_label_t jit_insn_branch(jit_function_t function) */
+PHP_FUNCTION(jit_insn_branch) {
+	zval *zfunction;
+	jit_function_t function;
+	jit_label_t label = jit_label_undefined;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+
+	jit_insn_branch(function, &label);
+	
+	ZEND_REGISTER_RESOURCE(return_value, &label, le_jit_label);
+} /* }}} */
+
+/* {{{ jit_label_t jit_insn_branch_if(jit_function_t function, jit_value_t op) */
+PHP_FUNCTION(jit_insn_branch_if) {
+	zval *zfunction, *zin;
+	jit_function_t function;
+	jit_value_t in;
+	jit_label_t label = jit_label_undefined;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(in, jit_value_t, &zin, -1, le_jit_value_name, le_jit_value);
+
+	jit_insn_branch_if(function, in, &label);
+	
+	ZEND_REGISTER_RESOURCE(return_value, &label, le_jit_label);
+} /* }}} */
+
+/* {{{ jit_label_t jit_insn_branch_if_not(jit_function_t function, jit_value_t op) */
+PHP_FUNCTION(jit_insn_branch_if_not) {
+	zval *zfunction, *zin;
+	jit_function_t function;
+	jit_value_t in;
+	jit_label_t label = jit_label_undefined;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(in, jit_value_t, &zin, -1, le_jit_value_name, le_jit_value);
+
+	jit_insn_branch_if_not(function, in, &label);
+	
+	ZEND_REGISTER_RESOURCE(return_value, &label, le_jit_label);
+} /* }}} */
+
+/* {{{ jit_label_t jit_insn_label(jit_function_t function, jit_label_t label) */
+PHP_FUNCTION(jit_insn_label) {
+	zval *zfunction, *zin;
+	jit_function_t function;
+	jit_label_t *label;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(label, jit_label_t*, &zin, -1, le_jit_label_name, le_jit_label);
+
+	jit_insn_label(function, label);
 } /* }}} */
 
 /* {{{ void jit_insn_return(jit_function_t function, jit_value_t result) */
