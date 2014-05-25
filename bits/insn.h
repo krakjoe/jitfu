@@ -43,7 +43,7 @@ PHP_FUNCTION(jit_insn_mul) {
 	
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &resource, -1, le_jit_function_name, le_jit_function);
 	ZEND_FETCH_RESOURCE(jin[0], jit_value_t, &in[0], -1, le_jit_value_name, le_jit_value);
-	ZEND_FETCH_RESOURCE(jin[1], jit_value_t, &in[0], -1, le_jit_value_name, le_jit_value);
+	ZEND_FETCH_RESOURCE(jin[1], jit_value_t, &in[1], -1, le_jit_value_name, le_jit_value);
 
 	jout = jit_insn_mul(function, jin[0], jin[1]);
 	
@@ -62,7 +62,7 @@ PHP_FUNCTION(jit_insn_add) {
 	
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &resource, -1, le_jit_function_name, le_jit_function);
 	ZEND_FETCH_RESOURCE(jin[0], jit_value_t, &in[0], -1, le_jit_value_name, le_jit_value);
-	ZEND_FETCH_RESOURCE(jin[1], jit_value_t, &in[0], -1, le_jit_value_name, le_jit_value);
+	ZEND_FETCH_RESOURCE(jin[1], jit_value_t, &in[1], -1, le_jit_value_name, le_jit_value);
 
 	jout = jit_insn_add(function, jin[0], jin[1]);
 	

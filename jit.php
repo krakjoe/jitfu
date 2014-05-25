@@ -28,5 +28,19 @@ jit_insn_return($function, $temp2);
 jit_function_compile($function);
 jit_context_build_end($context);
 
-var_dump(jit_function_apply($function, [2, 4, 6]));
+$start = microtime(true);
+for ($i = 0; $i<100000; $i++) {
+	jit_function_apply($function, [2, 8, 8]);
+}
+printf("jit: %.3f seconds\n", microtime(true) - $start);
+
+function mul_add($x, $y, $z) {
+	return $x * $y + $z;
+}
+
+$start = microtime(true);
+for ($i = 0; $i<100000; $i++) {
+	mul_add(2, 8, 8);
+}
+printf("php: %.3f seconds\n", microtime(true) - $start);
 ?>

@@ -239,7 +239,7 @@ PHP_FUNCTION(jit_type_create_signature)
 	
 	signature = jit_type_create_signature(
 		abi, returns, params, param, incref);
-	
+
 	ZEND_REGISTER_RESOURCE(return_value, signature, le_jit_type);
 } /* }}} */
 
