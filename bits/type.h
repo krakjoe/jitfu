@@ -82,7 +82,7 @@ PHP_FUNCTION(jit_type_create_pointer);
 
 /* {{{ php_jit_type_dtor */
 ZEND_RSRC_DTOR_FUNC(php_jit_type_dtor) {
-	jit_type_free((jit_type_t) rsrc->ptr);
+	//jit_type_free((jit_type_t) rsrc->ptr);
 } /* }}} */
 
 /* {{{ jit_type_t jit_type_copy(jit_type_t type) */
@@ -210,7 +210,7 @@ PHP_FUNCTION(jit_type_create_signature)
 		return;
 	}
 	
-	jparams = (jit_type_t*) ecalloc(zend_hash_num_elements(params), sizeof(jit_type_t));
+	jparams = (jit_type_t*) calloc(zend_hash_num_elements(params), sizeof(jit_type_t));
 	
 	if (Z_TYPE_P(returns) == IS_LONG) {
 		jreturns = (jit_type_t) jreturns;

@@ -3,26 +3,28 @@ $context = jit_context_create();
 
 jit_context_build_start($context);
 
-$union = jit_type_create_union([
-	JIT_TYPE_VOID_PTR,
+$signature = jit_type_create_signature(
+	JIT_ABI_CDECL, JIT_TYPE_INT, [
+	JIT_TYPE_INT,
+	JIT_TYPE_INT,
 	JIT_TYPE_INT
-], 0);
+], 1);
 
-$struct = jit_type_create_struct([
-	JIT_TYPE_INT,
-	JIT_TYPE_INT,
-	$union
-], 0);
+$function = jit_function_create($context, $signature);
 
-$ptr = jit_type_create_pointer($struct);
+var_dump($function, $context, $signature);
 
-$sig = jit_type_create_signature(JIT_ABI_CDECL, JIT_TYPE_INT, [$union, $struct, $ptr], 0);
+$params = [
+	jit_value_get_param($function, 0),
+	jit_value_get_param($function, 1),
+	jit_value_get_param($function, 2)
+];
 
-$function = jit_function_create($context, $sig);
+$temp1 = jit_insn_mul($function, $params[0], $params[1]);
+$temp2 = jit_insn_add($function, $temp1, $params[2]);
 
-var_dump($context, $struct, $union, $sig, $function);
+jit_insn_return($function, $temp2);
 
+jit_function_compile($function);
 jit_context_build_end($context);
-
-jit_context_destroy($context);
 ?>

@@ -36,6 +36,8 @@ ZEND_DECLARE_MODULE_GLOBALS(jit)
 #include "bits/context.h"
 #include "bits/type.h"
 #include "bits/function.h"
+#include "bits/value.h"
+#include "bits/insn.h"
 
 /* {{{ jit_functions[]
  */
@@ -43,6 +45,8 @@ const zend_function_entry jit_functions[] = {
 	PHP_JIT_CONTEXT_FUNCTIONS
 	PHP_JIT_TYPE_FUNCTIONS
 	PHP_JIT_FUNCTION_FUNCTIONS
+	PHP_JIT_VALUE_FUNCTIONS
+	PHP_JIT_INSN_FUNCTIONS
 	PHP_FE_END
 };
 /* }}} */
@@ -85,6 +89,7 @@ PHP_MINIT_FUNCTION(jit)
 	php_jit_minit_context(module_number TSRMLS_CC);
 	php_jit_minit_type(module_number TSRMLS_CC);
 	php_jit_minit_function(module_number TSRMLS_CC);
+	php_jit_minit_value(module_number TSRMLS_CC);
 	
 	zend_hash_init(&JG(ctx), 8, NULL, NULL, 1);
 	
@@ -131,6 +136,8 @@ PHP_MINFO_FUNCTION(jit)
 #include "bits/context.h"
 #include "bits/type.h"
 #include "bits/function.h"
+#include "bits/value.h"
+#include "bits/insn.h"
 
 /*
  * Local variables:
