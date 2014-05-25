@@ -125,7 +125,7 @@ PHP_FUNCTION(jit_type_create_struct) {
 	jit_type_t   structure;
 	zend_uint    arg = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Hl", &fields, &incref) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "H|l", &fields, &incref) != SUCCESS) {
 		return;
 	}
 	
@@ -197,62 +197,63 @@ PHP_FUNCTION(jit_type_create_union) {
 PHP_FUNCTION(jit_type_create_signature) 
 {
 	long         abi;
-	zval       **param, *returns;
-	HashTable   *params;
+	zval       **zparam, *zreturns;
+	HashTable   *zparams;
 	HashPosition position;
-	jit_type_t  *jparams;
+	jit_type_t   returns;
+	jit_type_t  *params;
+	zend_uint    param = 0;
 	jit_type_t   signature;
-	jit_type_t   jreturns;
-	zend_uint    jparam = 0;
 	long         incref = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lzH|l", &abi, &returns, &params, &incref) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lzH|l", &abi, &zreturns, &zparams, &incref) != SUCCESS) {
 		return;
 	}
 	
-	jparams = (jit_type_t*) calloc(zend_hash_num_elements(params), sizeof(jit_type_t));
+	params = (jit_type_t*) ecalloc(zend_hash_num_elements(zparams), sizeof(jit_type_t));
 	
-	if (Z_TYPE_P(returns) == IS_LONG) {
-		jreturns = (jit_type_t) jreturns;
-	} else if (Z_TYPE_P(returns) == IS_RESOURCE) {
-		ZEND_FETCH_RESOURCE(jreturns, jit_type_t, &returns, -1, le_jit_type_name, le_jit_type);
+	if (Z_TYPE_P(zreturns) == IS_LONG) {
+		returns = (jit_type_t) Z_LVAL_P(zreturns);
+	} else if (Z_TYPE_P(zreturns) == IS_RESOURCE) {
+		ZEND_FETCH_RESOURCE(returns, jit_type_t, &zreturns, -1, le_jit_type_name, le_jit_type);
 	}
 	
-	for (zend_hash_internal_pointer_reset_ex(params, &position);	
-		zend_hash_get_current_data_ex(params, (void**) &param, &position) == SUCCESS;
-		zend_hash_move_forward_ex(params, &position)) {
+	for (zend_hash_internal_pointer_reset_ex(zparams, &position);	
+		zend_hash_get_current_data_ex(zparams, (void**) &zparam, &position) == SUCCESS;
+		zend_hash_move_forward_ex(zparams, &position)) {
 		
-		switch (Z_TYPE_PP(param)) {
-			case IS_LONG: 
-				jparams[jparam] = (jit_type_t) Z_LVAL_PP(param); 
+		switch (Z_TYPE_PP(zparam)) {
+			case IS_LONG:
+				params[param] = (jit_type_t) Z_LVAL_PP(zparam); 
 			break;
 			
 			case IS_RESOURCE: {
 				jit_type_t res;
-				ZEND_FETCH_RESOURCE(res, jit_type_t, param, -1, le_jit_type_name, le_jit_type);
-				jparams[jparam] = jit_type_copy(res);
+				ZEND_FETCH_RESOURCE(res, jit_type_t, zparam, -1, le_jit_type_name, le_jit_type);
+				params[param] = jit_type_copy(res);
 			} break;
 		}
-		jparam++;
+		
+		param++;
 	}
 	
 	signature = jit_type_create_signature(
-		abi, jreturns, jparams, zend_hash_num_elements(params), incref);
+		abi, returns, params, param, incref);
 	
 	ZEND_REGISTER_RESOURCE(return_value, signature, le_jit_type);
 } /* }}} */
 
 /* {{{ jit_type_t jit_type_create_pointer(jit_type_t type [, int incref = 0]) */
 PHP_FUNCTION(jit_type_create_pointer) {
-	zval *resource;
+	zval *ztype;
 	jit_type_t type, pointer;
 	long incref = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|l", &resource, &incref) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|l", &ztype, &incref) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(type, jit_type_t, &resource, -1, le_jit_type_name, le_jit_type);
+	ZEND_FETCH_RESOURCE(type, jit_type_t, &ztype, -1, le_jit_type_name, le_jit_type);
 	
 	pointer = jit_type_create_pointer(type, incref);
 	

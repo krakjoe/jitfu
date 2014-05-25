@@ -50,69 +50,69 @@ ZEND_RSRC_DTOR_FUNC(php_jit_function_dtor) {
 
 /* {{{ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature) */
 PHP_FUNCTION(jit_function_create) {
-	zval *resource;
-	zval *signature;
-	jit_context_t context;
+	zval *zcontext;
+	zval *zsignature;
+	jit_context_t  context;
 	jit_function_t function;
-	jit_type_t     sig;
+	jit_type_t     signature;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &resource, &signature) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zcontext, &zsignature) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(context, jit_context_t, &resource, -1,  le_jit_context_name, le_jit_context);
-	ZEND_FETCH_RESOURCE(sig,     jit_type_t,    &signature, -1, le_jit_type_name,    le_jit_type);
+	ZEND_FETCH_RESOURCE(context,    jit_context_t, &zcontext,   -1,  le_jit_context_name, le_jit_context);
+	ZEND_FETCH_RESOURCE(signature,  jit_type_t,    &zsignature, -1,  le_jit_type_name,    le_jit_type);
 	
-	function = jit_function_create(context, sig);
+	function = jit_function_create(context, signature);
 	
 	ZEND_REGISTER_RESOURCE(return_value, function, le_jit_function);
 } /* }}} */
 
 /* {{{ jit_context_t jit_function_get_context(jit_function_t function) */
 PHP_FUNCTION(jit_function_get_context) {
-	zval *resource, **found;
+	zval *zfunction, **zcontext;
 	jit_function_t function;
 	jit_context_t context;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &resource) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &resource, -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 	
 	context = jit_function_get_context(function);
 	
 	if (zend_hash_index_find(
-		&JG(ctx), 
-		(zend_ulong) context, (void**) &found) == SUCCESS) {
-		ZVAL_ZVAL(return_value, *found, 1, 0);
+		&JG(ctx),
+		(zend_ulong) context, (void**) &zcontext) == SUCCESS) {
+		ZVAL_ZVAL(return_value, *zcontext, 1, 0);
 	}
 } /* }}} */
 
 /* {{{ void jit_function_abandon(jit_function_t function) */
 PHP_FUNCTION(jit_function_abandon) {
-	zval *resource;
+	zval *zfunction;
 	jit_function_t function;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &resource) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &resource, -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 	
 	jit_function_abandon(function);
 } /* }}} */
 
 /* {{{ void jit_function_compile(jit_function_t function) */
 PHP_FUNCTION(jit_function_compile) {
-	zval *resource;
+	zval *zfunction;
 	jit_function_t function;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &resource) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &resource, -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 	
 	jit_function_compile(function);
 } /* }}} */

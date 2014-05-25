@@ -80,27 +80,27 @@ PHP_FUNCTION(jit_context_create)
 	Destroy a previously created jit context */
 PHP_FUNCTION(jit_context_destroy) 
 {
-	zval *resource;
+	zval *zcontext;
 	jit_context_t context;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &resource) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zcontext) != SUCCESS) {
 		return;
 	}
 	
-	zend_list_delete(Z_RESVAL_P(resource));
+	zend_list_delete(Z_RESVAL_P(zcontext));
 }
 
 /* {{{ proto void jit_context_build_start(resource context) */
 PHP_FUNCTION(jit_context_build_start) 
 {
-	zval *resource;
+	zval *zcontext;
 	jit_context_t context;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &resource) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zcontext) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(context, jit_context_t, &resource, -1, le_jit_context_name, le_jit_context);
+	ZEND_FETCH_RESOURCE(context, jit_context_t, &zcontext, -1, le_jit_context_name, le_jit_context);
 	
 	jit_context_build_start(context);
 } /* }}} */
@@ -108,14 +108,14 @@ PHP_FUNCTION(jit_context_build_start)
 /* {{{ proto void jit_context_build_end(resource context) */
 PHP_FUNCTION(jit_context_build_end) 
 {
-	zval *resource;
+	zval *zcontext;
 	jit_context_t context;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &resource) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zcontext) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(context, jit_context_t, &resource, -1, le_jit_context_name, le_jit_context);
+	ZEND_FETCH_RESOURCE(context, jit_context_t, &zcontext, -1, le_jit_context_name, le_jit_context);
 	
 	jit_context_build_end(context);
 } /* }}} */

@@ -14,17 +14,19 @@ $function = jit_function_create($context, $signature);
 
 var_dump($function, $context, $signature);
 
-$params = [
-	jit_value_get_param($function, 0),
-	jit_value_get_param($function, 1),
-	jit_value_get_param($function, 2)
-];
+$x = jit_value_get_param($function, 0);
+$y = jit_value_get_param($function, 1);
+$z = jit_value_get_param($function, 2);
 
-$temp1 = jit_insn_mul($function, $params[0], $params[1]);
-$temp2 = jit_insn_add($function, $temp1, $params[2]);
+var_dump($x, $y, $z);
+
+$temp1 = jit_insn_mul($function, $x, $y);
+$temp2 = jit_insn_add($function, $temp1, $z);
 
 jit_insn_return($function, $temp2);
 
 jit_function_compile($function);
 jit_context_build_end($context);
+
+
 ?>
