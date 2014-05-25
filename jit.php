@@ -28,5 +28,5 @@ jit_insn_return($function, $temp2);
 jit_function_compile($function);
 jit_context_build_end($context);
 
-
+var_dump(jit_function_apply($function, [2, 4, 6]));
 ?>

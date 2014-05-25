@@ -5,7 +5,8 @@
 	JIT_FE(jit_function_create) \
 	JIT_FE(jit_function_get_context) \
 	JIT_FE(jit_function_abandon) \
-	JIT_FE(jit_function_compile)
+	JIT_FE(jit_function_compile) \
+	JIT_FE(jit_function_apply)
 
 static const char *le_jit_function_name = "jit function";
 static       int   le_jit_function;
@@ -34,10 +35,17 @@ ZEND_BEGIN_ARG_INFO_EX(jit_function_compile_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, function)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jit_function_apply_arginfo, 0, 0, 2)
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, params)
+	ZEND_ARG_INFO(0, types)
+ZEND_END_ARG_INFO()
+
 PHP_FUNCTION(jit_function_create);
 PHP_FUNCTION(jit_function_get_context);
 PHP_FUNCTION(jit_function_abandon);
 PHP_FUNCTION(jit_function_compile);
+PHP_FUNCTION(jit_function_apply);
 
 #else
 #ifndef HAVE_BITS_FUNCTION
@@ -115,6 +123,50 @@ PHP_FUNCTION(jit_function_compile) {
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 	
 	jit_function_compile(function);
+} /* }}} */
+
+/* {{{ void jit_function_apply(jit_function_t function, array params [, array types]) */
+PHP_FUNCTION(jit_function_apply) {
+	zval *zfunction, **zparam;
+	HashTable *zparams;
+	HashPosition position;
+	jit_function_t function;
+	void **args;
+	jit_int result;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rH", &zfunction, &zparams) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	
+	args = ecalloc(zend_hash_num_elements(zparams), sizeof(void*));
+	
+	for (zend_hash_internal_pointer_reset_ex(zparams, &position);
+		zend_hash_get_current_data_ex(zparams, (void**) &zparam, &position) == SUCCESS;
+		zend_hash_move_forward_ex(zparams, &position)) {
+		zend_ulong idx;
+		
+		zend_hash_get_current_key_ex(zparams, NULL, NULL, &idx, 0, &position);
+		
+		switch (Z_TYPE_PP(zparam)) {
+			case IS_LONG:
+				args[idx] = &Z_LVAL_PP(zparam);
+			break;
+			
+			case IS_STRING:
+				args[idx] = &Z_STRVAL_PP(zparam);
+			break;
+			
+			case IS_DOUBLE:
+				args[idx] = &Z_DVAL_PP(zparam);
+			break;
+		}
+	}
+	
+	jit_function_apply(function, args, &result);
+	
+	printf("result: %d\n", result);
 } /* }}} */
 #endif
 #endif
