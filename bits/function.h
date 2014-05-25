@@ -166,7 +166,7 @@ PHP_FUNCTION(jit_function_apply) {
 	
 	jit_function_apply(function, args, &result);
 	
-	printf("result: %d\n", result);
+
 } /* }}} */
 #endif
 #endif
