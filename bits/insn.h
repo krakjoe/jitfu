@@ -18,6 +18,16 @@
 	JIT_FE(jit_insn_xor) \
 	JIT_FE(jit_insn_shl) \
 	JIT_FE(jit_insn_shr) \
+	JIT_FE(jit_insn_ushr) \
+	JIT_FE(jit_insn_sshr) \
+	JIT_FE(jit_insn_eq) \
+	JIT_FE(jit_insn_ne) \
+	JIT_FE(jit_insn_lt) \
+	JIT_FE(jit_insn_le) \
+	JIT_FE(jit_insn_gt) \
+	JIT_FE(jit_insn_ge) \
+	JIT_FE(jit_insn_cmpl) \
+	JIT_FE(jit_insn_cmpg) \
 	JIT_FE(jit_insn_return)
 
 #define PHP_JIT_BINARY_ARGINFO(n) \
@@ -49,6 +59,16 @@ PHP_JIT_BINARY_ARGINFO(jit_insn_or_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_xor_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_shl_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_shr_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_ushr_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_sshr_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_eq_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_ne_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_lt_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_le_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_gt_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_ge_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_cmpl_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_cmpg_arginfo)
 
 ZEND_BEGIN_ARG_INFO_EX(jit_insn_return_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, function)
@@ -71,6 +91,16 @@ PHP_FUNCTION(jit_insn_or);
 PHP_FUNCTION(jit_insn_xor);
 PHP_FUNCTION(jit_insn_shl);
 PHP_FUNCTION(jit_insn_shr);
+PHP_FUNCTION(jit_insn_ushr);
+PHP_FUNCTION(jit_insn_sshr);
+PHP_FUNCTION(jit_insn_eq);
+PHP_FUNCTION(jit_insn_ne);
+PHP_FUNCTION(jit_insn_lt);
+PHP_FUNCTION(jit_insn_le);
+PHP_FUNCTION(jit_insn_gt);
+PHP_FUNCTION(jit_insn_ge);
+PHP_FUNCTION(jit_insn_cmpl);
+PHP_FUNCTION(jit_insn_cmpg);
 
 PHP_FUNCTION(jit_insn_return);
 #else
@@ -281,6 +311,116 @@ PHP_FUNCTION(jit_insn_shr) {
 	}
 	
 	php_jit_do_binary_op(jit_insn_shr, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_ushr(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_ushr) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_ushr, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_sshr(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_sshr) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_sshr, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_eq(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_eq) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_eq, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_ne(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_ne) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_ne, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_lt(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_lt) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_lt, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_le(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_le) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_le, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_gt(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_gt) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_gt, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_ge(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_ge) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_ge, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_cmpl(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_cmpl) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_cmpl, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_cmpg(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_cmpg) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_cmpg, zfunction, zin, return_value TSRMLS_CC);
 } /* }}} */
 
 /* {{{ void jit_insn_return(jit_function_t function, jit_value_t result) */
