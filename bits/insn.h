@@ -3,9 +3,13 @@
 
 #define PHP_JIT_INSN_FUNCTIONS \
 	JIT_FE(jit_insn_mul) \
+	JIT_FE(jit_insn_mul_ovf) \
 	JIT_FE(jit_insn_add) \
+	JIT_FE(jit_insn_add_ovf) \
 	JIT_FE(jit_insn_sub) \
+	JIT_FE(jit_insn_sub_ovf) \
 	JIT_FE(jit_insn_div) \
+	JIT_FE(jit_insn_pow) \
 	JIT_FE(jit_insn_return)
 
 #define PHP_JIT_BINARY_ARGINFO(n) \
@@ -16,20 +20,28 @@
 	ZEND_END_ARG_INFO() \
 
 PHP_JIT_BINARY_ARGINFO(jit_insn_mul_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_mul_ovf_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_sub_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_sub_ovf_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_add_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_add_ovf_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_div_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_pow_arginfo)
 
 ZEND_BEGIN_ARG_INFO_EX(jit_insn_return_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, function)
 	ZEND_ARG_INFO(0, result)
 ZEND_END_ARG_INFO()
 
-
 PHP_FUNCTION(jit_insn_mul);
+PHP_FUNCTION(jit_insn_mul_ovf);
 PHP_FUNCTION(jit_insn_add);
+PHP_FUNCTION(jit_insn_add_ovf);
 PHP_FUNCTION(jit_insn_sub);
+PHP_FUNCTION(jit_insn_sub_ovf);
 PHP_FUNCTION(jit_insn_div);
+PHP_FUNCTION(jit_insn_pow);
+
 PHP_FUNCTION(jit_insn_return);
 #else
 #ifndef HAVE_BITS_INSN
@@ -76,6 +88,17 @@ PHP_FUNCTION(jit_insn_mul) {
 	php_jit_do_binary_op(jit_insn_mul, zfunction, zin, return_value TSRMLS_CC);
 } /* }}} */
 
+/* {{{ jit_value_t jit_insn_mul_ovf(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_mul_ovf) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_mul_ovf, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
 /* {{{ jit_value_t jit_insn_add(jit_function_t function, jit_value_t op1, jit_value_t op2) */
 PHP_FUNCTION(jit_insn_add) {
 	zval *zfunction, *zin[2];
@@ -85,6 +108,17 @@ PHP_FUNCTION(jit_insn_add) {
 	}
 	
 	php_jit_do_binary_op(jit_insn_add, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_add_ovf(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_add_ovf) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_add_ovf, zfunction, zin, return_value TSRMLS_CC);
 } /* }}} */
 
 /* {{{ jit_value_t jit_insn_sub(jit_function_t function, jit_value_t op1, jit_value_t op2) */
@@ -98,6 +132,17 @@ PHP_FUNCTION(jit_insn_sub) {
 	php_jit_do_binary_op(jit_insn_sub, zfunction, zin, return_value TSRMLS_CC);
 } /* }}} */
 
+/* {{{ jit_value_t jit_insn_sub_ovf(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_sub_ovf) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_sub_ovf, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
 /* {{{ jit_value_t jit_insn_div(jit_function_t function, jit_value_t op1, jit_value_t op2) */
 PHP_FUNCTION(jit_insn_div) {
 	zval *zfunction, *zin[2];
@@ -107,6 +152,17 @@ PHP_FUNCTION(jit_insn_div) {
 	}
 	
 	php_jit_do_binary_op(jit_insn_div, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_pow(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_pow) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_pow, zfunction, zin, return_value TSRMLS_CC);
 } /* }}} */
 
 /* {{{ void jit_insn_return(jit_function_t function, jit_value_t result) */
