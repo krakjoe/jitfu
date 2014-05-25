@@ -33,6 +33,7 @@
 	JIT_FE(jit_insn_acos) \
 	JIT_FE(jit_insn_asin) \
 	JIT_FE(jit_insn_atan) \
+	JIT_FE(jit_insn_atan2) \
 	JIT_FE(jit_insn_return)
 
 #define PHP_JIT_BINARY_ARGINFO(n) \
@@ -74,11 +75,12 @@ PHP_JIT_BINARY_ARGINFO(jit_insn_gt_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_ge_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_cmpl_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_cmpg_arginfo)
-PHP_JIT_BINARY_ARGINFO(jit_insn_to_bool_arginfo)
-PHP_JIT_BINARY_ARGINFO(jit_insn_to_not_bool_arginfo)
-PHP_JIT_BINARY_ARGINFO(jit_insn_acos_arginfo)
-PHP_JIT_BINARY_ARGINFO(jit_insn_asin_arginfo)
-PHP_JIT_BINARY_ARGINFO(jit_insn_atan_arginfo)
+PHP_JIT_UNARY_ARGINFO(jit_insn_to_bool_arginfo)
+PHP_JIT_UNARY_ARGINFO(jit_insn_to_not_bool_arginfo)
+PHP_JIT_UNARY_ARGINFO(jit_insn_acos_arginfo)
+PHP_JIT_UNARY_ARGINFO(jit_insn_asin_arginfo)
+PHP_JIT_UNARY_ARGINFO(jit_insn_atan_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_atan2_arginfo)
 
 ZEND_BEGIN_ARG_INFO_EX(jit_insn_return_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, function)
@@ -116,6 +118,7 @@ PHP_FUNCTION(jit_insn_to_not_bool);
 PHP_FUNCTION(jit_insn_acos);
 PHP_FUNCTION(jit_insn_asin);
 PHP_FUNCTION(jit_insn_atan);
+PHP_FUNCTION(jit_insn_atan2);
 
 PHP_FUNCTION(jit_insn_return);
 #else
@@ -491,6 +494,17 @@ PHP_FUNCTION(jit_insn_atan) {
 	}
 	
 	php_jit_do_unary_op(jit_insn_atan, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_atan2(jit_function_t function, jit_value_t op1, jit_value_t op2) */
+PHP_FUNCTION(jit_insn_atan2) {
+	zval *zfunction, *zin[2];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op(jit_insn_atan2, zfunction, zin, return_value TSRMLS_CC);
 } /* }}} */
 
 
