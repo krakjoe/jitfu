@@ -77,6 +77,7 @@
 	JIT_FE(jit_insn_branch_if) \
 	JIT_FE(jit_insn_branch_if_not) \
 	JIT_FE(jit_insn_label) \
+	JIT_FE(jit_insn_call) \
 	JIT_FE(jit_insn_return)
 
 #define PHP_JIT_BINARY_ARGINFO(n) \
@@ -159,6 +160,14 @@ ZEND_BEGIN_ARG_INFO_EX(jit_insn_label_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, label)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jit_insn_call_arginfo, 0, 0, 3)
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, name)
+	ZEND_ARG_INFO(0, call)
+	ZEND_ARG_INFO(0, params)
+	ZEND_ARG_INFO(0, flags)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(jit_insn_return_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, function)
 	ZEND_ARG_INFO(0, result)
@@ -222,6 +231,7 @@ PHP_FUNCTION(jit_insn_branch);
 PHP_FUNCTION(jit_insn_branch_if);
 PHP_FUNCTION(jit_insn_branch_if_not);
 PHP_FUNCTION(jit_insn_label);
+PHP_FUNCTION(jit_insn_call);
 
 PHP_FUNCTION(jit_insn_return);
 
@@ -927,6 +937,51 @@ PHP_FUNCTION(jit_insn_label) {
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 
 	RETURN_LONG(jit_insn_label(function, &label));
+} /* }}} */
+
+/*
+jit_value_t jit_insn_call
+	(jit_function_t func, const char *name,
+	 jit_function_t jit_func, jit_type_t signature,
+	 jit_value_t *args, unsigned int num_args, int flags) JIT_NOTHROW;
+	 */
+	
+/* {{{ int jit_insn_call(jit_function_t function, string name, jit_function_t call, jit_type_t signature, array params [, int flags = 0]) */
+PHP_FUNCTION(jit_insn_call) {
+	zval *zfunction, *zname, *zcall, *zsignature, **zparam;
+	HashTable *zparams;
+	HashPosition position;
+	zend_uint param;
+	jit_function_t function, call;
+	jit_type_t signature;
+	jit_value_t *args, result;
+	zend_uint arg = 0;
+	int flags = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rzr|zHl", &zfunction, &zname, &zcall, &zsignature, &zparams, &flags) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function,  jit_function_t, &zfunction,  -1, le_jit_function_name, le_jit_function);
+	if (zsignature && Z_TYPE_P(zsignature) == IS_RESOURCE) {
+		ZEND_FETCH_RESOURCE(signature, jit_type_t,     &zsignature, -1, le_jit_type_name,     le_jit_type);
+	} else signature = NULL;
+	ZEND_FETCH_RESOURCE(call,  jit_function_t, &zcall,  -1, le_jit_function_name, le_jit_function);
+	
+	args = (jit_value_t*) ecalloc(zend_hash_num_elements(zparams), sizeof(jit_value_t));
+	
+	for (zend_hash_internal_pointer_reset_ex(zparams, &position);
+		zend_hash_get_current_data_ex(zparams, (void**)&zparam, &position) == SUCCESS;
+		zend_hash_move_forward_ex(zparams, &position)) {
+		ZEND_FETCH_RESOURCE(args[arg], jit_value_t, zparam, -1, le_jit_value_name, le_jit_value);
+		arg++;
+	}
+
+	result = jit_insn_call(function, Z_STRVAL_P(zname), call, signature, args, arg, flags);
+	
+	ZEND_REGISTER_RESOURCE(return_value, result, le_jit_value);
+	
+	efree(args);
 } /* }}} */
 
 /* {{{ void jit_insn_return(jit_function_t function, jit_value_t result) */
