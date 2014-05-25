@@ -1,8 +1,6 @@
 <?php
 /**
-* This example is based loosely on tutorial from libjit source
-*
-* http://git.savannah.gnu.org/cgit/libjit.git/tree/tutorial/t2.c
+* This example is based loosely on ...
 */
 $context = jit_context_create();
 
