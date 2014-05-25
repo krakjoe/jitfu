@@ -1,4 +1,9 @@
 <?php
+/**
+* This example is based loosely on tutorial from libjit documentation
+*
+* http://www.gnu.org/software/libjit/doc/libjit_3.html#Tutorials
+*/
 $context = jit_context_create();
 
 jit_context_build_start($context);
