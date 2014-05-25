@@ -28,6 +28,11 @@
 	JIT_FE(jit_insn_ge) \
 	JIT_FE(jit_insn_cmpl) \
 	JIT_FE(jit_insn_cmpg) \
+	JIT_FE(jit_insn_to_bool) \
+	JIT_FE(jit_insn_to_not_bool) \
+	JIT_FE(jit_insn_acos) \
+	JIT_FE(jit_insn_asin) \
+	JIT_FE(jit_insn_atan) \
 	JIT_FE(jit_insn_return)
 
 #define PHP_JIT_BINARY_ARGINFO(n) \
@@ -69,6 +74,11 @@ PHP_JIT_BINARY_ARGINFO(jit_insn_gt_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_ge_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_cmpl_arginfo)
 PHP_JIT_BINARY_ARGINFO(jit_insn_cmpg_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_to_bool_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_to_not_bool_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_acos_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_asin_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_atan_arginfo)
 
 ZEND_BEGIN_ARG_INFO_EX(jit_insn_return_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, function)
@@ -101,6 +111,11 @@ PHP_FUNCTION(jit_insn_gt);
 PHP_FUNCTION(jit_insn_ge);
 PHP_FUNCTION(jit_insn_cmpl);
 PHP_FUNCTION(jit_insn_cmpg);
+PHP_FUNCTION(jit_insn_to_bool);
+PHP_FUNCTION(jit_insn_to_not_bool);
+PHP_FUNCTION(jit_insn_acos);
+PHP_FUNCTION(jit_insn_asin);
+PHP_FUNCTION(jit_insn_atan);
 
 PHP_FUNCTION(jit_insn_return);
 #else
@@ -422,6 +437,62 @@ PHP_FUNCTION(jit_insn_cmpg) {
 	
 	php_jit_do_binary_op(jit_insn_cmpg, zfunction, zin, return_value TSRMLS_CC);
 } /* }}} */
+
+/* {{{ jit_value_t jit_insn_to_bool(jit_function_t function, jit_value_t op1) */
+PHP_FUNCTION(jit_insn_to_bool) {
+	zval *zfunction, *zin;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_unary_op(jit_insn_to_bool, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_to_not_bool(jit_function_t function, jit_value_t op1) */
+PHP_FUNCTION(jit_insn_to_not_bool) {
+	zval *zfunction, *zin;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_unary_op(jit_insn_to_not_bool, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_acos(jit_function_t function, jit_value_t op1) */
+PHP_FUNCTION(jit_insn_acos) {
+	zval *zfunction, *zin;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_unary_op(jit_insn_acos, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_asin(jit_function_t function, jit_value_t op1) */
+PHP_FUNCTION(jit_insn_asin) {
+	zval *zfunction, *zin;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_unary_op(jit_insn_asin, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_atan(jit_function_t function, jit_value_t op1) */
+PHP_FUNCTION(jit_insn_atan) {
+	zval *zfunction, *zin;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_unary_op(jit_insn_atan, zfunction, zin, return_value TSRMLS_CC);
+} /* }}} */
+
 
 /* {{{ void jit_insn_return(jit_function_t function, jit_value_t result) */
 PHP_FUNCTION(jit_insn_return) {
