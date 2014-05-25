@@ -125,16 +125,17 @@ PHP_FUNCTION(jit_function_compile) {
 	jit_function_compile(function);
 } /* }}} */
 
-/* {{{ void jit_function_apply(jit_function_t function, array params [, array types]) */
+/* {{{ void jit_function_apply(jit_function_t function, array params, int returns) */
 PHP_FUNCTION(jit_function_apply) {
 	zval *zfunction, **zparam;
 	HashTable *zparams;
 	HashPosition position;
 	jit_function_t function;
 	void **args;
-	jit_int result;
+	void* result;
+	long zreturns;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rH", &zfunction, &zparams) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rHl", &zfunction, &zparams, &zreturns) != SUCCESS) {
 		return;
 	}
 	
@@ -166,7 +167,15 @@ PHP_FUNCTION(jit_function_apply) {
 	
 	jit_function_apply(function, args, &result);
 	
-
+	if (zreturns == (zend_ulong) jit_type_int) {
+		ZVAL_LONG(return_value, (long) result);
+	} else if ((zreturns == (zend_ulong) jit_type_void_ptr)) {
+		ZVAL_STRING(return_value, (char*)result, 1);
+	} else {
+		ZVAL_LONG(return_value, (long) result);
+	}
+	
+	efree(args);
 } /* }}} */
 #endif
 #endif

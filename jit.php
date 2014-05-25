@@ -30,7 +30,7 @@ jit_context_build_end($context);
 
 $start = microtime(true);
 for ($i = 0; $i<100000; $i++) {
-	jit_function_apply($function, [2, 8, 8]);
+	jit_function_apply($function, [2, 8, 8], JIT_TYPE_INT);
 }
 printf("jit: %.3f seconds\n", microtime(true) - $start);
 

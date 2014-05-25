@@ -33,40 +33,40 @@ PHP_FUNCTION(jit_insn_return);
 
 /* {{{ jit_value_t jit_insn_mul(jit_function_t function, jit_value_t op1, jit_value_t op2) */
 PHP_FUNCTION(jit_insn_mul) {
-	zval *resource, *in[2];
+	zval *zfunction, *zin[2];
 	jit_function_t function;
-	jit_value_t jin[2], jout;
+	jit_value_t in[2], result;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &resource, &in[0], &in[1]) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &resource, -1, le_jit_function_name, le_jit_function);
-	ZEND_FETCH_RESOURCE(jin[0], jit_value_t, &in[0], -1, le_jit_value_name, le_jit_value);
-	ZEND_FETCH_RESOURCE(jin[1], jit_value_t, &in[1], -1, le_jit_value_name, le_jit_value);
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(in[0], jit_value_t, &zin[0], -1, le_jit_value_name, le_jit_value);
+	ZEND_FETCH_RESOURCE(in[1], jit_value_t, &zin[1], -1, le_jit_value_name, le_jit_value);
 
-	jout = jit_insn_mul(function, jin[0], jin[1]);
+	result = jit_insn_mul(function, in[0], in[1]);
 	
-	ZEND_REGISTER_RESOURCE(return_value, jout, le_jit_value);
+	ZEND_REGISTER_RESOURCE(return_value, result, le_jit_value);
 } /* }}} */
 
 /* {{{ jit_value_t jit_insn_add(jit_function_t function, jit_value_t op1, jit_value_t op2) */
 PHP_FUNCTION(jit_insn_add) {
-	zval *resource, *in[2];
+	zval *zfunction, *zin[2];
 	jit_function_t function;
-	jit_value_t jin[2], jout;
+	jit_value_t in[2], result;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &resource, &in[0], &in[1]) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &resource, -1, le_jit_function_name, le_jit_function);
-	ZEND_FETCH_RESOURCE(jin[0], jit_value_t, &in[0], -1, le_jit_value_name, le_jit_value);
-	ZEND_FETCH_RESOURCE(jin[1], jit_value_t, &in[1], -1, le_jit_value_name, le_jit_value);
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(in[0], jit_value_t, &zin[0], -1, le_jit_value_name, le_jit_value);
+	ZEND_FETCH_RESOURCE(in[1], jit_value_t, &zin[1], -1, le_jit_value_name, le_jit_value);
 
-	jout = jit_insn_add(function, jin[0], jin[1]);
+	result = jit_insn_add(function, in[0], in[1]);
 	
-	ZEND_REGISTER_RESOURCE(return_value, jout, le_jit_value);
+	ZEND_REGISTER_RESOURCE(return_value, result, le_jit_value);
 } /* }}} */
 
 /* {{{ void jit_insn_return(jit_function_t function, jit_value_t result) */
