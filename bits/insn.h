@@ -886,7 +886,7 @@ PHP_FUNCTION(jit_insn_branch) {
 
 	jit_insn_branch(function, &label);
 	
-	ZEND_REGISTER_RESOURCE(return_value, &label, le_jit_label);
+	RETURN_LONG(label);
 } /* }}} */
 
 /* {{{ jit_label_t jit_insn_branch_if(jit_function_t function, jit_value_t op) */
@@ -905,7 +905,7 @@ PHP_FUNCTION(jit_insn_branch_if) {
 
 	jit_insn_branch_if(function, in, &label);
 	
-	ZEND_REGISTER_RESOURCE(return_value, &label, le_jit_label);
+	RETURN_LONG(label);
 } /* }}} */
 
 /* {{{ jit_label_t jit_insn_branch_if_not(jit_function_t function, jit_value_t op) */
@@ -924,23 +924,22 @@ PHP_FUNCTION(jit_insn_branch_if_not) {
 
 	jit_insn_branch_if_not(function, in, &label);
 	
-	ZEND_REGISTER_RESOURCE(return_value, &label, le_jit_label);
+	RETURN_LONG(label);
 } /* }}} */
 
-/* {{{ jit_label_t jit_insn_label(jit_function_t function, jit_label_t label) */
+/* {{{ int jit_insn_label(jit_function_t function, jit_label_t label) */
 PHP_FUNCTION(jit_insn_label) {
 	zval *zfunction, *zin;
 	jit_function_t function;
-	jit_label_t *label;
+	jit_label_t label;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zfunction, &label) != SUCCESS) {
 		return;
 	}
 	
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-	ZEND_FETCH_RESOURCE(label, jit_label_t*, &zin, -1, le_jit_label_name, le_jit_label);
 
-	jit_insn_label(function, label);
+	RETURN_LONG(jit_insn_label(function, &label));
 } /* }}} */
 
 /* {{{ void jit_insn_return(jit_function_t function, jit_value_t result) */
@@ -956,7 +955,7 @@ PHP_FUNCTION(jit_insn_return) {
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 	ZEND_FETCH_RESOURCE(result, jit_value_t, &zresult, -1, le_jit_value_name, le_jit_value);
 
-	jit_insn_return(function, result);
+	RETURN_LONG(jit_insn_return(function, result));
 } /* }}} */
 #endif
 #endif
