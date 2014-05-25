@@ -139,8 +139,8 @@ PHP_JIT_UNARY_ARGINFO(jit_insn_is_nan_arginfo)
 PHP_JIT_UNARY_ARGINFO(jit_insn_is_finite_arginfo)
 PHP_JIT_UNARY_ARGINFO(jit_insn_is_inf_arginfo)
 PHP_JIT_UNARY_ARGINFO(jit_insn_abs_arginfo)
-PHP_JIT_UNARY_ARGINFO(jit_insn_min_arginfo)
-PHP_JIT_UNARY_ARGINFO(jit_insn_max_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_min_arginfo)
+PHP_JIT_BINARY_ARGINFO(jit_insn_max_arginfo)
 PHP_JIT_UNARY_ARGINFO(jit_insn_sign_arginfo)
 
 ZEND_BEGIN_ARG_INFO_EX(jit_insn_return_arginfo, 0, 0, 2)
@@ -198,6 +198,10 @@ PHP_FUNCTION(jit_insn_trunc);
 PHP_FUNCTION(jit_insn_is_nan);
 PHP_FUNCTION(jit_insn_is_finite);
 PHP_FUNCTION(jit_insn_is_inf);
+PHP_FUNCTION(jit_insn_min);
+PHP_FUNCTION(jit_insn_max);
+PHP_FUNCTION(jit_insn_abs);
+PHP_FUNCTION(jit_insn_sign);
 
 PHP_FUNCTION(jit_insn_return);
 #else
@@ -795,26 +799,26 @@ PHP_FUNCTION(jit_insn_abs) {
 	php_jit_do_unary_op(jit_insn_abs, zfunction, zin, return_value TSRMLS_CC);
 } /* }}} */
 
-/* {{{ jit_value_t jit_insn_min(jit_function_t function, jit_value_t op1) */
+/* {{{ jit_value_t jit_insn_min(jit_function_t function, jit_value_t op1, jit_value_t op2) */
 PHP_FUNCTION(jit_insn_min) {
-	zval *zfunction, *zin;
+	zval *zfunction, *zin[2];
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_min, zfunction, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_min, zfunction, zin, return_value TSRMLS_CC);
 } /* }}} */
 
-/* {{{ jit_value_t jit_insn_max(jit_function_t function, jit_value_t op1) */
+/* {{{ jit_value_t jit_insn_max(jit_function_t function, jit_value_t op1, jit_value_t op2) */
 PHP_FUNCTION(jit_insn_max) {
-	zval *zfunction, *zin;
+	zval *zfunction, *zin[2];
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zfunction, &zin[0], &zin[1]) != SUCCESS) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_max, zfunction, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_max, zfunction, zin, return_value TSRMLS_CC);
 } /* }}} */
 
 /* {{{ jit_value_t jit_insn_sign(jit_function_t function, jit_value_t op1) */
