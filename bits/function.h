@@ -20,9 +20,12 @@
 
 #define PHP_JIT_FUNCTION_FUNCTIONS \
 	JIT_FE(jit_function_create) \
+	JIT_FE(jit_function_create_nested) \
+	JIT_FE(jit_function_get_nested_parent) \
 	JIT_FE(jit_function_get_context) \
 	JIT_FE(jit_function_abandon) \
 	JIT_FE(jit_function_compile) \
+	JIT_FE(jit_function_is_compiled) \
 	JIT_FE(jit_function_apply)
 
 static const char *le_jit_function_name = "jit function";
@@ -40,6 +43,16 @@ ZEND_BEGIN_ARG_INFO_EX(jit_function_create_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, signature)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jit_function_create_nested_arginfo, 0, 0, 2)
+	ZEND_ARG_INFO(0, context)
+	ZEND_ARG_INFO(0, signature)
+	ZEND_ARG_INFO(0, parent)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_function_get_nested_parent_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, function)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(jit_function_get_context_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, function)
 ZEND_END_ARG_INFO()
@@ -52,16 +65,23 @@ ZEND_BEGIN_ARG_INFO_EX(jit_function_compile_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, function)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(jit_function_apply_arginfo, 0, 0, 2)
+ZEND_BEGIN_ARG_INFO_EX(jit_function_is_compiled_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, function)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_function_apply_arginfo, 0, 0, 3)
 	ZEND_ARG_INFO(0, function)
 	ZEND_ARG_INFO(0, params)
-	ZEND_ARG_INFO(0, types)
+	ZEND_ARG_INFO(0, returns)
 ZEND_END_ARG_INFO()
 
 PHP_FUNCTION(jit_function_create);
+PHP_FUNCTION(jit_function_create_nested);
+PHP_FUNCTION(jit_function_get_nested_parent);
 PHP_FUNCTION(jit_function_get_context);
 PHP_FUNCTION(jit_function_abandon);
 PHP_FUNCTION(jit_function_compile);
+PHP_FUNCTION(jit_function_is_compiled);
 PHP_FUNCTION(jit_function_apply);
 
 #else
@@ -98,6 +118,56 @@ PHP_FUNCTION(jit_function_create) {
 			(zend_ulong) function, 
 			&return_value, sizeof(zval*), NULL);
 		Z_ADDREF_P(return_value);
+	}
+} /* }}} */
+
+/* {{{ jit_function_t jit_function_create_nested(jit_context_t context, jit_type_t signature, jit_function_t parent) */
+PHP_FUNCTION(jit_function_create_nested) {
+	zval *zcontext;
+	zval *zsignature;
+	zval *zparent;
+	jit_context_t  context;
+	jit_function_t function, parent;
+	jit_type_t     signature;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zcontext, &zsignature, &zparent) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(context,    jit_context_t,     &zcontext,   -1,  le_jit_context_name,  le_jit_context);
+	ZEND_FETCH_RESOURCE(signature,  jit_type_t,        &zsignature, -1,  le_jit_type_name,     le_jit_type);
+	ZEND_FETCH_RESOURCE(parent,     jit_function_t,    &zparent,    -1,  le_jit_function_name, le_jit_function);
+	
+	function = jit_function_create_nested(context, signature, parent);
+	
+	ZEND_REGISTER_RESOURCE(return_value, function, le_jit_function);
+	
+	if (Z_TYPE_P(return_value) == IS_RESOURCE) {
+		zend_hash_index_update(
+			&JG(func), 
+			(zend_ulong) function, 
+			&return_value, sizeof(zval*), NULL);
+		Z_ADDREF_P(return_value);
+	}
+} /* }}} */
+
+/* {{{ jit_function_t jit_function_get_nested_parent(jit_function_t function) */
+PHP_FUNCTION(jit_function_get_nested_parent) {
+	zval *zfunction, **zparent;
+	jit_function_t function, parent;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function,     jit_function_t,    &zfunction,    -1,  le_jit_function_name, le_jit_function);
+	
+	parent = jit_function_get_nested_parent(function);
+	
+	if (zend_hash_index_find(
+		&JG(func),
+		(zend_ulong) parent, (void**) &zparent) == SUCCESS) {
+		ZVAL_ZVAL(return_value, *zparent, 1, 0);
 	}
 } /* }}} */
 
@@ -148,6 +218,20 @@ PHP_FUNCTION(jit_function_compile) {
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 	
 	jit_function_compile(function);
+} /* }}} */
+
+/* {{{ bool jit_function_is_compiled(jit_function_t function) */
+PHP_FUNCTION(jit_function_is_compiled) {
+	zval *zfunction;
+	jit_function_t function;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	
+	RETURN_BOOL(jit_function_is_compiled(function));
 } /* }}} */
 
 /* {{{ void jit_function_apply(jit_function_t function, array params, int returns) */
