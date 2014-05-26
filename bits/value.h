@@ -28,7 +28,12 @@
 	JIT_FE(jit_value_is_temporary) \
 	JIT_FE(jit_value_is_local) \
 	JIT_FE(jit_value_is_constant) \
-	JIT_FE(jit_value_is_parameter)
+	JIT_FE(jit_value_is_parameter) \
+	JIT_FE(jit_value_set_volatile) \
+	JIT_FE(jit_value_is_volatile) \
+	JIT_FE(jit_value_set_addressable) \
+	JIT_FE(jit_value_is_addressable) \
+	JIT_FE(jit_value_get_type)
 
 static const char *le_jit_value_name = "jit value";
 static       int   le_jit_value;
@@ -86,6 +91,26 @@ ZEND_BEGIN_ARG_INFO_EX(jit_value_is_parameter_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, value)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jit_value_set_volatile_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_value_is_volatile_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_value_set_addressable_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_value_is_addressable_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_value_get_type_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
 PHP_FUNCTION(jit_value_get_param);
 PHP_FUNCTION(jit_value_create_long_constant);
 PHP_FUNCTION(jit_value_create_nint_constant);
@@ -96,6 +121,11 @@ PHP_FUNCTION(jit_value_is_temporary);
 PHP_FUNCTION(jit_value_is_local);
 PHP_FUNCTION(jit_value_is_constant);
 PHP_FUNCTION(jit_value_is_parameter);
+PHP_FUNCTION(jit_value_set_volatile);
+PHP_FUNCTION(jit_value_is_volatile);
+PHP_FUNCTION(jit_value_set_addressable);
+PHP_FUNCTION(jit_value_is_addressable);
+PHP_FUNCTION(jit_value_get_type);
 #else
 #ifndef HAVE_BITS_VALUE
 #define HAVE_BITS_VALUE
@@ -267,6 +297,79 @@ PHP_FUNCTION(jit_value_is_parameter) {
 	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
 	RETURN_BOOL(jit_value_is_parameter(value));
+} /* }}} */
+
+/* {{{ void jit_value_set_volatile(jit_value_t value) */
+PHP_FUNCTION(jit_value_set_volatile) {
+	zval *zvalue;
+	jit_value_t value;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
+	
+	jit_value_set_volatile(value);
+} /* }}} */
+
+/* {{{ bool jit_value_is_volatile(jit_value_t value) */
+PHP_FUNCTION(jit_value_is_volatile) {
+	zval *zvalue;
+	jit_value_t value;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
+	
+	RETURN_BOOL(jit_value_is_volatile(value));
+} /* }}} */
+
+/* {{{ void jit_value_set_addressable(jit_value_t value) */
+PHP_FUNCTION(jit_value_set_addressable) {
+	zval *zvalue;
+	jit_value_t value;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
+	
+	jit_value_set_addressable(value);
+} /* }}} */
+
+/* {{{ bool jit_value_is_addressable(jit_value_t value) */
+PHP_FUNCTION(jit_value_is_addressable) {
+	zval *zvalue;
+	jit_value_t value;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
+	
+	RETURN_BOOL(jit_value_is_addressable(value));
+} /* }}} */
+
+/* {{{ jit_type_t jit_value_get_type(jit_value_t value) */
+PHP_FUNCTION(jit_value_get_type) {
+	zval *zvalue;
+	jit_value_t value;
+	jit_type_t type;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
+	
+	type = jit_value_get_type(value);
+	
+	ZEND_REGISTER_RESOURCE(return_value, type, le_jit_type);
 } /* }}} */
 #endif
 #endif
