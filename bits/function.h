@@ -24,8 +24,13 @@
 	JIT_FE(jit_function_get_nested_parent) \
 	JIT_FE(jit_function_get_context) \
 	JIT_FE(jit_function_abandon) \
+	JIT_FE(jit_function_set_recompilable) \
+	JIT_FE(jit_function_clear_recompilable) \
 	JIT_FE(jit_function_compile) \
 	JIT_FE(jit_function_is_compiled) \
+	JIT_FE(jit_function_set_optimization_level) \
+	JIT_FE(jit_function_get_optimization_level) \
+	JIT_FE(jit_function_get_max_optimization_level) \
 	JIT_FE(jit_function_apply)
 
 static const char *le_jit_function_name = "jit function";
@@ -61,12 +66,36 @@ ZEND_BEGIN_ARG_INFO_EX(jit_function_abandon_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, function)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jit_function_set_recompilable_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, function)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_function_clear_recompilable_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, function)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_function_is_recompilable_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, function)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(jit_function_compile_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, function)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(jit_function_is_compiled_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, function)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_function_set_optimization_level_arginfo, 0, 0, 2)
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, level)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_function_get_optimization_level_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, function)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_function_get_max_optimization_level_arginfo, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(jit_function_apply_arginfo, 0, 0, 3)
@@ -80,8 +109,14 @@ PHP_FUNCTION(jit_function_create_nested);
 PHP_FUNCTION(jit_function_get_nested_parent);
 PHP_FUNCTION(jit_function_get_context);
 PHP_FUNCTION(jit_function_abandon);
+PHP_FUNCTION(jit_function_set_recompilable);
+PHP_FUNCTION(jit_function_clear_recompilable);
+PHP_FUNCTION(jit_function_is_recompilable);
 PHP_FUNCTION(jit_function_compile);
 PHP_FUNCTION(jit_function_is_compiled);
+PHP_FUNCTION(jit_function_set_optimization_level);
+PHP_FUNCTION(jit_function_get_optimization_level);
+PHP_FUNCTION(jit_function_get_max_optimization_level);
 PHP_FUNCTION(jit_function_apply);
 
 #else
@@ -206,7 +241,49 @@ PHP_FUNCTION(jit_function_abandon) {
 	jit_function_abandon(function);
 } /* }}} */
 
-/* {{{ void jit_function_compile(jit_function_t function) */
+/* {{{ void jit_function_set_recompilable(jit_function_t function) */
+PHP_FUNCTION(jit_function_set_recompilable) {
+	zval *zfunction;
+	jit_function_t function;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	
+	jit_function_set_recompilable(function);
+} /* }}} */
+
+/* {{{ void jit_function_clear_recompilable(jit_function_t function) */
+PHP_FUNCTION(jit_function_clear_recompilable) {
+	zval *zfunction;
+	jit_function_t function;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	
+	jit_function_clear_recompilable(function);
+} /* }}} */
+
+/* {{{ bool jit_function_is_recompilable(jit_function_t function) */
+PHP_FUNCTION(jit_function_is_recompilable) {
+	zval *zfunction;
+	jit_function_t function;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	
+	RETURN_BOOL(jit_function_is_recompilable(function));
+} /* }}} */
+
+/* {{{ int jit_function_compile(jit_function_t function) */
 PHP_FUNCTION(jit_function_compile) {
 	zval *zfunction;
 	jit_function_t function;
@@ -217,7 +294,7 @@ PHP_FUNCTION(jit_function_compile) {
 	
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 	
-	jit_function_compile(function);
+	RETURN_LONG(jit_function_compile(function));
 } /* }}} */
 
 /* {{{ bool jit_function_is_compiled(jit_function_t function) */
@@ -232,6 +309,45 @@ PHP_FUNCTION(jit_function_is_compiled) {
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 	
 	RETURN_BOOL(jit_function_is_compiled(function));
+} /* }}} */
+
+/* {{{ void jit_function_set_optimization_level(jit_function_t function, int level) */
+PHP_FUNCTION(jit_function_set_optimization_level) {
+	zval *zfunction;
+	jit_function_t function;
+	long level = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zfunction, &level) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	
+	jit_function_set_optimization_level(function, level);
+} /* }}} */
+
+/* {{{ int jit_function_get_optimization_level(jit_function_t function) */
+PHP_FUNCTION(jit_function_get_optimization_level) {
+	zval *zfunction;
+	jit_function_t function;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	
+	RETURN_LONG(jit_function_get_optimization_level(function));
+} /* }}} */
+
+/* {{{ int jit_function_get_max_optimization_level(void) */
+PHP_FUNCTION(jit_function_get_max_optimization_level) {
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	RETURN_LONG(jit_function_get_max_optimization_level());
 } /* }}} */
 
 /* {{{ void jit_function_apply(jit_function_t function, array params, int returns) */
