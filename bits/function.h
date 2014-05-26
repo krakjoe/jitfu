@@ -31,7 +31,9 @@
 	JIT_FE(jit_function_set_optimization_level) \
 	JIT_FE(jit_function_get_optimization_level) \
 	JIT_FE(jit_function_get_max_optimization_level) \
-	JIT_FE(jit_function_apply)
+	JIT_FE(jit_function_apply) \
+	JIT_FE(jit_function_reserve_label) \
+	JIT_FE(jit_function_labels_equal)
 
 static const char *le_jit_function_name = "jit function";
 static       int   le_jit_function;
@@ -104,6 +106,16 @@ ZEND_BEGIN_ARG_INFO_EX(jit_function_apply_arginfo, 0, 0, 3)
 	ZEND_ARG_INFO(0, returns)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jit_function_reserve_label_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, function)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_function_labels_equal_arginfo, 0, 0, 3)
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, label1)
+	ZEND_ARG_INFO(0, label2)
+ZEND_END_ARG_INFO()
+
 PHP_FUNCTION(jit_function_create);
 PHP_FUNCTION(jit_function_create_nested);
 PHP_FUNCTION(jit_function_get_nested_parent);
@@ -118,7 +130,8 @@ PHP_FUNCTION(jit_function_set_optimization_level);
 PHP_FUNCTION(jit_function_get_optimization_level);
 PHP_FUNCTION(jit_function_get_max_optimization_level);
 PHP_FUNCTION(jit_function_apply);
-
+PHP_FUNCTION(jit_function_reserve_label);
+PHP_FUNCTION(jit_function_labels_equal);
 #else
 #ifndef HAVE_BITS_FUNCTION
 #define HAVE_BITS_FUNCTION
@@ -401,6 +414,36 @@ PHP_FUNCTION(jit_function_apply) {
 	}
 	
 	efree(args);
+} /* }}} */
+
+/* {{{ jit_label_t jit_function_reserve_label(jit_function_t function) */
+PHP_FUNCTION(jit_function_reserve_label) {
+	zval *zfunction;
+	jit_function_t function;
+	jit_label_t label;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	
+	RETURN_LONG(jit_function_reserve_label(function));
+} /* }}} */
+
+/* {{{ bool jit_function_labels_equal(jit_function_t function, jit_label_t label1, jit_label_t label2) */
+PHP_FUNCTION(jit_function_labels_equal) {
+	zval *zfunction, *zlabel1, *zlabel2;
+	jit_function_t function;
+	jit_label_t label1, label2;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &zfunction, &zlabel1, &zlabel2) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	
+	RETURN_BOOL(jit_function_labels_equal(function, label1, label2));
 } /* }}} */
 #endif
 #endif
