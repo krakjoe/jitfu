@@ -46,6 +46,7 @@ PHP_MINFO_FUNCTION(jit);
 
 ZEND_BEGIN_MODULE_GLOBALS(jit)
 	HashTable ctx;
+	HashTable func;
 ZEND_END_MODULE_GLOBALS(jit)
 
 #define PHP_JIT_EXTNAME "jit"

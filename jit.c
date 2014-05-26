@@ -93,6 +93,7 @@ PHP_MINIT_FUNCTION(jit)
 	php_jit_minit_insn(module_number TSRMLS_CC);	
 
 	zend_hash_init(&JG(ctx), 8, NULL, NULL, 1);
+	zend_hash_init(&JG(func), 8, NULL, NULL, 1);
 	
 	return SUCCESS;
 }
@@ -103,6 +104,7 @@ PHP_MINIT_FUNCTION(jit)
 PHP_MSHUTDOWN_FUNCTION(jit)
 {	
 	zend_hash_destroy(&JG(ctx));
+	zend_hash_destroy(&JG(func));
 	
 	return SUCCESS;
 }

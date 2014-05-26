@@ -91,6 +91,14 @@ PHP_FUNCTION(jit_function_create) {
 	function = jit_function_create(context, signature);
 	
 	ZEND_REGISTER_RESOURCE(return_value, function, le_jit_function);
+	
+	if (Z_TYPE_P(return_value) == IS_RESOURCE) {
+		zend_hash_index_update(
+			&JG(func), 
+			(zend_ulong) function, 
+			&return_value, sizeof(zval*), NULL);
+		Z_ADDREF_P(return_value);
+	}
 } /* }}} */
 
 /* {{{ jit_context_t jit_function_get_context(jit_function_t function) */

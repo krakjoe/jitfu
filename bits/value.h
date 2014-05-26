@@ -406,7 +406,7 @@ PHP_FUNCTION(jit_value_get_type) {
 
 /* {{{ jit_function_t jit_value_get_function(jit_value_t value) */
 PHP_FUNCTION(jit_value_get_function) {
-	zval *zvalue;
+	zval *zvalue, **zfunction;
 	jit_value_t value;
 	jit_function_t function;
 	
@@ -418,7 +418,11 @@ PHP_FUNCTION(jit_value_get_function) {
 	
 	function = jit_value_get_function(value);
 	
-	ZEND_REGISTER_RESOURCE(return_value, function, le_jit_function);
+	if (zend_hash_index_find(
+		&JG(func),
+		(zend_ulong) function, (void**) &zfunction) == SUCCESS) {
+		ZVAL_ZVAL(return_value, *zfunction, 1, 0);
+	}
 } /* }}} */
 
 /* {{{ jit_context_t jit_value_get_context(jit_value_t value) */
