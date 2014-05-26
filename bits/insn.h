@@ -84,6 +84,10 @@
 	JIT_FE(jit_insn_outgoing_reg) \
 	JIT_FE(jit_insn_return_reg) \
 	JIT_FE(jit_insn_setup_for_nested) \
+	JIT_FE(jit_insn_flush_struct) \
+	JIT_FE(jit_insn_push) \
+	JIT_FE(jit_insn_push_ptr) \
+	JIT_FE(jit_insn_import) \
 	JIT_FE(jit_insn_return)
 
 #define PHP_JIT_BINARY_ARGINFO(n) \
@@ -215,6 +219,27 @@ ZEND_BEGIN_ARG_INFO_EX(jit_insn_setup_for_nested_arginfo, 0, 0, 3)
 	ZEND_ARG_INFO(0, reg)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jit_insn_flush_struct_arginfo, 0, 0, 2)
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_insn_import_arginfo, 0, 0, 2)
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_insn_push_arginfo, 0, 0, 2)
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_insn_push_ptr_arginfo, 0, 0, 3)
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, value)
+	ZEND_ARG_INFO(0, type)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(jit_insn_return_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, function)
 	ZEND_ARG_INFO(0, result)
@@ -285,6 +310,10 @@ PHP_FUNCTION(jit_insn_incoming_reg);
 PHP_FUNCTION(jit_insn_outgoing_reg);
 PHP_FUNCTION(jit_insn_return_reg);
 PHP_FUNCTION(jit_insn_setup_for_nested);
+PHP_FUNCTION(jit_insn_flush_struct);
+PHP_FUNCTION(jit_insn_import);
+PHP_FUNCTION(jit_insn_push);
+PHP_FUNCTION(jit_insn_push_ptr);
 
 PHP_FUNCTION(jit_insn_return);
 
@@ -1164,6 +1193,77 @@ PHP_FUNCTION(jit_insn_setup_for_nested) {
 	ZEND_FETCH_RESOURCE(function,  jit_function_t, &zfunction,  -1, le_jit_function_name, le_jit_function);
 	
 	RETURN_LONG(jit_insn_setup_for_nested(function, level, reg));
+} /* }}} */
+
+/* {{{ int jit_insn_flush_struct(jit_function_t function, jit_value_t value) */
+PHP_FUNCTION(jit_insn_flush_struct) {
+	zval *zfunction, *zvalue;
+	jit_function_t function;
+	jit_value_t value;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zvalue) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function,  jit_function_t, &zfunction,  -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(value,     jit_value_t,    &zvalue,     -1, le_jit_value_name,    le_jit_value);
+	
+	RETURN_LONG(jit_insn_flush_struct(function, value));
+} /* }}} */
+
+/* {{{ jit_value_t jit_insn_import(jit_function_t function, jit_value_t value) */
+PHP_FUNCTION(jit_insn_import) {
+	zval *zfunction, *zvalue;
+	jit_function_t function;
+	jit_value_t value, import;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zvalue) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function,  jit_function_t, &zfunction,  -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(value,     jit_value_t,    &zvalue,     -1, le_jit_value_name,    le_jit_value);
+	
+	import = jit_insn_import(function, value);
+	
+	ZEND_REGISTER_RESOURCE(return_value, import, le_jit_value);
+} /* }}} */
+
+/* {{{ int jit_insn_push(jit_function_t function, jit_value_t value) */
+PHP_FUNCTION(jit_insn_push) {
+	zval *zfunction, *zvalue;
+	jit_function_t function;
+	jit_value_t value;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zfunction, &zvalue) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function,  jit_function_t, &zfunction,  -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(value,     jit_value_t,    &zvalue,     -1, le_jit_value_name,    le_jit_value);
+	
+	RETURN_LONG(jit_insn_push(function, value));
+} /* }}} */
+
+/* {{{ int jit_insn_push_ptr(jit_function_t function, jit_value_t value, jit_type_t type) */
+PHP_FUNCTION(jit_insn_push_ptr) {
+	zval *zfunction, *zvalue, *ztype;
+	jit_function_t function;
+	jit_value_t value;
+	jit_type_t type;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrz", &zfunction, &zvalue, &ztype) != SUCCESS) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(function,  jit_function_t, &zfunction,  -1, le_jit_function_name, le_jit_function);
+	ZEND_FETCH_RESOURCE(value,     jit_value_t,    &zvalue,     -1, le_jit_value_name,    le_jit_value);
+	
+	if (Z_TYPE_P(ztype) == IS_LONG) {
+		type = (jit_type_t) Z_LVAL_P(ztype);
+	} else ZEND_FETCH_RESOURCE(type, jit_type_t, &ztype, -1, le_jit_type_name, le_jit_type);
+	
+	RETURN_LONG(jit_insn_push_ptr(function, value, type));
 } /* }}} */
 
 /* {{{ void jit_insn_return(jit_function_t function, jit_value_t result) */
