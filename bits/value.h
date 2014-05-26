@@ -33,7 +33,10 @@
 	JIT_FE(jit_value_is_volatile) \
 	JIT_FE(jit_value_set_addressable) \
 	JIT_FE(jit_value_is_addressable) \
-	JIT_FE(jit_value_get_type)
+	JIT_FE(jit_value_is_true) \
+	JIT_FE(jit_value_get_type) \
+	JIT_FE(jit_value_get_function) \
+	JIT_FE(jit_value_get_context)
 
 static const char *le_jit_value_name = "jit value";
 static       int   le_jit_value;
@@ -107,7 +110,19 @@ ZEND_BEGIN_ARG_INFO_EX(jit_value_is_addressable_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, value)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jit_value_is_true_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(jit_value_get_type_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_value_get_function_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jit_value_get_context_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, value)
 ZEND_END_ARG_INFO()
 
@@ -125,7 +140,10 @@ PHP_FUNCTION(jit_value_set_volatile);
 PHP_FUNCTION(jit_value_is_volatile);
 PHP_FUNCTION(jit_value_set_addressable);
 PHP_FUNCTION(jit_value_is_addressable);
+PHP_FUNCTION(jit_value_is_true);
 PHP_FUNCTION(jit_value_get_type);
+PHP_FUNCTION(jit_value_get_function);
+PHP_FUNCTION(jit_value_get_context);
 #else
 #ifndef HAVE_BITS_VALUE
 #define HAVE_BITS_VALUE
@@ -355,6 +373,20 @@ PHP_FUNCTION(jit_value_is_addressable) {
 	RETURN_BOOL(jit_value_is_addressable(value));
 } /* }}} */
 
+/* {{{ bool jit_value_is_true(jit_value_t value) */
+PHP_FUNCTION(jit_value_is_true) {
+	zval *zvalue;
+	jit_value_t value;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
+	
+	RETURN_BOOL(jit_value_is_true(value));
+} /* }}} */
+
 /* {{{ jit_type_t jit_value_get_type(jit_value_t value) */
 PHP_FUNCTION(jit_value_get_type) {
 	zval *zvalue;
@@ -370,6 +402,44 @@ PHP_FUNCTION(jit_value_get_type) {
 	type = jit_value_get_type(value);
 	
 	ZEND_REGISTER_RESOURCE(return_value, type, le_jit_type);
+} /* }}} */
+
+/* {{{ jit_function_t jit_value_get_function(jit_value_t value) */
+PHP_FUNCTION(jit_value_get_function) {
+	zval *zvalue;
+	jit_value_t value;
+	jit_function_t function;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
+	
+	function = jit_value_get_function(value);
+	
+	ZEND_REGISTER_RESOURCE(return_value, function, le_jit_function);
+} /* }}} */
+
+/* {{{ jit_context_t jit_value_get_context(jit_value_t value) */
+PHP_FUNCTION(jit_value_get_context) {
+	zval *zvalue, **zcontext;
+	jit_value_t value;
+	jit_context_t context;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
+	
+	context = jit_value_get_context(value);
+	
+	if (zend_hash_index_find(
+		&JG(ctx),
+		(zend_ulong) context, (void**) &zcontext) == SUCCESS) {
+		ZVAL_ZVAL(return_value, *zcontext, 1, 0);
+	}
 } /* }}} */
 #endif
 #endif
