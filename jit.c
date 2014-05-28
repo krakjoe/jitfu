@@ -38,6 +38,7 @@ ZEND_DECLARE_MODULE_GLOBALS(jit)
 #include "bits/function.h"
 #include "bits/value.h"
 #include "bits/insn.h"
+#include "bits/block.h"
 
 /* {{{ jit_functions[]
  */
@@ -47,6 +48,7 @@ const zend_function_entry jit_functions[] = {
 	PHP_JIT_FUNCTION_FUNCTIONS
 	PHP_JIT_VALUE_FUNCTIONS
 	PHP_JIT_INSN_FUNCTIONS
+	PHP_JIT_BLOCK_FUNCTIONS
 	PHP_FE_END
 };
 /* }}} */
@@ -90,7 +92,8 @@ PHP_MINIT_FUNCTION(jit)
 	php_jit_minit_type(module_number TSRMLS_CC);
 	php_jit_minit_function(module_number TSRMLS_CC);
 	php_jit_minit_value(module_number TSRMLS_CC);
-	php_jit_minit_insn(module_number TSRMLS_CC);	
+	php_jit_minit_insn(module_number TSRMLS_CC);
+	php_jit_minit_block(module_number TSRMLS_CC);
 
 	zend_hash_init(&JG(ctx), 8, NULL, NULL, 1);
 	zend_hash_init(&JG(func), 8, NULL, NULL, 1);
@@ -141,6 +144,7 @@ PHP_MINFO_FUNCTION(jit)
 #include "bits/function.h"
 #include "bits/value.h"
 #include "bits/insn.h"
+#include "bits/block.h"
 
 /*
  * Local variables:
