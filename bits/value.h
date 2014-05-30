@@ -20,11 +20,7 @@
 
 #define PHP_JIT_VALUE_FUNCTIONS \
 	JIT_FE(jit_value_get_param) \
-	JIT_FE(jit_value_create_long_constant) \
-	JIT_FE(jit_value_create_nint_constant) \
-	JIT_FE(jit_value_create_float32_constant) \
-	JIT_FE(jit_value_create_float64_constant) \
-	JIT_FE(jit_value_create_nfloat_constant) \
+	JIT_FE(jit_value_create_constant) \
 	JIT_FE(jit_value_is_temporary) \
 	JIT_FE(jit_value_is_local) \
 	JIT_FE(jit_value_is_constant) \
@@ -53,29 +49,10 @@ ZEND_BEGIN_ARG_INFO_EX(jit_value_get_param_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, param)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(jit_value_create_long_constant_arginfo, 0, 0, 2)
+ZEND_BEGIN_ARG_INFO_EX(jit_value_create_constant_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_INFO(0, long)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_create_nint_constant_arginfo, 0, 0, 2)
-	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_INFO(0, nint)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_create_float32_constant_arginfo, 0, 0, 2)
-	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_INFO(0, float32)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_create_float64_constant_arginfo, 0, 0, 2)
-	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_INFO(0, float64)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_create_nfloat_constant_arginfo, 0, 0, 2)
-	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_INFO(0, nfloat)
+	ZEND_ARG_INFO(0, variable)
+	ZEND_ARG_INFO(0, type)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(jit_value_is_temporary_arginfo, 0, 0, 1)
@@ -127,11 +104,7 @@ ZEND_BEGIN_ARG_INFO_EX(jit_value_get_context_arginfo, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 PHP_FUNCTION(jit_value_get_param);
-PHP_FUNCTION(jit_value_create_long_constant);
-PHP_FUNCTION(jit_value_create_nint_constant);
-PHP_FUNCTION(jit_value_create_float32_constant);
-PHP_FUNCTION(jit_value_create_float64_constant);
-PHP_FUNCTION(jit_value_create_nfloat_constant);
+PHP_FUNCTION(jit_value_create_constant);
 PHP_FUNCTION(jit_value_is_temporary);
 PHP_FUNCTION(jit_value_is_local);
 PHP_FUNCTION(jit_value_is_constant);
@@ -184,7 +157,7 @@ PHP_FUNCTION(jit_value_create_long_constant) {
 
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 
-	value = jit_value_create_long_constant(function, (jit_type_t) type, num);
+	value = jit_value_create_long_constant(function, php_jit_type(type), num);
 
 	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
 } /* }}} */
@@ -202,7 +175,7 @@ PHP_FUNCTION(jit_value_create_nint_constant) {
 
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 
-	value = jit_value_create_nint_constant(function, (jit_type_t) type, num);
+	value = jit_value_create_nint_constant(function, php_jit_type(type), num);
 
 	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
 } /* }}} */
@@ -220,7 +193,7 @@ PHP_FUNCTION(jit_value_create_float32_constant) {
 
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 
-	value = jit_value_create_float32_constant(function, (jit_type_t) type, num);
+	value = jit_value_create_float32_constant(function, php_jit_type(type), num);
 
 	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
 } /* }}} */
@@ -238,7 +211,7 @@ PHP_FUNCTION(jit_value_create_float64_constant) {
 
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 
-	value = jit_value_create_float64_constant(function, (jit_type_t) type, num);
+	value = jit_value_create_float64_constant(function, php_jit_type(type), num);
 
 	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
 } /* }}} */
@@ -256,8 +229,62 @@ PHP_FUNCTION(jit_value_create_nfloat_constant) {
 
 	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
 
-	value = jit_value_create_nfloat_constant(function, (jit_type_t) type, num);
+	value = jit_value_create_nfloat_constant(function, php_jit_type(type), num);
 
+	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
+} /* }}} */
+
+/* {{{ jit_value_t jit_value_create_constant(jit_function_t function, mixed variable [, jit_type_t type]) */
+PHP_FUNCTION(jit_value_create_constant) {
+	zval *zfunction, *zvariable, *ztype;
+	jit_function_t function;
+	jit_value_t value;
+	jit_type_t type = (void*) -1;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rz|z", &zfunction, &zvariable, &ztype) != SUCCESS) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+
+	if (ztype) {
+		switch (Z_TYPE_P(ztype)) {
+			case IS_RESOURCE: 
+				ZEND_FETCH_RESOURCE(type, jit_type_t, &ztype, -1, le_jit_type_name, le_jit_type);	
+			break;
+			
+			case IS_LONG:
+				type = php_jit_type(Z_LVAL_P(ztype));
+			break;
+		}
+	}
+
+	switch (Z_TYPE_P(zvariable)) {
+		case IS_LONG:
+			if (type == (void*) -1)
+				type = jit_type_sys_long;
+			
+			value = jit_value_create_long_constant(function, type, Z_LVAL_P(zvariable));
+		break;
+		
+		case IS_DOUBLE:
+			if (type == (void*) -1) 
+				type = jit_type_sys_double;
+			
+			value = jit_value_create_nfloat_constant(function, type, Z_DVAL_P(zvariable));
+		break;
+		
+		default: {
+			jit_constant_t con;
+			jit_type_t typed = jit_type_create_pointer(jit_type_sys_char, 0);
+
+			con.un.ptr_value = Z_STRVAL_P(zvariable);
+			con.type         = typed;
+			
+			value = jit_value_create_constant(function, &con);
+		}
+	}
+	
 	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
 } /* }}} */
 

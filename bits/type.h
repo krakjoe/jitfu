@@ -31,30 +31,42 @@ static       int   le_jit_type;
 
 ZEND_RSRC_DTOR_FUNC(php_jit_type_dtor);
 
+#define PHP_JIT_TYPE_VOID  		1
+#define PHP_JIT_TYPE_CHAR		2
+#define PHP_JIT_TYPE_INT		3
+#define PHP_JIT_TYPE_UINT		4
+#define PHP_JIT_TYPE_LONG		5
+#define PHP_JIT_TYPE_ULONG		6
+#define PHP_JIT_TYPE_DOUBLE		7
+#define PHP_JIT_TYPE_VOID_PTR	8
+
+static inline jit_type_t php_jit_type(short type) {
+	
+	switch (type) {
+		case PHP_JIT_TYPE_VOID:		return jit_type_void;
+		case PHP_JIT_TYPE_CHAR:		return jit_type_sys_char;
+		case PHP_JIT_TYPE_INT:		return jit_type_sys_int;
+		case PHP_JIT_TYPE_UINT:		return jit_type_sys_uint;
+		case PHP_JIT_TYPE_LONG:		return jit_type_sys_long;
+		case PHP_JIT_TYPE_ULONG:	return jit_type_sys_ulong;
+		case PHP_JIT_TYPE_DOUBLE:	return jit_type_sys_double;
+		case PHP_JIT_TYPE_VOID_PTR:	return jit_type_void_ptr;
+	}
+	
+	return jit_type_void;
+}
+
 static inline php_jit_minit_type(int module_number TSRMLS_DC) {
 	le_jit_type = zend_register_list_destructors_ex
 		(php_jit_type_dtor, NULL, le_jit_type_name, module_number);
 
-	REGISTER_LONG_CONSTANT("JIT_ABI_CDECL",      (zend_ulong) jit_abi_cdecl,      CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_ABI_VARARG",     (zend_ulong) jit_abi_vararg,     CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_ABI_STDCALL",    (zend_ulong) jit_abi_stdcall,    CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_ABI_FASTCALL",   (zend_ulong) jit_abi_fastcall,   CONST_CS|CONST_PERSISTENT);	
-
-	REGISTER_LONG_CONSTANT("JIT_TYPE_VOID",      (zend_ulong) jit_type_void,      CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_SBYTE",     (zend_ulong) jit_type_sbyte,     CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_UBYTE",     (zend_ulong) jit_type_ubyte,     CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_SHORT",     (zend_ulong) jit_type_short,     CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_USHORT",    (zend_ulong) jit_type_ushort,    CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_INT",       (zend_ulong) jit_type_int,       CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_UINT",      (zend_ulong) jit_type_uint,      CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_NINT",      (zend_ulong) jit_type_nint,      CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_NUINT",     (zend_ulong) jit_type_nuint,     CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_LONG",      (zend_ulong) jit_type_long,      CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_ULONG",     (zend_ulong) jit_type_ulong,     CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_FLOAT32",   (zend_ulong) jit_type_float32,   CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_FLOAT64",   (zend_ulong) jit_type_float64,   CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_NFLOAT",    (zend_ulong) jit_type_nfloat,    CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_VOID_PTR",  (zend_ulong) jit_type_void_ptr,  CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_VOID",      PHP_JIT_TYPE_VOID,        CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_CHAR",      PHP_JIT_TYPE_CHAR,        CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_INT",       PHP_JIT_TYPE_INT,         CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_UINT",      PHP_JIT_TYPE_UINT,        CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_LONG",      PHP_JIT_TYPE_LONG,        CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_ULONG",     PHP_JIT_TYPE_ULONG,       CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_DOUBLE",    PHP_JIT_TYPE_DOUBLE,      CONST_CS|CONST_PERSISTENT);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(jit_type_copy_arginfo, 0, 0, 1)
@@ -75,8 +87,7 @@ ZEND_BEGIN_ARG_INFO_EX(jit_type_create_union_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, incref)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(jit_type_create_signature_arginfo, 0, 0, 3)
-	ZEND_ARG_INFO(0, abi)
+ZEND_BEGIN_ARG_INFO_EX(jit_type_create_signature_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, returns)
 	ZEND_ARG_TYPE_INFO(0, params, IS_ARRAY, 0)
 	ZEND_ARG_INFO(0, incref)
@@ -154,7 +165,7 @@ PHP_FUNCTION(jit_type_create_struct) {
 		
 		switch (Z_TYPE_PP(field)) {
 			case IS_LONG: 
-				jfields[arg] = (jit_type_t) Z_LVAL_PP(field); 
+				jfields[arg] = php_jit_type(Z_LVAL_PP(field)); 
 			break;
 			
 			case IS_RESOURCE: {
@@ -193,7 +204,7 @@ PHP_FUNCTION(jit_type_create_union) {
 		
 		switch (Z_TYPE_PP(field)) {
 			case IS_LONG: 
-				jfields[arg] = (jit_type_t) Z_LVAL_PP(field); 
+				jfields[arg] = php_jit_type(Z_LVAL_PP(field)); 
 			break;
 			
 			case IS_RESOURCE: {
@@ -210,10 +221,9 @@ PHP_FUNCTION(jit_type_create_union) {
 	ZEND_REGISTER_RESOURCE(return_value, structure, le_jit_type);
 } /* }}} */
 
-/* {{{ jit_type_t jit_type_create_signature(int abi, mixed returns, array params [, int incref = 0]) */
+/* {{{ jit_type_t jit_type_create_signature(mixed returns, array params [, int incref = 0]) */
 PHP_FUNCTION(jit_type_create_signature) 
 {
-	long         abi;
 	zval       **zparam, *zreturns;
 	HashTable   *zparams;
 	HashPosition position;
@@ -223,14 +233,14 @@ PHP_FUNCTION(jit_type_create_signature)
 	jit_type_t   signature;
 	long         incref = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lzH|l", &abi, &zreturns, &zparams, &incref) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zH|l", &zreturns, &zparams, &incref) != SUCCESS) {
 		return;
 	}
 	
 	params = (jit_type_t*) ecalloc(zend_hash_num_elements(zparams), sizeof(jit_type_t));
 	
 	if (Z_TYPE_P(zreturns) == IS_LONG) {
-		returns = (jit_type_t) Z_LVAL_P(zreturns);
+		returns = php_jit_type(Z_LVAL_P(zreturns));
 	} else if (Z_TYPE_P(zreturns) == IS_RESOURCE) {
 		ZEND_FETCH_RESOURCE(returns, jit_type_t, &zreturns, -1, le_jit_type_name, le_jit_type);
 	}
@@ -241,7 +251,7 @@ PHP_FUNCTION(jit_type_create_signature)
 		
 		switch (Z_TYPE_PP(zparam)) {
 			case IS_LONG:
-				params[param] = (jit_type_t) Z_LVAL_PP(zparam); 
+				params[param] = php_jit_type(Z_LVAL_PP(zparam)); 
 			break;
 			
 			case IS_RESOURCE: {
@@ -255,7 +265,7 @@ PHP_FUNCTION(jit_type_create_signature)
 	}
 	
 	signature = jit_type_create_signature(
-		abi, returns, params, param, incref);
+		jit_abi_cdecl, returns, params, param, incref);
 
 	ZEND_REGISTER_RESOURCE(return_value, signature, le_jit_type);
 } /* }}} */
@@ -266,11 +276,21 @@ PHP_FUNCTION(jit_type_create_pointer) {
 	jit_type_t type, pointer;
 	long incref = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|l", &ztype, &incref) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|l", &ztype, &incref) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(type, jit_type_t, &ztype, -1, le_jit_type_name, le_jit_type);
+	if (ztype) {
+		switch (Z_TYPE_P(ztype)) {
+			case IS_RESOURCE: {
+				ZEND_FETCH_RESOURCE(type, jit_type_t, &ztype, -1, le_jit_type_name, le_jit_type);
+			} break;
+			
+			case IS_LONG:
+				type = php_jit_type(Z_LVAL_P(ztype));
+			break;
+		}
+	}
 	
 	pointer = jit_type_create_pointer(type, incref);
 	

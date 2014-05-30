@@ -1,7 +1,7 @@
 --TEST--
 Check for jit presence
 --SKIPIF--
-<?php if (!extension_loaded("jit")) print "skip"; ?>
+<?php include ("skip-if.inc"); ?>
 --FILE--
 <?php 
 echo "jit extension is available";

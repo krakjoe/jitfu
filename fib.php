@@ -17,7 +17,7 @@ $context = jit_context_create();
 jit_context_build_start($context);
 
 $signature = jit_type_create_signature(
-	JIT_ABI_CDECL, JIT_TYPE_INT, [
+	JIT_TYPE_INT, [
 	JIT_TYPE_INT
 ], 1);
 
@@ -27,9 +27,9 @@ var_dump($function, $context, $signature);
 
 $n = jit_value_get_param($function, 0);
 
-$zero  = jit_value_create_long_constant($function, JIT_TYPE_INT, 0);
-$one   = jit_value_create_long_constant($function, JIT_TYPE_INT, 1);
-$two   = jit_value_create_long_constant($function, JIT_TYPE_INT, 2);
+$zero  = jit_value_create_constant($function,  0, JIT_TYPE_INT);
+$one   = jit_value_create_constant($function,  1, JIT_TYPE_INT);
+$two   = jit_value_create_constant($function,  2, JIT_TYPE_INT);
 
 $temp1 = jit_insn_eq($function, $n, $zero);
 $label1 = jit_insn_branch_if_not($function, $temp1);

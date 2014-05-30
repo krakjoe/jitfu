@@ -363,14 +363,14 @@ PHP_FUNCTION(jit_function_get_max_optimization_level) {
 	RETURN_LONG(jit_function_get_max_optimization_level());
 } /* }}} */
 
-/* {{{ void jit_function_apply(jit_function_t function, array params, int returns) */
+/* {{{ void jit_function_apply(jit_function_t function, array params, jit_type_t returns) */
 PHP_FUNCTION(jit_function_apply) {
 	zval *zfunction, **zparam;
 	HashTable *zparams;
 	HashPosition position;
 	jit_function_t function;
 	void **args;
-	void* result;
+	void *result;
 	long zreturns;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rHl", &zfunction, &zparams, &zreturns) != SUCCESS) {
@@ -405,12 +405,21 @@ PHP_FUNCTION(jit_function_apply) {
 	
 	jit_function_apply(function, args, &result);
 	
-	if (zreturns == (zend_ulong) jit_type_int) {
-		ZVAL_LONG(return_value, (long) result);
-	} else if ((zreturns == (zend_ulong) jit_type_void_ptr)) {
-		ZVAL_STRING(return_value, (char*)result, 1);
-	} else {
-		ZVAL_LONG(return_value, (long) result);
+	switch (zreturns) {
+		case PHP_JIT_TYPE_CHAR: ZVAL_STRING(return_value, (char*) result, 1); break;
+		
+		case PHP_JIT_TYPE_ULONG:
+		case PHP_JIT_TYPE_LONG:
+		case PHP_JIT_TYPE_UINT:
+		case PHP_JIT_TYPE_INT: ZVAL_LONG(return_value,      (long) result); break;
+		case PHP_JIT_TYPE_DOUBLE: {
+			double doubled = 
+				*(double *) &result;
+
+			ZVAL_DOUBLE(return_value, doubled);
+		} break;
+		
+		case PHP_JIT_TYPE_VOID_PTR: ZVAL_LONG(return_value, (long) result); break;
 	}
 	
 	efree(args);

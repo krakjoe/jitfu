@@ -9,12 +9,12 @@ $context = jit_context_create();
 jit_context_build_start($context);
 
 $signature = jit_type_create_signature(
-	JIT_ABI_CDECL, JIT_TYPE_INT, [
-	JIT_TYPE_INT,
-	JIT_TYPE_INT,
-	JIT_TYPE_INT, 
-	JIT_TYPE_INT,
-	JIT_TYPE_INT
+	JIT_TYPE_LONG, [
+	JIT_TYPE_LONG,
+	JIT_TYPE_LONG,
+	JIT_TYPE_LONG, 
+	JIT_TYPE_LONG,
+	JIT_TYPE_LONG
 ], 1);
 
 $function = jit_function_create($context, $signature);
@@ -43,7 +43,7 @@ jit_context_build_end($context);
 
 $start = microtime(true);
 for ($i = 0; $i<100000; $i++) {
-	jit_function_apply($function, [200, 800, 800, 500, 200], JIT_TYPE_INT);
+	jit_function_apply($function, [200, 800, 800, 500, 200], JIT_TYPE_LONG);
 }
 printf("jit: %.3f seconds\n", microtime(true) - $start);
 
