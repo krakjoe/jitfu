@@ -1,6 +1,6 @@
 JIT-Fu
 ======
-*A lesson in the art of JoeJITFu ...*
+*A lesson in the art of JoeJITFu!*
 
 JIT-Fu is a PHP library built around ```libjit```, exposing an OO API for the creation of native instructions to PHP userland.
 
