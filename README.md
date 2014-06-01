@@ -4,6 +4,8 @@ JIT-Fu
 
 JIT-Fu is a PHP extension that exposes an OO API for the creation of native instructions to PHP userland, using ```libjit```.
 
+![A JoeJITFu elephpant](http://i.imgur.com/GirIOWs.png)
+
 ```php
 <?php
 /* This is a fibonacci function, and is ~60 times faster than PHP :o */
