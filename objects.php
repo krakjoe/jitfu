@@ -26,18 +26,16 @@ $arg      = $function->getParameter(0);
 $builder  = new Builder($function);
 
 /* if ($arg == 0) return 0; */
-$temp     = $builder->doEq($arg, $zero);
 $builder->doIf(
-	$temp,
+	$builder->doEq($arg, $zero),
 	function($builder) use ($arg, $zero, $one, $two) {
 		$builder->doReturn($zero);
 	}
 );
 
 /* if ($arg == 1) return 1; */
-$temp    = $builder->doEq($arg, $one);
 $builder->doIf(
-	$temp,
+	$builder->doEq($arg, $one),
 	function($builder) use($one) {
 		$builder->doReturn($one);
 	}
