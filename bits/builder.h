@@ -191,6 +191,56 @@ PHP_METHOD(Builder, doIf) {
 	}
 }
 
+PHP_METHOD(Builder, doIfNot) {
+	zval *op = NULL;
+	php_jit_builder_t *pbuild;
+	jit_value_t temp;
+	jit_label_t label = jit_label_undefined;
+	zend_fcall_info zpfci, znfci;
+	zend_fcall_info_cache zpfcc, znfcc;
+	zval *zretnull = NULL;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Of|f", &op, jit_value_ce, &zpfci, &zpfcc, &znfci, &znfcc) != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	jit_insn_branch_if(pbuild->func->func, PHP_JIT_FETCH_VALUE_I(op), &label);
+	
+	zpfci.retval_ptr_ptr = &zretnull;
+	
+	zend_fcall_info_argn(&zpfci TSRMLS_CC, 1, &getThis());
+	
+	zend_try {
+		zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
+	} zend_end_try();
+	
+	zend_fcall_info_args_clear(&zpfci, 1);
+	
+	if (zretnull) {
+		zval_ptr_dtor(&zretnull);
+	}
+	
+	jit_insn_label(pbuild->func->func, &label);
+	
+	if (ZEND_NUM_ARGS() > 3) {
+		znfci.retval_ptr_ptr = &zretnull;
+	
+		zend_fcall_info_argn(&znfci TSRMLS_CC, 1, &getThis());
+	
+		zend_try {
+			zend_call_function(&znfci, &znfcc TSRMLS_CC);
+		} zend_end_try();
+	
+		zend_fcall_info_args_clear(&znfci, 1);
+
+		if (zretnull) {
+			zval_ptr_dtor(&zretnull);
+		}
+	}
+}
+
 PHP_METHOD(Builder, doEq) {
 	zval *zin[2] = {NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
@@ -1083,6 +1133,7 @@ ZEND_END_ARG_INFO()
 zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, __construct,  php_jit_builder_construct_arginfo,  ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIf,         php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doIfNot,      php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doMul,        php_jit_builder_binary_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doMulOvf,     php_jit_builder_binary_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doAdd,        php_jit_builder_binary_arginfo,     ZEND_ACC_PUBLIC)
