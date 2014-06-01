@@ -22,6 +22,7 @@ typedef struct _php_jit_type_t {
 	zend_object         std;
 	zend_object_handle  h;
 	jit_type_t          type;
+	zend_ulong          id;
 	zend_bool           copied;
 } php_jit_type_t;
 
@@ -66,7 +67,6 @@ jit_type_t php_jit_type(short type) {
 	
 	return jit_type_void;
 }
-
 
 static inline void php_jit_type_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
 	php_jit_type_t *ptype = 
@@ -132,6 +132,7 @@ PHP_METHOD(Type, __construct) {
 	
 	switch (Z_TYPE_P(ztype)) {
 		case IS_LONG:
+			intern->id   = Z_LVAL_P(ztype);
 			intern->type = php_jit_type(Z_LVAL_P(ztype));
 		break;
 		

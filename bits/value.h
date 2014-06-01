@@ -33,7 +33,7 @@ void php_jit_minit_value(int module_number TSRMLS_DC);
 #define PHP_JIT_FETCH_VALUE(from) \
 	(php_jit_value_t*) zend_object_store_get_object((from) TSRMLS_CC)
 #define PHP_JIT_FETCH_VALUE_I(from) \
-	(PHP_JIT_FETCH_VALUE(from))->func
+	(PHP_JIT_FETCH_VALUE(from))->value
 
 extern zend_function_entry php_jit_value_methods[];
 extern zend_object_handlers php_jit_value_handlers;

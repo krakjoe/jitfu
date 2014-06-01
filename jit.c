@@ -38,6 +38,7 @@ ZEND_DECLARE_MODULE_GLOBALS(jit)
 #include "bits/signature.h"
 #include "bits/function.h"
 #include "bits/value.h"
+#include "bits/builder.h"
 //#include "bits/insn.h"
 //#include "bits/block.h"
 
@@ -81,6 +82,7 @@ PHP_MINIT_FUNCTION(jit)
 	php_jit_minit_signature(module_number TSRMLS_CC);
 	php_jit_minit_function(module_number TSRMLS_CC);
 	php_jit_minit_value(module_number TSRMLS_CC);
+	php_jit_minit_builder(module_number TSRMLS_CC);
 	//php_jit_minit_insn(module_number TSRMLS_CC);
 	//php_jit_minit_block(module_number TSRMLS_CC);
 
@@ -133,6 +135,7 @@ PHP_MINFO_FUNCTION(jit)
 #include "bits/signature.h"
 #include "bits/function.h"
 #include "bits/value.h"
+#include "bits/builder.h"
 //#include "bits/insn.h"
 //#include "bits/block.h"
 

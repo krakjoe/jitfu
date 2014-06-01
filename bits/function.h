@@ -260,13 +260,79 @@ PHP_METHOD(Func, getParameter) {
 		object_init_ex(return_value, jit_value_ce);
 		
 		pval = PHP_JIT_FETCH_VALUE(return_value);
-		pval->func = PHP_JIT_FETCH_FUNCTION_I(getThis());
+		pval->func = PHP_JIT_FETCH_FUNCTION(getThis());
 		zend_objects_store_add_ref_by_handle(pval->func->h TSRMLS_CC);
 		
 		pval->type = pfunc->sig->params[param];
 		pval->value = jit_value_get_param(pfunc->func, param);
 		zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
 	}
+}
+
+PHP_METHOD(Func, __invoke) {
+	php_jit_function_t *pfunc;
+	
+	zend_uint nargs = ZEND_NUM_ARGS();
+	zval **args = nargs ? 
+		(zval**) safe_emalloc(sizeof(zval*), nargs, 0) : NULL;
+	void **jargs = nargs ? 
+		(void**) safe_emalloc(sizeof(void*), nargs, 0) : NULL;
+	void *result;
+
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	
+	if (!jit_function_is_compiled(pfunc->func)) {
+		/* throw function not compiled */
+		efree(jargs);
+		efree(args);
+		return;
+	}
+
+	if (args) {
+		zend_uint narg = 0;
+		
+		if (zend_get_parameters_array(ht, nargs, args) != SUCCESS) {
+			/* throw */
+			efree(args);
+			return;
+		}
+	
+		/** TODO(anyone) verify signature **/	
+			
+		while (narg < nargs) {
+			switch (Z_TYPE_P(args[narg])) {
+				case IS_LONG:
+					jargs[narg] = &Z_LVAL_P(args[narg]);
+				break;
+			}
+			narg++;
+		}
+	}
+	
+	jit_function_apply(pfunc->func, jargs, &result);
+	
+	switch (pfunc->sig->returns->id) {
+		case PHP_JIT_TYPE_CHAR: ZVAL_STRING(return_value, (char*) result, 1); break;
+		case PHP_JIT_TYPE_ULONG:
+		case PHP_JIT_TYPE_LONG:
+		case PHP_JIT_TYPE_UINT:
+		case PHP_JIT_TYPE_INT: ZVAL_LONG(return_value, (long) result); break;
+		case PHP_JIT_TYPE_DOUBLE: {
+			double doubled =
+				*(double *) &result;
+
+			ZVAL_DOUBLE(return_value, doubled);
+		} break;
+
+		case PHP_JIT_TYPE_VOID_PTR: ZVAL_LONG(return_value, (long) result); break;
+		
+		default: {
+			/* throw type unknown to zend */
+		}
+	}
+	
+	efree(args);
+	efree(jargs);
 }
 
 ZEND_BEGIN_ARG_INFO_EX( php_jit_function_get_param_arginfo, 0, 0, 2) 
@@ -288,6 +354,7 @@ zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, getContext,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, getSignature,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, getParameter,  php_jit_function_get_param_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, __invoke,      NULL,    ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 #endif
