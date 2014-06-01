@@ -10,20 +10,44 @@ $context = new Context();
 
 $context->start();
 
+$integer   = new Type(JIT_TYPE_LONG);
 $signature = new Signature
-	(new Type(JIT_TYPE_INT), [new Type(JIT_TYPE_INT)]);
+	($integer, [$integer]);
 
 $function = new Func($context, $signature);
-$builder  = new Builder($function);
-$value    = new Value($function, 20, new Type(JIT_TYPE_INT));
+$zero     = new Value($function, 0, $integer);
+$one      = new Value($function, 1, $integer);
+$two      = new Value($function, 2, $integer);
+$three    = new Value($function, 3, $integer);
 
 $arg      = $function->getParameter(0);
 
-$builder->doIfEqual($arg, $value, function($builder) use ($arg, $value) {
-	$builder->doReturn($arg);
-}, function($builder) use($arg, $value) {
-	$builder->doReturn($value);
-});
+
+$builder  = new Builder($function);
+
+/* if ($arg == 0) return 0; */
+$temp     = $builder->doEq($arg, $zero);
+$builder->doIf(
+	$temp,
+	function($builder) use ($arg, $zero, $one, $two) {
+		$builder->doReturn($zero);
+	}
+);
+
+/* if ($arg == 1) return 1; */
+$temp    = $builder->doEq($arg, $one);
+$builder->doIf(
+	$temp,
+	function($builder) use($one) {
+		$builder->doReturn($one);
+	}
+);
+
+/* return $function($arg-1) + $function($arg-2); */
+$builder->doReturn(
+	$builder->doAdd(
+		$builder->doCall($function, $signature, [$builder->doSub($arg, $one)], 0),
+		$builder->doCall($function, $signature, [$builder->doSub($arg, $two)], 0)));
 
 $context->finish();
 
@@ -32,6 +56,6 @@ $function->compile();
 var_dump(
 	$context, 
 	$signature, 
-	$function, 
-	$function->getSignature(), $value, $value->getFunction(), $arg, $builder, $function(10));
+	$function,
+	$function(40));
 ?>

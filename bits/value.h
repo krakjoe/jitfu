@@ -49,8 +49,13 @@ static inline void php_jit_value_destroy(void *zobject, zend_object_handle handl
 
 	zend_object_std_dtor(&pval->std TSRMLS_CC);
 
-	zend_objects_store_del_ref_by_handle(pval->func->h TSRMLS_CC);
-	zend_objects_store_del_ref_by_handle(pval->type->h TSRMLS_CC);
+	if (pval->func) {
+		zend_objects_store_del_ref_by_handle(pval->func->h TSRMLS_CC);
+	}
+	
+	if (pval->type) {
+		zend_objects_store_del_ref_by_handle(pval->type->h TSRMLS_CC);
+	}
 	
 	efree(pval);
 }
@@ -118,10 +123,10 @@ PHP_METHOD(Value, __construct) {
 		
 		case IS_STRING: {
 			jit_constant_t con;
-
+			
 			con.un.ptr_value = Z_STRVAL_P(zvalue);
 			con.type         = pval->type->type;
-			
+
 			pval->value = jit_value_create_constant(pval->func->func, &con);
 		} break;
 	}
