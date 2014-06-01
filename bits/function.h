@@ -292,19 +292,33 @@ PHP_METHOD(Func, __invoke) {
 		zend_uint narg = 0;
 		
 		if (zend_get_parameters_array(ht, nargs, args) != SUCCESS) {
-			/* throw */
+			/* throw failed to fetch arguments */
 			efree(args);
 			return;
 		}
 	
-		/** TODO(anyone) verify signature **/	
+		/** TODO(anyone) verify signature **/
 			
 		while (narg < nargs) {
 			switch (Z_TYPE_P(args[narg])) {
 				case IS_LONG:
 					jargs[narg] = &Z_LVAL_P(args[narg]);
 				break;
+				
+				case IS_DOUBLE:
+					jargs[narg] = &Z_DVAL_P(args[narg]);
+				break;
+				
+				case IS_STRING:
+					jargs[narg] = &Z_STRVAL_P(args[narg]);
+				break;
+				
+				default: {
+					/* throw arg at narg unknown to jit? */
+					/* we need to do something different here so we can pass around structures, I 'unno */
+				}
 			}
+
 			narg++;
 		}
 	}
