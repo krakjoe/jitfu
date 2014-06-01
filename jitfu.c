@@ -31,8 +31,6 @@
 #include "ext/spl/spl_exceptions.h"
 #endif
 
-ZEND_DECLARE_MODULE_GLOBALS(jitfu)
-
 #include "bits/context.h"
 #include "bits/type.h"
 #include "bits/signature.h"
@@ -64,17 +62,10 @@ zend_module_entry jitfu_module_entry = {
 ZEND_GET_MODULE(jitfu)
 #endif
 
-/* {{{ php_jit_init_globals
- */
-static void php_jit_globals_ctor(zend_jitfu_globals *jit_globals){}
-/* }}} */
-
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(jitfu)
 {
-	ZEND_INIT_MODULE_GLOBALS(jitfu, php_jit_globals_ctor, NULL);
-	
 	php_jit_minit_context(module_number TSRMLS_CC);
 	php_jit_minit_type(module_number TSRMLS_CC);
 	php_jit_minit_signature(module_number TSRMLS_CC);

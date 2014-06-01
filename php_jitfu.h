@@ -44,15 +44,8 @@ PHP_RINIT_FUNCTION(jitfu);
 PHP_RSHUTDOWN_FUNCTION(jitfu);
 PHP_MINFO_FUNCTION(jitfu);
 
-ZEND_BEGIN_MODULE_GLOBALS(jitfu)
-	HashTable ctx;
-	HashTable func;
-ZEND_END_MODULE_GLOBALS(jitfu)
-
 #define PHP_JITFU_EXTNAME "jitfu"
 #define PHP_JITFU_VERSION "0.2"
-
-#define JIT_FE(f) PHP_FE(f, f##_arginfo)
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_no_arginfo, 0, 0, 0) 
 ZEND_END_ARG_INFO()
@@ -63,7 +56,7 @@ ZEND_END_ARG_INFO()
 #define JG(v) (jitfu_globals.v)
 #endif
 
-#endif	/* PHP_JIT_H */
+#endif	/* PHP_JITFU_H */
 
 /*
  * Local variables:
