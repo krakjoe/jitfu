@@ -55,7 +55,7 @@ $function->compile();
 
 var_dump(
 	$context, 
-	$signature, 
+	$signature,
 	$function,
-	$function(40));
+	$function(40)); /* __invoke with magicalness */
 ?>
