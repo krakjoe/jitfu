@@ -55,8 +55,8 @@ $builder->doIf(
 /* return $function($arg-1) + $function($arg-2); */
 $builder->doReturn(
 	$builder->doAdd(
-		$builder->doCall($function, $signature, [$builder->doSub($arg, $one)], 0),
-		$builder->doCall($function, $signature, [$builder->doSub($arg, $two)], 0)));
+		$builder->doCall($function, [$builder->doSub($arg, $one)], 0),
+		$builder->doCall($function, [$builder->doSub($arg, $two)], 0)));
 
 $context->finish();
 
