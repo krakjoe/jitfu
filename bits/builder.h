@@ -786,6 +786,50 @@ PHP_METHOD(Builder, doAlloca) {
 	php_jit_do_unary_op(jit_insn_alloca, pbuild->func, zin, return_value TSRMLS_CC);
 }
 
+PHP_METHOD(Builder, doLoad) {
+	zval *zin = NULL;
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_unary_op(jit_insn_load, pbuild->func, zin, return_value TSRMLS_CC);
+}
+
+PHP_METHOD(Builder, doLoadSmall) {
+	zval *zin = NULL;
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_unary_op(jit_insn_load_small, pbuild->func, zin, return_value TSRMLS_CC);
+}
+
+PHP_METHOD(Builder, doDup) {
+	zval *zin = NULL;
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_unary_op(jit_insn_dup, pbuild->func, zin, return_value TSRMLS_CC);
+}
+
+PHP_METHOD(Builder, doStore) {
+	zval *zin[2] = {NULL, NULL};
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], &zin[1]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_binary_op((jit_builder_binary_func) jit_insn_store, pbuild->func, zin, return_value TSRMLS_CC);
+}
+
 PHP_METHOD(Builder, doAddressof) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
@@ -976,6 +1020,10 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, doIsInf,      php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doCall,       php_jit_builder_doCall_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doAlloca,     php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doLoad,       php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doLoadSmall,  php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doDup,        php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doStore,      php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doMemcpy,     php_jit_builder_ternary_arginfo,    ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doMemmove,    php_jit_builder_ternary_arginfo,    ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doMemset,     php_jit_builder_ternary_arginfo,    ZEND_ACC_PUBLIC)
