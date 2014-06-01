@@ -18,441 +18,277 @@
 #ifndef HAVE_BITS_FUNCTION_H
 #define HAVE_BITS_FUNCTION_H
 
-#define PHP_JIT_FUNCTION_FUNCTIONS \
-	JIT_FE(jit_function_create) \
-	JIT_FE(jit_function_create_nested) \
-	JIT_FE(jit_function_get_nested_parent) \
-	JIT_FE(jit_function_get_context) \
-	JIT_FE(jit_function_abandon) \
-	JIT_FE(jit_function_set_recompilable) \
-	JIT_FE(jit_function_clear_recompilable) \
-	JIT_FE(jit_function_compile) \
-	JIT_FE(jit_function_is_compiled) \
-	JIT_FE(jit_function_set_optimization_level) \
-	JIT_FE(jit_function_get_optimization_level) \
-	JIT_FE(jit_function_get_max_optimization_level) \
-	JIT_FE(jit_function_apply) \
-	JIT_FE(jit_function_reserve_label) \
-	JIT_FE(jit_function_labels_equal)
+typedef struct _php_jit_function_t php_jit_function_t;
+struct _php_jit_function_t {
+	zend_object         std;
+	zend_object_handle  h;
+	php_jit_context_t   *ctx;
+	php_jit_signature_t *sig;
+	php_jit_function_t  *parent;
+	jit_function_t      func;
+	zend_ulong          st;
+};
 
-static const char *le_jit_function_name = "jit function";
-static       int   le_jit_function;
+zend_class_entry *jit_function_ce;
 
-ZEND_RSRC_DTOR_FUNC(php_jit_function_dtor);
+void php_jit_minit_function(int module_number TSRMLS_DC);
 
-static inline php_jit_minit_function(int module_number TSRMLS_DC) {
-	le_jit_function = zend_register_list_destructors_ex
-		(php_jit_function_dtor, NULL, le_jit_function_name, module_number);
-}
+#define PHP_JIT_FETCH_FUNCTION(from) \
+	(php_jit_function_t*) zend_object_store_get_object((from) TSRMLS_CC)
+#define PHP_JIT_FETCH_FUNCTION_I(from) \
+	(PHP_JIT_FETCH_FUNCTION(from))->func
+	
+#define PHP_JIT_FUNCTION_CREATED  (1<<1)
+#define PHP_JIT_FUNCTION_COMPILED (1<<2)
 
-ZEND_BEGIN_ARG_INFO_EX(jit_function_create_arginfo, 0, 0, 2)
-	ZEND_ARG_INFO(0, context)
-	ZEND_ARG_INFO(0, signature)
-ZEND_END_ARG_INFO()
+extern zend_function_entry php_jit_function_methods[];
+extern zend_object_handlers php_jit_function_handlers;
 
-ZEND_BEGIN_ARG_INFO_EX(jit_function_create_nested_arginfo, 0, 0, 2)
-	ZEND_ARG_INFO(0, context)
-	ZEND_ARG_INFO(0, signature)
-	ZEND_ARG_INFO(0, parent)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_get_nested_parent_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_get_context_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_abandon_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_set_recompilable_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_clear_recompilable_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_is_recompilable_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_compile_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_is_compiled_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_set_optimization_level_arginfo, 0, 0, 2)
-	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_INFO(0, level)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_get_optimization_level_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_get_max_optimization_level_arginfo, 0, 0, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_apply_arginfo, 0, 0, 3)
-	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_INFO(0, params)
-	ZEND_ARG_INFO(0, returns)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_reserve_label_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_function_labels_equal_arginfo, 0, 0, 3)
-	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_INFO(0, label1)
-	ZEND_ARG_INFO(0, label2)
-ZEND_END_ARG_INFO()
-
-PHP_FUNCTION(jit_function_create);
-PHP_FUNCTION(jit_function_create_nested);
-PHP_FUNCTION(jit_function_get_nested_parent);
-PHP_FUNCTION(jit_function_get_context);
-PHP_FUNCTION(jit_function_abandon);
-PHP_FUNCTION(jit_function_set_recompilable);
-PHP_FUNCTION(jit_function_clear_recompilable);
-PHP_FUNCTION(jit_function_is_recompilable);
-PHP_FUNCTION(jit_function_compile);
-PHP_FUNCTION(jit_function_is_compiled);
-PHP_FUNCTION(jit_function_set_optimization_level);
-PHP_FUNCTION(jit_function_get_optimization_level);
-PHP_FUNCTION(jit_function_get_max_optimization_level);
-PHP_FUNCTION(jit_function_apply);
-PHP_FUNCTION(jit_function_reserve_label);
-PHP_FUNCTION(jit_function_labels_equal);
 #else
 #ifndef HAVE_BITS_FUNCTION
 #define HAVE_BITS_FUNCTION
+zend_object_handlers php_jit_function_handlers;
 
-/* {{{ php_jit_context_dtor */
-ZEND_RSRC_DTOR_FUNC(php_jit_function_dtor) {
+static inline void php_jit_function_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
+	php_jit_function_t *pfunc = 
+		(php_jit_function_t *) zobject;
+
+	zend_object_std_dtor(&pfunc->std TSRMLS_CC);
+
+	zend_objects_store_del_ref_by_handle(pfunc->ctx->h TSRMLS_CC);
+	zend_objects_store_del_ref_by_handle(pfunc->sig->h TSRMLS_CC);
 	
-} /* }}} */
+	if (pfunc->parent) {
+		zend_objects_store_del_ref_by_handle(pfunc->parent->h TSRMLS_CC);
+	}
+	
+	efree(pfunc);
+}
 
-/* {{{ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature) */
-PHP_FUNCTION(jit_function_create) {
+static inline zend_object_value php_jit_function_create(zend_class_entry *ce TSRMLS_DC) {
+	zend_object_value value;
+	php_jit_function_t *pfunc = 
+		(php_jit_function_t*) ecalloc(1, sizeof(php_jit_function_t));
+	
+	zend_object_std_init(&pfunc->std, ce TSRMLS_CC);
+	object_properties_init(&pfunc->std, ce);
+	
+	pfunc->h = zend_objects_store_put(
+		pfunc, 
+		php_jit_function_destroy, NULL, NULL TSRMLS_CC);
+
+	value.handle   = pfunc->h;
+	value.handlers = &php_jit_function_handlers;
+	
+	return value;
+}
+
+void php_jit_minit_function(int module_number TSRMLS_DC) {
+	zend_class_entry ce;
+	
+	INIT_NS_CLASS_ENTRY(ce, "JIT", "Func", php_jit_function_methods);
+	jit_function_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	jit_function_ce->create_object = php_jit_function_create;
+	
+	memcpy(
+		&php_jit_function_handlers,
+		zend_get_std_object_handlers(), 
+		sizeof(php_jit_function_handlers));
+}
+
+PHP_METHOD(Func, __construct) {
 	zval *zcontext;
 	zval *zsignature;
-	jit_context_t  context;
-	jit_function_t function;
-	jit_type_t     signature;
+	zval *zparent = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zcontext, &zsignature) != SUCCESS) {
+	php_jit_function_t *pfunc;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO|O", &zcontext, jit_context_ce, &zsignature, jit_signature_ce, &zparent, jit_function_ce) != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(context,    jit_context_t, &zcontext,   -1,  le_jit_context_name, le_jit_context);
-	ZEND_FETCH_RESOURCE(signature,  jit_type_t,    &zsignature, -1,  le_jit_type_name,    le_jit_type);
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
-	function = jit_function_create(context, signature);
+	pfunc->ctx = PHP_JIT_FETCH_CONTEXT(zcontext);
+	zend_objects_store_add_ref_by_handle
+		(pfunc->ctx->h TSRMLS_CC);
 	
-	ZEND_REGISTER_RESOURCE(return_value, function, le_jit_function);
+	pfunc->sig = PHP_JIT_FETCH_SIGNATURE(zsignature);
+	zend_objects_store_add_ref_by_handle
+		(pfunc->sig->h TSRMLS_CC);
 	
-	if (Z_TYPE_P(return_value) == IS_RESOURCE) {
-		zend_hash_index_update(
-			&JG(func), 
-			(zend_ulong) function, 
-			&return_value, sizeof(zval*), NULL);
-		Z_ADDREF_P(return_value);
+	if (zparent) {
+		pfunc->parent = PHP_JIT_FETCH_FUNCTION(zparent);
+		zend_objects_store_add_ref_by_handle
+			(pfunc->parent->h TSRMLS_CC);
 	}
-} /* }}} */
+	
+	if (!zparent) {
+		pfunc->func = jit_function_create
+			(pfunc->ctx->ctx, pfunc->sig->type);
+	} else {
+		pfunc->func = jit_function_create_nested
+			(pfunc->ctx->ctx, pfunc->sig->type, pfunc->parent->func);
+	}
 
-/* {{{ jit_function_t jit_function_create_nested(jit_context_t context, jit_type_t signature, jit_function_t parent) */
-PHP_FUNCTION(jit_function_create_nested) {
-	zval *zcontext;
-	zval *zsignature;
-	zval *zparent;
-	jit_context_t  context;
-	jit_function_t function, parent;
-	jit_type_t     signature;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrr", &zcontext, &zsignature, &zparent) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(context,    jit_context_t,     &zcontext,   -1,  le_jit_context_name,  le_jit_context);
-	ZEND_FETCH_RESOURCE(signature,  jit_type_t,        &zsignature, -1,  le_jit_type_name,     le_jit_type);
-	ZEND_FETCH_RESOURCE(parent,     jit_function_t,    &zparent,    -1,  le_jit_function_name, le_jit_function);
-	
-	function = jit_function_create_nested(context, signature, parent);
-	
-	ZEND_REGISTER_RESOURCE(return_value, function, le_jit_function);
-	
-	if (Z_TYPE_P(return_value) == IS_RESOURCE) {
-		zend_hash_index_update(
-			&JG(func), 
-			(zend_ulong) function, 
-			&return_value, sizeof(zval*), NULL);
-		Z_ADDREF_P(return_value);
-	}
-} /* }}} */
+	pfunc->st |= PHP_JIT_FUNCTION_CREATED;
+}
 
-/* {{{ jit_function_t jit_function_get_nested_parent(jit_function_t function) */
-PHP_FUNCTION(jit_function_get_nested_parent) {
-	zval *zfunction, **zparent;
-	jit_function_t function, parent;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(function,     jit_function_t,    &zfunction,    -1,  le_jit_function_name, le_jit_function);
-	
-	parent = jit_function_get_nested_parent(function);
-	
-	if (zend_hash_index_find(
-		&JG(func),
-		(zend_ulong) parent, (void**) &zparent) == SUCCESS) {
-		ZVAL_ZVAL(return_value, *zparent, 1, 0);
-	}
-} /* }}} */
-
-/* {{{ jit_context_t jit_function_get_context(jit_function_t function) */
-PHP_FUNCTION(jit_function_get_context) {
-	zval *zfunction, **zcontext;
-	jit_function_t function;
-	jit_context_t context;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-	
-	context = jit_function_get_context(function);
-	
-	if (zend_hash_index_find(
-		&JG(ctx),
-		(zend_ulong) context, (void**) &zcontext) == SUCCESS) {
-		ZVAL_ZVAL(return_value, *zcontext, 1, 0);
-	}
-} /* }}} */
-
-/* {{{ void jit_function_abandon(jit_function_t function) */
-PHP_FUNCTION(jit_function_abandon) {
-	zval *zfunction;
-	jit_function_t function;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-	
-	jit_function_abandon(function);
-} /* }}} */
-
-/* {{{ void jit_function_set_recompilable(jit_function_t function) */
-PHP_FUNCTION(jit_function_set_recompilable) {
-	zval *zfunction;
-	jit_function_t function;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-	
-	jit_function_set_recompilable(function);
-} /* }}} */
-
-/* {{{ void jit_function_clear_recompilable(jit_function_t function) */
-PHP_FUNCTION(jit_function_clear_recompilable) {
-	zval *zfunction;
-	jit_function_t function;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-	
-	jit_function_clear_recompilable(function);
-} /* }}} */
-
-/* {{{ bool jit_function_is_recompilable(jit_function_t function) */
-PHP_FUNCTION(jit_function_is_recompilable) {
-	zval *zfunction;
-	jit_function_t function;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-	
-	RETURN_BOOL(jit_function_is_recompilable(function));
-} /* }}} */
-
-/* {{{ int jit_function_compile(jit_function_t function) */
-PHP_FUNCTION(jit_function_compile) {
-	zval *zfunction;
-	jit_function_t function;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-	
-	RETURN_LONG(jit_function_compile(function));
-} /* }}} */
-
-/* {{{ bool jit_function_is_compiled(jit_function_t function) */
-PHP_FUNCTION(jit_function_is_compiled) {
-	zval *zfunction;
-	jit_function_t function;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-	
-	RETURN_BOOL(jit_function_is_compiled(function));
-} /* }}} */
-
-/* {{{ void jit_function_set_optimization_level(jit_function_t function, int level) */
-PHP_FUNCTION(jit_function_set_optimization_level) {
-	zval *zfunction;
-	jit_function_t function;
-	long level = 0;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zfunction, &level) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-	
-	jit_function_set_optimization_level(function, level);
-} /* }}} */
-
-/* {{{ int jit_function_get_optimization_level(jit_function_t function) */
-PHP_FUNCTION(jit_function_get_optimization_level) {
-	zval *zfunction;
-	jit_function_t function;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-	
-	RETURN_LONG(jit_function_get_optimization_level(function));
-} /* }}} */
-
-/* {{{ int jit_function_get_max_optimization_level(void) */
-PHP_FUNCTION(jit_function_get_max_optimization_level) {
+PHP_METHOD(Func, compile) {
+	php_jit_function_t *pfunc;
 	
 	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
 	
-	RETURN_LONG(jit_function_get_max_optimization_level());
-} /* }}} */
-
-/* {{{ void jit_function_apply(jit_function_t function, array params, jit_type_t returns) */
-PHP_FUNCTION(jit_function_apply) {
-	zval *zfunction, **zparam;
-	HashTable *zparams;
-	HashPosition position;
-	jit_function_t function;
-	void **args;
-	void *result;
-	long zreturns;
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rHl", &zfunction, &zparams, &zreturns) != SUCCESS) {
+	if (pfunc->st & PHP_JIT_FUNCTION_COMPILED) {
+		zend_throw_exception_ex(NULL, 0 TSRMLS_CC, 
+			"this function was already compiled");
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	jit_function_compile(pfunc->func);
 	
-	args = ecalloc(zend_hash_num_elements(zparams), sizeof(void*));
-	
-	for (zend_hash_internal_pointer_reset_ex(zparams, &position);
-		zend_hash_get_current_data_ex(zparams, (void**) &zparam, &position) == SUCCESS;
-		zend_hash_move_forward_ex(zparams, &position)) {
-		zend_ulong idx;
-		
-		zend_hash_get_current_key_ex(zparams, NULL, NULL, &idx, 0, &position);
-		
-		switch (Z_TYPE_PP(zparam)) {
-			case IS_LONG:
-				args[idx] = &Z_LVAL_PP(zparam);
-			break;
-			
-			case IS_STRING:
-				args[idx] = &Z_STRVAL_PP(zparam);
-			break;
-			
-			case IS_DOUBLE:
-				args[idx] = &Z_DVAL_PP(zparam);
-			break;
-		}
-	}
-	
-	jit_function_apply(function, args, &result);
-	
-	switch (zreturns) {
-		case PHP_JIT_TYPE_CHAR: ZVAL_STRING(return_value, (char*) result, 1); break;
-		
-		case PHP_JIT_TYPE_ULONG:
-		case PHP_JIT_TYPE_LONG:
-		case PHP_JIT_TYPE_UINT:
-		case PHP_JIT_TYPE_INT: ZVAL_LONG(return_value,      (long) result); break;
-		case PHP_JIT_TYPE_DOUBLE: {
-			double doubled = 
-				*(double *) &result;
+	pfunc->st |= PHP_JIT_FUNCTION_COMPILED;
+}
 
-			ZVAL_DOUBLE(return_value, doubled);
-		} break;
-		
-		case PHP_JIT_TYPE_VOID_PTR: ZVAL_LONG(return_value, (long) result); break;
-	}
+PHP_METHOD(Func, isCompiled) {
+	php_jit_function_t *pfunc;
 	
-	efree(args);
-} /* }}} */
-
-/* {{{ jit_label_t jit_function_reserve_label(jit_function_t function) */
-PHP_FUNCTION(jit_function_reserve_label) {
-	zval *zfunction;
-	jit_function_t function;
-	jit_label_t label;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zfunction) != SUCCESS) {
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
-	RETURN_LONG(jit_function_reserve_label(function));
-} /* }}} */
+	RETURN_BOOL(pfunc->st & PHP_JIT_FUNCTION_COMPILED);
+}
 
-/* {{{ bool jit_function_labels_equal(jit_function_t function, jit_label_t label1, jit_label_t label2) */
-PHP_FUNCTION(jit_function_labels_equal) {
-	zval *zfunction, *zlabel1, *zlabel2;
-	jit_function_t function;
-	jit_label_t label1, label2;
+PHP_METHOD(Func, isNested) {
+	php_jit_function_t *pfunc;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &zfunction, &zlabel1, &zlabel2) != SUCCESS) {
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
-	RETURN_BOOL(jit_function_labels_equal(function, label1, label2));
-} /* }}} */
+	RETURN_BOOL(pfunc->parent != NULL);
+}
+
+PHP_METHOD(Func, getParent) {
+	php_jit_function_t *pfunc;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	
+	if (pfunc->parent) {
+		zend_object_value value;
+		
+		value.handle   = pfunc->parent->h;
+		value.handlers = &php_jit_function_handlers;
+		
+		Z_TYPE_P(return_value)   = IS_OBJECT;
+		Z_OBJVAL_P(return_value) = value;
+		
+		zend_objects_store_add_ref_by_handle(pfunc->parent->h TSRMLS_CC);
+	}
+}
+
+PHP_METHOD(Func, getContext) {
+	php_jit_function_t *pfunc;
+
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	
+	if (pfunc->ctx) {
+		zend_object_value value;
+
+		value.handle   = pfunc->ctx->h;
+		value.handlers = &php_jit_context_handlers;
+	
+		Z_TYPE_P(return_value)   = IS_OBJECT;
+		Z_OBJVAL_P(return_value) = value;
+	
+		zend_objects_store_add_ref_by_handle(pfunc->ctx->h TSRMLS_CC);
+	}
+}
+
+PHP_METHOD(Func, getSignature) {
+	php_jit_function_t *pfunc;
+
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	
+	if (pfunc->sig) {
+		zend_object_value value;
+
+		value.handle   = pfunc->sig->h;
+		value.handlers = &php_jit_signature_handlers;
+
+		Z_TYPE_P(return_value)   = IS_OBJECT;
+		Z_OBJVAL_P(return_value) = value;
+
+		zend_objects_store_add_ref_by_handle(pfunc->sig->h TSRMLS_CC);
+	}
+}
+
+PHP_METHOD(Func, getParameter) {
+	php_jit_function_t *pfunc;
+	long param;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &param) != SUCCESS) {
+		return;
+	}
+	
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+
+	if (pfunc->sig->nparams > param) {
+		php_jit_value_t *pval;
+
+		object_init_ex(return_value, jit_value_ce);
+		
+		pval = PHP_JIT_FETCH_VALUE(return_value);
+		pval->func = PHP_JIT_FETCH_FUNCTION_I(getThis());
+		zend_objects_store_add_ref_by_handle(pval->func->h TSRMLS_CC);
+		
+		pval->type = pfunc->sig->params[param];
+		pval->value = jit_value_get_param(pfunc->func, param);
+		zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
+	}
+}
+
+ZEND_BEGIN_ARG_INFO_EX( php_jit_function_get_param_arginfo, 0, 0, 2) 
+	ZEND_ARG_INFO(0, parameter)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_function_construct_arginfo, 0, 0, 2) 
+	ZEND_ARG_INFO(0, context)
+	ZEND_ARG_INFO(0, signature)
+	ZEND_ARG_INFO(0, parent)
+ZEND_END_ARG_INFO()
+
+zend_function_entry php_jit_function_methods[] = {
+	PHP_ME(Func, __construct,   php_jit_function_construct_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, compile,       php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, isCompiled,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, isNested,      php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, getParent,     php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, getContext,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, getSignature,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, getParameter,  php_jit_function_get_param_arginfo, ZEND_ACC_PUBLIC)
+	PHP_FE_END
+};
 #endif
 #endif

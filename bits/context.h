@@ -18,21 +18,76 @@
 #ifndef HAVE_BITS_CONTEXT_H
 #define HAVE_BITS_CONTEXT_H
 
-#define PHP_JIT_CONTEXT_FUNCTIONS \
-	JIT_FE(jit_context_create) \
-	JIT_FE(jit_context_destroy) \
-	JIT_FE(jit_context_build_start) \
-	JIT_FE(jit_context_build_end)
+typedef struct _php_jit_context_t {
+	zend_object         std;
+	zend_object_handle  h;
+	jit_context_t       ctx;
+	zend_ulong          st;
+} php_jit_context_t;
 
-static const char *le_jit_context_name = "jit context";
-static        int  le_jit_context;
+zend_class_entry *jit_context_ce;
 
-ZEND_RSRC_DTOR_FUNC(php_jit_context_dtor);
+void php_jit_minit_context(int module_number TSRMLS_DC);
 
-static inline php_jit_minit_context(int module_number TSRMLS_DC) {
-	le_jit_context = zend_register_list_destructors_ex
-		(php_jit_context_dtor, NULL, le_jit_context_name, module_number);
+#define PHP_JIT_FETCH_CONTEXT(from) \
+	(php_jit_context_t*) zend_object_store_get_object((from) TSRMLS_CC)
+#define PHP_JIT_FETCH_CONTEXT_I(from) \
+	(PHP_JIT_FETCH_CONTEXT(from))->ctx
+	
+#define PHP_JIT_CONTEXT_STARTED  (1<<1)
+#define PHP_JIT_CONTEXT_FINISHED (1<<2)
 
+extern zend_function_entry php_jit_context_methods[];
+extern zend_object_handlers php_jit_context_handlers;
+#else
+#ifndef HAVE_BITS_CONTEXT
+#define HAVE_BITS_CONTEXT
+zend_object_handlers php_jit_context_handlers;
+
+static inline void php_jit_context_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
+	php_jit_context_t *pcontext = 
+		(php_jit_context_t *) zobject;
+
+	zend_object_std_dtor(&pcontext->std TSRMLS_CC);
+
+	jit_context_destroy(pcontext->ctx);
+	
+	efree(pcontext);
+}
+
+static inline zend_object_value php_jit_context_create(zend_class_entry *ce TSRMLS_DC) {
+	zend_object_value value;
+	
+	php_jit_context_t *pcontext = 
+		(php_jit_context_t*) ecalloc(1, sizeof(php_jit_context_t));
+	
+	zend_object_std_init(&pcontext->std, ce TSRMLS_CC);
+	object_properties_init(&pcontext->std, ce);
+	
+	pcontext->ctx = jit_context_create();
+	
+	pcontext->h = zend_objects_store_put(
+		pcontext,
+		php_jit_context_destroy, NULL, NULL TSRMLS_CC);
+		
+	value.handle   = pcontext->h;
+	value.handlers = &php_jit_context_handlers;
+	
+	return value;
+}
+
+void php_jit_minit_context(int module_number TSRMLS_DC) {
+	zend_class_entry ce;
+	
+	INIT_NS_CLASS_ENTRY(ce, "JIT", "Context", php_jit_context_methods);
+	jit_context_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	jit_context_ce->create_object = php_jit_context_create;
+	
+	memcpy(
+		&php_jit_context_handlers,
+		zend_get_std_object_handlers(), 
+		sizeof(php_jit_context_handlers));
+	
 	REGISTER_LONG_CONSTANT("JIT_OPTION_CACHE_LIMIT", JIT_OPTION_CACHE_LIMIT, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_OPTION_CACHE_PAGE_SIZE", JIT_OPTION_CACHE_PAGE_SIZE, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_OPTION_PRE_COMPILE", JIT_OPTION_PRE_COMPILE, CONST_CS|CONST_PERSISTENT);
@@ -41,100 +96,77 @@ static inline php_jit_minit_context(int module_number TSRMLS_DC) {
 	REGISTER_LONG_CONSTANT("JIT_OPTION_CACHE_MAX_PAGE_FACTOR", JIT_OPTION_CACHE_MAX_PAGE_FACTOR, CONST_CS|CONST_PERSISTENT);
 }
 
-ZEND_BEGIN_ARG_INFO_EX(jit_context_create_arginfo, 0, 0, 0)
-ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(jit_context_destroy_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, context)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_context_build_start_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, context)
-ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(jit_context_build_end_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, context)
-ZEND_END_ARG_INFO()
-
-PHP_FUNCTION(jit_context_create);
-PHP_FUNCTION(jit_context_destroy);
-
-PHP_FUNCTION(jit_context_build_start);
-PHP_FUNCTION(jit_context_build_end);
-
-#else
-#ifndef HAVE_BITS_CONTEXT
-#define HAVE_BITS_CONTEXT
-
-/* {{{ php_jit_context_dtor */
-ZEND_RSRC_DTOR_FUNC(php_jit_context_dtor) {
-	jit_context_destroy((jit_context_t) rsrc->ptr);
-} /* }}} */
-
-/* {{{ proto resource jit_context_create(void)
-   Create a jit context */
-PHP_FUNCTION(jit_context_create)
-{
-	jit_context_t context;
+PHP_METHOD(Context, start) {
+	php_jit_context_t *pcontext;
 	
 	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
 	
-	context = jit_context_create();
-		
-	ZEND_REGISTER_RESOURCE(return_value, context, le_jit_context);
+	pcontext = PHP_JIT_FETCH_CONTEXT(getThis());
 	
-	if (Z_TYPE_P(return_value) == IS_RESOURCE) {
-		zend_hash_index_update(
-			&JG(ctx), 
-			(zend_ulong) context, 
-			&return_value, sizeof(zval*), NULL);
-		Z_ADDREF_P(return_value);
-	}
-}
-/* }}} */	
-
-/* {{{ proto void jit_context_destroy(resource context)
-	Destroy a previously created jit context */
-PHP_FUNCTION(jit_context_destroy) 
-{
-	zval *zcontext;
-	jit_context_t context;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zcontext) != SUCCESS) {
+	if (pcontext->st & PHP_JIT_CONTEXT_STARTED) {
+		zend_throw_exception_ex(NULL, 0 TSRMLS_CC, 
+			"this context was already started");
 		return;
 	}
 	
-	zend_list_delete(Z_RESVAL_P(zcontext));
+	jit_context_build_start(pcontext->ctx);
+
+	pcontext->st |= PHP_JIT_CONTEXT_STARTED;
 }
 
-/* {{{ proto void jit_context_build_start(resource context) */
-PHP_FUNCTION(jit_context_build_start) 
-{
-	zval *zcontext;
-	jit_context_t context;
+PHP_METHOD(Context, finish) {
+	php_jit_context_t *pcontext;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zcontext) != SUCCESS) {
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(context, jit_context_t, &zcontext, -1, le_jit_context_name, le_jit_context);
+	pcontext = PHP_JIT_FETCH_CONTEXT(getThis());
 	
-	jit_context_build_start(context);
-} /* }}} */
+	if (pcontext->st & PHP_JIT_CONTEXT_FINISHED) {
+		zend_throw_exception_ex(NULL, 0 TSRMLS_CC,
+			"this context was already finished");
+		return;
+	}
+	
+	jit_context_build_end(pcontext->ctx);
+	
+	pcontext->st |= PHP_JIT_CONTEXT_FINISHED;
+}
 
-/* {{{ proto void jit_context_build_end(resource context) */
-PHP_FUNCTION(jit_context_build_end) 
-{
-	zval *zcontext;
-	jit_context_t context;
+PHP_METHOD(Context, isStarted) {
+	php_jit_context_t *pcontext;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zcontext) != SUCCESS) {
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(context, jit_context_t, &zcontext, -1, le_jit_context_name, le_jit_context);
+	pcontext = PHP_JIT_FETCH_CONTEXT(getThis());
 	
-	jit_context_build_end(context);
-} /* }}} */
+	RETURN_BOOL(pcontext->st & PHP_JIT_CONTEXT_STARTED);
+}
+
+PHP_METHOD(Context, isFinished) {
+	php_jit_context_t *pcontext;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	pcontext = PHP_JIT_FETCH_CONTEXT(getThis());
+	
+	RETURN_BOOL(pcontext->st & PHP_JIT_CONTEXT_FINISHED);
+}
+
+zend_function_entry php_jit_context_methods[] = {
+	PHP_ME(Context, start,      php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Context, finish,     php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	/* ... */
+	PHP_ME(Context, isStarted,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Context, isFinished, php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_FE_END
+};
 #endif
 #endif

@@ -50,9 +50,12 @@ ZEND_BEGIN_MODULE_GLOBALS(jit)
 ZEND_END_MODULE_GLOBALS(jit)
 
 #define PHP_JIT_EXTNAME "jit"
-#define PHP_JIT_VERSION "0.1"
+#define PHP_JIT_VERSION "0.2"
 
 #define JIT_FE(f) PHP_FE(f, f##_arginfo)
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_no_arginfo, 0, 0, 0) 
+ZEND_END_ARG_INFO()
 
 #ifdef ZTS
 #define JG(v) TSRMG(jit_globals_id, zend_jit_globals *, v)
@@ -61,7 +64,6 @@ ZEND_END_MODULE_GLOBALS(jit)
 #endif
 
 #endif	/* PHP_JIT_H */
-
 
 /*
  * Local variables:

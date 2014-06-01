@@ -18,459 +18,287 @@
 #ifndef HAVE_BITS_VALUE_H
 #define HAVE_BITS_VALUE_H
 
-#define PHP_JIT_VALUE_FUNCTIONS \
-	JIT_FE(jit_value_get_param) \
-	JIT_FE(jit_value_create_constant) \
-	JIT_FE(jit_value_is_temporary) \
-	JIT_FE(jit_value_is_local) \
-	JIT_FE(jit_value_is_constant) \
-	JIT_FE(jit_value_is_parameter) \
-	JIT_FE(jit_value_set_volatile) \
-	JIT_FE(jit_value_is_volatile) \
-	JIT_FE(jit_value_set_addressable) \
-	JIT_FE(jit_value_is_addressable) \
-	JIT_FE(jit_value_is_true) \
-	JIT_FE(jit_value_get_type) \
-	JIT_FE(jit_value_get_function) \
-	JIT_FE(jit_value_get_context)
+typedef struct _php_jit_value_t {
+	zend_object std;
+	zend_object_handle h;
+	php_jit_function_t *func;
+	php_jit_type_t     *type;
+	jit_value_t         value;
+} php_jit_value_t;
 
-static const char *le_jit_value_name = "jit value";
-static       int   le_jit_value;
+zend_class_entry *jit_value_ce;
 
-ZEND_RSRC_DTOR_FUNC(php_jit_value_dtor);
+void php_jit_minit_value(int module_number TSRMLS_DC);
 
-static inline php_jit_minit_value(int module_number TSRMLS_DC) {
-	le_jit_value = zend_register_list_destructors_ex
-		(php_jit_value_dtor, NULL, le_jit_value_name, module_number);
-}
+#define PHP_JIT_FETCH_VALUE(from) \
+	(php_jit_value_t*) zend_object_store_get_object((from) TSRMLS_CC)
+#define PHP_JIT_FETCH_VALUE_I(from) \
+	(PHP_JIT_FETCH_VALUE(from))->func
 
-ZEND_BEGIN_ARG_INFO_EX(jit_value_get_param_arginfo, 0, 0, 2)
-	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_INFO(0, param)
-ZEND_END_ARG_INFO()
+extern zend_function_entry php_jit_value_methods[];
+extern zend_object_handlers php_jit_value_handlers;
 
-ZEND_BEGIN_ARG_INFO_EX(jit_value_create_constant_arginfo, 0, 0, 2)
-	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_INFO(0, variable)
-	ZEND_ARG_INFO(0, type)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_is_temporary_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_is_local_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_is_constant_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_is_parameter_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_set_volatile_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_is_volatile_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_set_addressable_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_is_addressable_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_is_true_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_get_type_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_get_function_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(jit_value_get_context_arginfo, 0, 0, 1)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-PHP_FUNCTION(jit_value_get_param);
-PHP_FUNCTION(jit_value_create_constant);
-PHP_FUNCTION(jit_value_is_temporary);
-PHP_FUNCTION(jit_value_is_local);
-PHP_FUNCTION(jit_value_is_constant);
-PHP_FUNCTION(jit_value_is_parameter);
-PHP_FUNCTION(jit_value_set_volatile);
-PHP_FUNCTION(jit_value_is_volatile);
-PHP_FUNCTION(jit_value_set_addressable);
-PHP_FUNCTION(jit_value_is_addressable);
-PHP_FUNCTION(jit_value_is_true);
-PHP_FUNCTION(jit_value_get_type);
-PHP_FUNCTION(jit_value_get_function);
-PHP_FUNCTION(jit_value_get_context);
 #else
 #ifndef HAVE_BITS_VALUE
 #define HAVE_BITS_VALUE
+zend_object_handlers php_jit_value_handlers;
 
-/* {{{ php_jit_value_dtor */
-ZEND_RSRC_DTOR_FUNC(php_jit_value_dtor) {
-	
-} /* }}} */
+static inline void php_jit_value_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
+	php_jit_value_t *pval = 
+		(php_jit_value_t *) zobject;
 
-/* {{{ jit_value_t jit_value_get_param(jit_function_t function, int param) */
-PHP_FUNCTION(jit_value_get_param) {
-	zval *resource;
-	long param;
-	jit_function_t function;
-	jit_value_t value;
+	zend_object_std_dtor(&pval->std TSRMLS_CC);
+
+	zend_objects_store_del_ref_by_handle(pval->func->h TSRMLS_CC);
+	zend_objects_store_del_ref_by_handle(pval->type->h TSRMLS_CC);
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &resource, &param) != SUCCESS) {
+	efree(pval);
+}
+
+static inline zend_object_value php_jit_value_create(zend_class_entry *ce TSRMLS_DC) {
+	zend_object_value value;
+	php_jit_value_t *pval = 
+		(php_jit_value_t*) ecalloc(1, sizeof(php_jit_value_t));
+	
+	zend_object_std_init(&pval->std, ce TSRMLS_CC);
+	object_properties_init(&pval->std, ce);
+	
+	pval->h = zend_objects_store_put(
+		pval, 
+		php_jit_value_destroy, NULL, NULL TSRMLS_CC);
+
+	value.handle   = pval->h;
+	value.handlers = &php_jit_value_handlers;
+	
+	return value;
+}
+
+void php_jit_minit_value(int module_number TSRMLS_DC) {
+	zend_class_entry ce;
+	
+	INIT_NS_CLASS_ENTRY(ce, "JIT", "Value", php_jit_value_methods);
+	jit_value_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	jit_value_ce->create_object = php_jit_value_create;
+	
+	memcpy(
+		&php_jit_value_handlers,
+		zend_get_std_object_handlers(), 
+		sizeof(php_jit_value_handlers));
+}
+
+PHP_METHOD(Value, __construct) {
+	zval *zfunction, *zvalue, *ztype = NULL;
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OzO", &zfunction, jit_function_ce, &zvalue, &ztype, jit_type_ce) != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &resource, -1, le_jit_function_name, le_jit_function);
-
-	value = jit_value_get_param(function, param);
-
-	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
-} /* }}} */
-
-/* {{{ jit_value_t jit_value_create_long_constant(jit_function_t function, jit_type_t type, long num) */
-PHP_FUNCTION(jit_value_create_long_constant) {
-	zval *zfunction;
-	long num, type;
-	jit_function_t function;
-	jit_value_t value;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &zfunction, &type, &num) != SUCCESS) {
-		return;
-	}
-
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-
-	value = jit_value_create_long_constant(function, php_jit_type(type), num);
-
-	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
-} /* }}} */
-
-/* {{{ jit_value_t jit_value_create_nint_constant(jit_function_t function, jit_type_t type, long num) */
-PHP_FUNCTION(jit_value_create_nint_constant) {
-	zval *zfunction;
-	long num, type;
-	jit_function_t function;
-	jit_value_t value;
+	pval = PHP_JIT_FETCH_VALUE(getThis());
+	pval->func = PHP_JIT_FETCH_FUNCTION(zfunction);
+	zend_objects_store_add_ref_by_handle
+		(pval->func->h TSRMLS_CC);
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &zfunction, &type, &num) != SUCCESS) {
-		return;
-	}
-
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-
-	value = jit_value_create_nint_constant(function, php_jit_type(type), num);
-
-	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
-} /* }}} */
-
-/* {{{ jit_value_t jit_value_create_float32_constant(jit_function_t function, jit_type_t type, float float32) */
-PHP_FUNCTION(jit_value_create_float32_constant) {
-	zval *zfunction;
-	long num, type;
-	jit_function_t function;
-	jit_value_t value;
+	pval->type = PHP_JIT_FETCH_TYPE(ztype);
+	zend_objects_store_add_ref_by_handle
+		(pval->type->h TSRMLS_CC);
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &zfunction, &type, &num) != SUCCESS) {
-		return;
-	}
-
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-
-	value = jit_value_create_float32_constant(function, php_jit_type(type), num);
-
-	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
-} /* }}} */
-
-/* {{{ jit_value_t jit_value_create_float64_constant(jit_function_t function, jit_type_t type, float float64) */
-PHP_FUNCTION(jit_value_create_float64_constant) {
-	zval *zfunction;
-	long num, type;
-	jit_function_t function;
-	jit_value_t value;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &zfunction, &type, &num) != SUCCESS) {
-		return;
-	}
-
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-
-	value = jit_value_create_float64_constant(function, php_jit_type(type), num);
-
-	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
-} /* }}} */
-
-/* {{{ jit_value_t jit_value_create_nfloat_constant(jit_function_t function, jit_type_t type, float nfloat) */
-PHP_FUNCTION(jit_value_create_nfloat_constant) {
-	zval *zfunction;
-	long num, type;
-	jit_function_t function;
-	jit_value_t value;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &zfunction, &type, &num) != SUCCESS) {
-		return;
-	}
-
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-
-	value = jit_value_create_nfloat_constant(function, php_jit_type(type), num);
-
-	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
-} /* }}} */
-
-/* {{{ jit_value_t jit_value_create_constant(jit_function_t function, mixed variable [, jit_type_t type]) */
-PHP_FUNCTION(jit_value_create_constant) {
-	zval *zfunction, *zvariable, *ztype;
-	jit_function_t function;
-	jit_value_t value;
-	jit_type_t type = (void*) -1;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rz|z", &zfunction, &zvariable, &ztype) != SUCCESS) {
-		return;
-	}
-
-	ZEND_FETCH_RESOURCE(function, jit_function_t, &zfunction, -1, le_jit_function_name, le_jit_function);
-
-	if (ztype) {
-		switch (Z_TYPE_P(ztype)) {
-			case IS_RESOURCE: 
-				ZEND_FETCH_RESOURCE(type, jit_type_t, &ztype, -1, le_jit_type_name, le_jit_type);	
-			break;
-			
-			case IS_LONG:
-				type = php_jit_type(Z_LVAL_P(ztype));
-			break;
-		}
-	}
-
-	switch (Z_TYPE_P(zvariable)) {
+	switch (Z_TYPE_P(zvalue)) {
 		case IS_LONG:
-			if (type == (void*) -1)
-				type = jit_type_sys_long;
-			
-			value = jit_value_create_long_constant(function, type, Z_LVAL_P(zvariable));
+			if (pval->type) {
+				pval->value = jit_value_create_long_constant(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));	
+			} else pval->value = jit_value_create_long_constant(pval->func->func, jit_type_sys_long, Z_LVAL_P(zvalue));
 		break;
 		
 		case IS_DOUBLE:
-			if (type == (void*) -1) 
-				type = jit_type_sys_double;
-			
-			value = jit_value_create_nfloat_constant(function, type, Z_DVAL_P(zvariable));
+			if (pval->type) {
+				pval->value = jit_value_create_nfloat_constant(pval->func->func, pval->type->type, Z_DVAL_P(zvalue));
+			} else pval->value = jit_value_create_nfloat_constant(pval->func->func, jit_type_sys_double, Z_DVAL_P(zvalue));
 		break;
 		
-		default: {
+		case IS_STRING: {
 			jit_constant_t con;
-			jit_type_t typed = jit_type_create_pointer(jit_type_sys_char, 0);
 
-			con.un.ptr_value = Z_STRVAL_P(zvariable);
-			con.type         = typed;
+			con.un.ptr_value = Z_STRVAL_P(zvalue);
+			con.type         = pval->type->type;
 			
-			value = jit_value_create_constant(function, &con);
-		}
+			pval->value = jit_value_create_constant(pval->func->func, &con);
+		} break;
 	}
-	
-	ZEND_REGISTER_RESOURCE(return_value, value, le_jit_value);
-} /* }}} */
+}
 
-/* {{{ bool jit_value_is_temporary(jit_value_t value) */
-PHP_FUNCTION(jit_value_is_temporary) {
-	zval *zvalue;
-	jit_value_t value;
+PHP_METHOD(Value, isTemporary) {
+	php_jit_value_t *pval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
-	RETURN_BOOL(jit_value_is_temporary(value));
-} /* }}} */
-
-/* {{{ bool jit_value_is_local(jit_value_t value) */
-PHP_FUNCTION(jit_value_is_local) {
-	zval *zvalue;
-	jit_value_t value;
+	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	RETURN_BOOL(jit_value_is_temporary(pval->value));
+}
+
+PHP_METHOD(Value, isLocal) {
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
-	RETURN_BOOL(jit_value_is_local(value));
-} /* }}} */
-
-/* {{{ bool jit_value_is_constant(jit_value_t value) */
-PHP_FUNCTION(jit_value_is_constant) {
-	zval *zvalue;
-	jit_value_t value;
+	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	RETURN_BOOL(jit_value_is_local(pval->value));
+}
+
+PHP_METHOD(Value, isConstant) {
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
-	RETURN_BOOL(jit_value_is_constant(value));
-} /* }}} */
-
-/* {{{ bool jit_value_is_parameter(jit_value_t value) */
-PHP_FUNCTION(jit_value_is_parameter) {
-	zval *zvalue;
-	jit_value_t value;
+	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	RETURN_BOOL(jit_value_is_constant(pval->value));
+}
+
+PHP_METHOD(Value, isParameter) {
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
-	RETURN_BOOL(jit_value_is_parameter(value));
-} /* }}} */
-
-/* {{{ void jit_value_set_volatile(jit_value_t value) */
-PHP_FUNCTION(jit_value_set_volatile) {
-	zval *zvalue;
-	jit_value_t value;
+	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	RETURN_BOOL(jit_value_is_parameter(pval->value));
+}
+
+PHP_METHOD(Value, isVolatile) {
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
-	jit_value_set_volatile(value);
-} /* }}} */
-
-/* {{{ bool jit_value_is_volatile(jit_value_t value) */
-PHP_FUNCTION(jit_value_is_volatile) {
-	zval *zvalue;
-	jit_value_t value;
+	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	RETURN_BOOL(jit_value_is_volatile(pval->value));
+}
+
+PHP_METHOD(Value, isAddressable) {
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
-	RETURN_BOOL(jit_value_is_volatile(value));
-} /* }}} */
-
-/* {{{ void jit_value_set_addressable(jit_value_t value) */
-PHP_FUNCTION(jit_value_set_addressable) {
-	zval *zvalue;
-	jit_value_t value;
+	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	RETURN_BOOL(jit_value_is_addressable(pval->value));
+}
+
+PHP_METHOD(Value, isTrue) {
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
-	jit_value_set_addressable(value);
-} /* }}} */
-
-/* {{{ bool jit_value_is_addressable(jit_value_t value) */
-PHP_FUNCTION(jit_value_is_addressable) {
-	zval *zvalue;
-	jit_value_t value;
+	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	RETURN_BOOL(jit_value_is_true(pval->value));
+}
+
+PHP_METHOD(Value, setVolatile) {
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
-	RETURN_BOOL(jit_value_is_addressable(value));
-} /* }}} */
-
-/* {{{ bool jit_value_is_true(jit_value_t value) */
-PHP_FUNCTION(jit_value_is_true) {
-	zval *zvalue;
-	jit_value_t value;
+	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	jit_value_set_volatile(pval->value);
+}
+
+PHP_METHOD(Value, setAddressable) {
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
-	RETURN_BOOL(jit_value_is_true(value));
-} /* }}} */
-
-/* {{{ jit_type_t jit_value_get_type(jit_value_t value) */
-PHP_FUNCTION(jit_value_get_type) {
-	zval *zvalue;
-	jit_value_t value;
-	jit_type_t type;
+	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	jit_value_set_addressable(pval->value);
+}
+
+PHP_METHOD(Value, getType) {
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
+	
+	pval = PHP_JIT_FETCH_VALUE(getThis());
+	
+	if (pval) {
+		zend_object_value value;
+		
+		value.handle = pval->type->h;
+		value.handlers = &php_jit_type_handlers;
+		
+		Z_TYPE_P(return_value)   = IS_OBJECT;
+		Z_OBJVAL_P(return_value) = value;
+		
+		zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
+	}
+}
 
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
+PHP_METHOD(Value, getFunction) {
+	php_jit_value_t *pval;
 	
-	type = jit_value_get_type(value);
-	
-	ZEND_REGISTER_RESOURCE(return_value, type, le_jit_type);
-} /* }}} */
-
-/* {{{ jit_function_t jit_value_get_function(jit_value_t value) */
-PHP_FUNCTION(jit_value_get_function) {
-	zval *zvalue, **zfunction;
-	jit_value_t value;
-	jit_function_t function;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
+	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
-
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
 	
-	function = jit_value_get_function(value);
+	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (zend_hash_index_find(
-		&JG(func),
-		(zend_ulong) function, (void**) &zfunction) == SUCCESS) {
-		ZVAL_ZVAL(return_value, *zfunction, 1, 0);
+	if (pval) {
+		zend_object_value value;
+		
+		value.handle = pval->func->h;
+		value.handlers = &php_jit_function_handlers;
+		
+		Z_TYPE_P(return_value)   = IS_OBJECT;
+		Z_OBJVAL_P(return_value) = value;
+		
+		zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
 	}
-} /* }}} */
+}
 
-/* {{{ jit_context_t jit_value_get_context(jit_value_t value) */
-PHP_FUNCTION(jit_value_get_context) {
-	zval *zvalue, **zcontext;
-	jit_value_t value;
-	jit_context_t context;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zvalue) != SUCCESS) {
-		return;
-	}
+ZEND_BEGIN_ARG_INFO_EX(php_jit_value_construct_arginfo, 0, 0, 2) 
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, value)
+	ZEND_ARG_INFO(0, type)
+ZEND_END_ARG_INFO()
 
-	ZEND_FETCH_RESOURCE(value,    jit_value_t,    &zvalue,    -1, le_jit_value_name,    le_jit_value);
-	
-	context = jit_value_get_context(value);
-	
-	if (zend_hash_index_find(
-		&JG(ctx),
-		(zend_ulong) context, (void**) &zcontext) == SUCCESS) {
-		ZVAL_ZVAL(return_value, *zcontext, 1, 0);
-	}
-} /* }}} */
+zend_function_entry php_jit_value_methods[] = {
+	PHP_ME(Value, __construct,    php_jit_value_construct_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, isTemporary,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, isLocal,        php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, isConstant,     php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, isParameter,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, isVolatile,     php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, isAddressable,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, isTrue,         php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, setVolatile,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, setAddressable, php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, getType,        php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, getFunction,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_FE_END
+};
 #endif
 #endif
