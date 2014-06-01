@@ -6,6 +6,8 @@ JIT-Fu is a PHP extension that exposes an OO API for the creation of native inst
 
 ![A JoeJITFu elephpant](http://i.imgur.com/GirIOWs.png)
 
+*The elephpant above is an artists rendition, the actual animal may or may not exist ...*
+
 ```php
 <?php
 /* This is a fibonacci function, and is ~60 times faster than PHP :o */
