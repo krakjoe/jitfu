@@ -18,11 +18,11 @@
 
 /* $Id$ */
 
-#ifndef PHP_JIT_H
-#define PHP_JIT_H
+#ifndef PHP_JITFU_H
+#define PHP_JITFU_H
 
-extern zend_module_entry jit_module_entry;
-#define phpext_jit_ptr &jit_module_entry
+extern zend_module_entry jitfu_module_entry;
+#define phpext_jitfu_ptr &jitfu_module_entry
 
 #ifdef PHP_WIN32
 #	define PHP_JIT_API __declspec(dllexport)
@@ -38,19 +38,19 @@ extern zend_module_entry jit_module_entry;
 #include "TSRM.h"
 #endif
 
-PHP_MINIT_FUNCTION(jit);
-PHP_MSHUTDOWN_FUNCTION(jit);
-PHP_RINIT_FUNCTION(jit);
-PHP_RSHUTDOWN_FUNCTION(jit);
-PHP_MINFO_FUNCTION(jit);
+PHP_MINIT_FUNCTION(jitfu);
+PHP_MSHUTDOWN_FUNCTION(jitfu);
+PHP_RINIT_FUNCTION(jitfu);
+PHP_RSHUTDOWN_FUNCTION(jitfu);
+PHP_MINFO_FUNCTION(jitfu);
 
-ZEND_BEGIN_MODULE_GLOBALS(jit)
+ZEND_BEGIN_MODULE_GLOBALS(jitfu)
 	HashTable ctx;
 	HashTable func;
-ZEND_END_MODULE_GLOBALS(jit)
+ZEND_END_MODULE_GLOBALS(jitfu)
 
-#define PHP_JIT_EXTNAME "jit"
-#define PHP_JIT_VERSION "0.2"
+#define PHP_JITFU_EXTNAME "jitfu"
+#define PHP_JITFU_VERSION "0.2"
 
 #define JIT_FE(f) PHP_FE(f, f##_arginfo)
 
@@ -58,9 +58,9 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_no_arginfo, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
 #ifdef ZTS
-#define JG(v) TSRMG(jit_globals_id, zend_jit_globals *, v)
+#define JG(v) TSRMG(jitfu_globals_id, zend_jitfu_globals *, v)
 #else
-#define JG(v) (jit_globals.v)
+#define JG(v) (jitfu_globals.v)
 #endif
 
 #endif	/* PHP_JIT_H */

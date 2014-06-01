@@ -85,7 +85,7 @@ static inline zend_object_value php_jit_signature_create(zend_class_entry *ce TS
 void php_jit_minit_signature(int module_number TSRMLS_DC) {
 	zend_class_entry ce;
 	
-	INIT_NS_CLASS_ENTRY(ce, "JIT", "Signature", php_jit_signature_methods);
+	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Signature", php_jit_signature_methods);
 	jit_signature_ce = zend_register_internal_class_ex(&ce, jit_type_ce, NULL TSRMLS_CC);
 	jit_signature_ce->create_object = php_jit_signature_create;
 	

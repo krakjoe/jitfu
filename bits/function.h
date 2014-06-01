@@ -86,7 +86,7 @@ static inline zend_object_value php_jit_function_create(zend_class_entry *ce TSR
 void php_jit_minit_function(int module_number TSRMLS_DC) {
 	zend_class_entry ce;
 	
-	INIT_NS_CLASS_ENTRY(ce, "JIT", "Func", php_jit_function_methods);
+	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Func", php_jit_function_methods);
 	jit_function_ce = zend_register_internal_class(&ce TSRMLS_CC);
 	jit_function_ce->create_object = php_jit_function_create;
 	

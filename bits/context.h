@@ -79,7 +79,7 @@ static inline zend_object_value php_jit_context_create(zend_class_entry *ce TSRM
 void php_jit_minit_context(int module_number TSRMLS_DC) {
 	zend_class_entry ce;
 	
-	INIT_NS_CLASS_ENTRY(ce, "JIT", "Context", php_jit_context_methods);
+	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Context", php_jit_context_methods);
 	jit_context_ce = zend_register_internal_class(&ce TSRMLS_CC);
 	jit_context_ce->create_object = php_jit_context_create;
 	

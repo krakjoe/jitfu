@@ -26,12 +26,12 @@
 #include "php_ini.h"
 #include "ext/standard/info.h"
 #include "zend_closures.h"
-#include "php_jit.h"
+#include "php_jitfu.h"
 #ifdef HAVE_SPL
 #include "ext/spl/spl_exceptions.h"
 #endif
 
-ZEND_DECLARE_MODULE_GLOBALS(jit)
+ZEND_DECLARE_MODULE_GLOBALS(jitfu)
 
 #include "bits/context.h"
 #include "bits/type.h"
@@ -42,38 +42,38 @@ ZEND_DECLARE_MODULE_GLOBALS(jit)
 
 /* {{{ jit_module_entry
  */
-zend_module_entry jit_module_entry = {
+zend_module_entry jitfu_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
 #endif
-	PHP_JIT_EXTNAME,
+	PHP_JITFU_EXTNAME,
 	NULL,
-	PHP_MINIT(jit),
-	PHP_MSHUTDOWN(jit),
-	PHP_RINIT(jit),
-	PHP_RSHUTDOWN(jit),
-	PHP_MINFO(jit),
+	PHP_MINIT(jitfu),
+	PHP_MSHUTDOWN(jitfu),
+	PHP_RINIT(jitfu),
+	PHP_RSHUTDOWN(jitfu),
+	PHP_MINFO(jitfu),
 #if ZEND_MODULE_API_NO >= 20010901
-	PHP_JIT_VERSION,
+	PHP_JITFU_VERSION,
 #endif
 	STANDARD_MODULE_PROPERTIES
 };
 /* }}} */
 
-#ifdef COMPILE_DL_JIT
-ZEND_GET_MODULE(jit)
+#ifdef COMPILE_DL_JITFU
+ZEND_GET_MODULE(jitfu)
 #endif
 
 /* {{{ php_jit_init_globals
  */
-static void php_jit_globals_ctor(zend_jit_globals *jit_globals){}
+static void php_jit_globals_ctor(zend_jitfu_globals *jit_globals){}
 /* }}} */
 
 /* {{{ PHP_MINIT_FUNCTION
  */
-PHP_MINIT_FUNCTION(jit)
+PHP_MINIT_FUNCTION(jitfu)
 {
-	ZEND_INIT_MODULE_GLOBALS(jit, php_jit_globals_ctor, NULL);
+	ZEND_INIT_MODULE_GLOBALS(jitfu, php_jit_globals_ctor, NULL);
 	
 	php_jit_minit_context(module_number TSRMLS_CC);
 	php_jit_minit_type(module_number TSRMLS_CC);
@@ -88,7 +88,7 @@ PHP_MINIT_FUNCTION(jit)
 
 /* {{{ PHP_MSHUTDOWN_FUNCTION
  */
-PHP_MSHUTDOWN_FUNCTION(jit)
+PHP_MSHUTDOWN_FUNCTION(jitfu)
 {	
 	return SUCCESS;
 }
@@ -96,7 +96,7 @@ PHP_MSHUTDOWN_FUNCTION(jit)
 
 /* {{{ PHP_RINIT_FUNCTION
  */
-PHP_RINIT_FUNCTION(jit)
+PHP_RINIT_FUNCTION(jitfu)
 {	
 	return SUCCESS;
 }
@@ -104,7 +104,7 @@ PHP_RINIT_FUNCTION(jit)
 
 /* {{{ PHP_RSHUTDOWN_FUNCTION
  */
-PHP_RSHUTDOWN_FUNCTION(jit)
+PHP_RSHUTDOWN_FUNCTION(jitfu)
 {
 	return SUCCESS;
 }
@@ -112,10 +112,10 @@ PHP_RSHUTDOWN_FUNCTION(jit)
 
 /* {{{ PHP_MINFO_FUNCTION
  */
-PHP_MINFO_FUNCTION(jit)
+PHP_MINFO_FUNCTION(jitfu)
 {
 	php_info_print_table_start();
-	php_info_print_table_header(2, "jit support", "enabled");
+	php_info_print_table_header(2, "JIT-Fu support", "enabled");
 	php_info_print_table_end();
 }
 /* }}} */

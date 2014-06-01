@@ -117,7 +117,7 @@ static inline zend_object_value php_jit_builder_create(zend_class_entry *ce TSRM
 void php_jit_minit_builder(int module_number TSRMLS_DC) {
 	zend_class_entry ce;
 	
-	INIT_NS_CLASS_ENTRY(ce, "JIT", "Builder", php_jit_builder_methods);
+	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Builder", php_jit_builder_methods);
 	jit_builder_ce = zend_register_internal_class(&ce TSRMLS_CC);
 	jit_builder_ce->create_object = php_jit_builder_create;
 	

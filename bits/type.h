@@ -102,7 +102,7 @@ static inline zend_object_value php_jit_type_create(zend_class_entry *ce TSRMLS_
 void php_jit_minit_type(int module_number TSRMLS_DC) {
 	zend_class_entry ce;
 	
-	INIT_NS_CLASS_ENTRY(ce, "JIT", "Type", php_jit_type_methods);
+	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Type", php_jit_type_methods);
 	jit_type_ce = zend_register_internal_class(&ce TSRMLS_CC);
 	jit_type_ce->create_object = php_jit_type_create;
 	

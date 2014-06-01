@@ -1,20 +1,18 @@
-JIT
-===
-*An OO wrapper around libjit ...*
+JIT-Fu
+======
+*A lesson in the art of JoeJITFu ...*
 
-```libjit``` is a library for creating Just-In-Time compilers, this extension wraps the library such that it's functionality can be called from PHP.
-
-This extension can be used to build native instructions in PHP ... and is fun to play with ...
+JIT-Fu is a PHP library built around ```libjit```, exposing an OO API for the creation of native instructions to PHP userland.
 
 ```php
 <?php
 /* This is a fibonacci function, and is ~60 times faster than PHP :o */
-use JIT\Context;
-use JIT\Type;
-use JIT\Signature;
-use JIT\Func;
-use JIT\Value;
-use JIT\Builder;
+use JITFu\Context;
+use JITFu\Type;
+use JITFu\Signature;
+use JITFu\Func;
+use JITFu\Value;
+use JITFu\Builder;
 
 $context = new Context();
 
