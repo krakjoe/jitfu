@@ -95,6 +95,59 @@ PHP_METHOD(Builder, __construct) {
 		(pbuild->func->h TSRMLS_CC);
 }
 
+PHP_METHOD(Builder, doIfEqual) {
+	zval *op1, *op2 = NULL;
+	php_jit_builder_t *pbuild;
+	jit_value_t temp;
+	jit_label_t label = jit_label_undefined;
+	zend_fcall_info zpfci, znfci;
+	zend_fcall_info_cache zpfcc, znfcc;
+	zval *zretnull = NULL;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOf|f", &op1, jit_value_ce, &op2, jit_value_ce, &zpfci, &zpfcc, &znfci, &znfcc) != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	temp = jit_insn_eq
+		(pbuild->func->func, PHP_JIT_FETCH_VALUE_I(op1), PHP_JIT_FETCH_VALUE_I(op2));
+	
+	jit_insn_branch_if_not(pbuild->func->func, temp, &label);
+	
+	zpfci.retval_ptr_ptr = &zretnull;
+	
+	zend_fcall_info_argn(&zpfci TSRMLS_CC, 1, &getThis());
+	
+	zend_try {
+		zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
+	} zend_end_try();
+	
+	zend_fcall_info_args_clear(&zpfci, 1);
+	
+	if (zretnull) {
+		zval_ptr_dtor(&zretnull);
+	}
+	
+	jit_insn_label(pbuild->func->func, &label);
+	
+	if (ZEND_NUM_ARGS() > 3) {
+		znfci.retval_ptr_ptr = &zretnull;
+	
+		zend_fcall_info_argn(&znfci TSRMLS_CC, 1, &getThis());
+	
+		zend_try {
+			zend_call_function(&znfci, &znfcc TSRMLS_CC);
+		} zend_end_try();
+	
+		zend_fcall_info_args_clear(&znfci, 1);
+	
+		if (zretnull) {
+			zval_ptr_dtor(&zretnull);
+		}
+	}
+}
+
 PHP_METHOD(Builder, doReturn) {
 	zval *zvalue;
 	php_jit_builder_t *pbuild;
@@ -117,8 +170,17 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doReturn_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, value)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doIfEqual_arginfo, 0, 0, 2) 
+	ZEND_ARG_INFO(0, function)
+	ZEND_ARG_INFO(0, op1)
+	ZEND_ARG_INFO(0, op2)
+	ZEND_ARG_INFO(0, positive)
+	ZEND_ARG_INFO(0, negative)
+ZEND_END_ARG_INFO()
+
 zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, __construct,  php_jit_builder_construct_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doIfEqual,    php_jit_builder_doIfEqual_arginfo,  ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturn,     php_jit_builder_doReturn_arginfo,  ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };

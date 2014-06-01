@@ -15,11 +15,15 @@ $signature = new Signature
 
 $function = new Func($context, $signature);
 $builder  = new Builder($function);
-$value    = new Value($function, 0, new Type(JIT_TYPE_INT));
+$value    = new Value($function, 20, new Type(JIT_TYPE_INT));
 
 $arg      = $function->getParameter(0);
 
-$builder->doReturn($arg);
+$builder->doIfEqual($arg, $value, function($builder) use ($arg, $value) {
+	$builder->doReturn($arg);
+}, function($builder) use($arg, $value) {
+	$builder->doReturn($value);
+});
 
 $context->finish();
 
