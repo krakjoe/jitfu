@@ -777,11 +777,11 @@ PHP_METHOD(Builder, doCall) {
 	HashPosition position;
 	zval **zparam;
 	jit_value_t *args;
-	int arg = 0;
+	zend_uint arg = 0;
 	long flags = 0;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOH|l", &zfunction, jit_function_ce, &zsignature, jit_signature_ce, &zparams, &flags) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OH|l", &zfunction, jit_function_ce, &zparams, &flags) != SUCCESS) {
 		return;
 	}
 
