@@ -24,6 +24,7 @@ typedef struct _php_jit_value_t {
 	php_jit_function_t *func;
 	php_jit_type_t     *type;
 	jit_value_t         value;
+	void               *dup;
 } php_jit_value_t;
 
 zend_class_entry *jit_value_ce;
@@ -55,6 +56,10 @@ static inline void php_jit_value_destroy(void *zobject, zend_object_handle handl
 	
 	if (pval->type) {
 		zend_objects_store_del_ref_by_handle(pval->type->h TSRMLS_CC);
+	}
+
+	if (pval->dup) {
+		efree(pval->dup);
 	}
 	
 	efree(pval);
@@ -124,11 +129,17 @@ PHP_METHOD(Value, __construct) {
 		case IS_STRING: {
 			jit_constant_t con;
 			
-			con.un.ptr_value = Z_STRVAL_P(zvalue);
+			pval->dup        = estrndup
+				(Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue));
+			con.un.ptr_value = pval->dup;
 			con.type         = pval->type->type;
-
+			
 			pval->value = jit_value_create_constant(pval->func->func, &con);
 		} break;
+		
+		default: {
+			/* throw unknown type */
+		}
 	}
 }
 

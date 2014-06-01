@@ -121,10 +121,11 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 }
 
 PHP_METHOD(Type, __construct) {
-	zval *ztype, *ztypes = NULL;
+	zval *ztype;
+	zend_bool zpointer = 0;
 	php_jit_type_t *intern;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &ztype) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|b", &ztype, &zpointer) != SUCCESS) {
 		return;
 	}
 	
@@ -133,12 +134,15 @@ PHP_METHOD(Type, __construct) {
 	switch (Z_TYPE_P(ztype)) {
 		case IS_LONG:
 			intern->id   = Z_LVAL_P(ztype);
-			intern->type = php_jit_type(Z_LVAL_P(ztype));
+			if (zpointer) {
+				intern->type = jit_type_create_pointer(php_jit_type(Z_LVAL_P(ztype)), 1);
+			} else intern->type = php_jit_type(Z_LVAL_P(ztype));
 		break;
 		
 		case IS_OBJECT:
-			intern->type = jit_type_copy(
-				PHP_JIT_FETCH_TYPE_I(ztype));
+			if (zpointer) {
+				intern->type = jit_type_create_pointer(PHP_JIT_FETCH_TYPE_I(ztype), 1);
+			} else intern->type = jit_type_copy(PHP_JIT_FETCH_TYPE_I(ztype));
 			intern->copied = 1;
 		break;
 	}
