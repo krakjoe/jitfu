@@ -41,7 +41,7 @@ extern zend_module_entry jitfu_module_entry;
 PHP_MINIT_FUNCTION(jitfu);
 PHP_MINFO_FUNCTION(jitfu);
 
-#define PHP_JITFU_EXTNAME "JITFu"
+#define PHP_JITFU_EXTNAME "JITFU"
 #define PHP_JITFU_VERSION "0.2"
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_no_arginfo, 0, 0, 0) 
