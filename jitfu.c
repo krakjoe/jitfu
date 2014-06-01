@@ -47,9 +47,9 @@ zend_module_entry jitfu_module_entry = {
 	PHP_JITFU_EXTNAME,
 	NULL,
 	PHP_MINIT(jitfu),
-	PHP_MSHUTDOWN(jitfu),
-	PHP_RINIT(jitfu),
-	PHP_RSHUTDOWN(jitfu),
+	NULL,
+	NULL,
+	NULL,
 	PHP_MINFO(jitfu),
 #if ZEND_MODULE_API_NO >= 20010901
 	PHP_JITFU_VERSION,
@@ -73,30 +73,6 @@ PHP_MINIT_FUNCTION(jitfu)
 	php_jit_minit_value(module_number TSRMLS_CC);
 	php_jit_minit_builder(module_number TSRMLS_CC);
 	
-	return SUCCESS;
-}
-/* }}} */
-
-/* {{{ PHP_MSHUTDOWN_FUNCTION
- */
-PHP_MSHUTDOWN_FUNCTION(jitfu)
-{	
-	return SUCCESS;
-}
-/* }}} */
-
-/* {{{ PHP_RINIT_FUNCTION
- */
-PHP_RINIT_FUNCTION(jitfu)
-{	
-	return SUCCESS;
-}
-/* }}} */
-
-/* {{{ PHP_RSHUTDOWN_FUNCTION
- */
-PHP_RSHUTDOWN_FUNCTION(jitfu)
-{
 	return SUCCESS;
 }
 /* }}} */
