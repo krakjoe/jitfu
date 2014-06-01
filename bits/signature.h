@@ -23,16 +23,16 @@ zend_class_entry *jit_signature_ce;
 typedef struct _php_jit_signature_t {
 	zend_object std;
 	zend_object_handle h;
+	jit_type_t       type;
 	php_jit_type_t *returns;
 	php_jit_type_t **params;
 	zend_uint        nparams;
-	jit_type_t       type;
 } php_jit_signature_t;
 
 #define PHP_JIT_FETCH_SIGNATURE(from) \
 	(php_jit_signature_t*) zend_object_store_get_object((from) TSRMLS_CC)
 #define PHP_JIT_FETCH_SIGNATURE_I(from) \
-	(PHP_JIT_FETCH_TYPE(from))->type
+	(PHP_JIT_FETCH_SIGNATURE(from))->type
 
 void php_jit_minit_signature(int module_number TSRMLS_DC);
 

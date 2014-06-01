@@ -34,7 +34,6 @@ $function = new Func($context, $signature);
 $zero     = new Value($function, 0, $integer);
 $one      = new Value($function, 1, $integer);
 $two      = new Value($function, 2, $integer);
-$three    = new Value($function, 3, $integer);
 
 $arg      = $function->getParameter(0);
 
