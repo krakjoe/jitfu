@@ -67,7 +67,7 @@ static inline void php_jit_signature_destroy(void *zobject, zend_object_handle h
 static inline zend_object_value php_jit_signature_create(zend_class_entry *ce TSRMLS_DC) {
 	zend_object_value intern;
 	php_jit_signature_t *psig = 
-		(php_jit_signature_t*) emalloc(sizeof(php_jit_type_t));
+		(php_jit_signature_t*) emalloc(sizeof(php_jit_signature_t));
 	
 	zend_object_std_init(&psig->std, ce TSRMLS_CC);
 	object_properties_init(&psig->std, ce);
