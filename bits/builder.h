@@ -39,9 +39,26 @@ extern zend_object_handlers php_jit_builder_handlers;
 #define HAVE_BITS_BUILDER
 zend_object_handlers php_jit_builder_handlers;
 
-typedef jit_value_t (*jit_builder_binary_func) (jit_function_t, jit_value_t, jit_value_t);
+typedef int         (*jit_builder_mem_func)     (jit_function_t, jit_value_t, jit_value_t, jit_value_t);
+typedef jit_value_t (*jit_builder_binary_func)  (jit_function_t, jit_value_t, jit_value_t);
 typedef jit_value_t (*jit_builder_unary_func)   (jit_function_t, jit_value_t);
 
+/* {{{ */
+static inline void php_jit_do_mem_op(jit_builder_mem_func func, php_jit_function_t *pfunc, zval *zin[3], zval *return_value TSRMLS_DC) {
+	jit_value_t in[3];
+	int result;
+	
+	in[0]    = PHP_JIT_FETCH_VALUE_I(zin[0]);
+	in[1]    = PHP_JIT_FETCH_VALUE_I(zin[1]);
+	in[2]    = PHP_JIT_FETCH_VALUE_I(zin[2]);
+	
+	result = func
+		(pfunc->func, in[0], in[1], in[2]);
+	
+	ZVAL_LONG(return_value, result);
+} /* }}} */
+
+/* {{{ */
 static inline void php_jit_do_binary_op(jit_builder_binary_func func, php_jit_function_t *pfunc, zval *zin[2], zval *return_value TSRMLS_DC) {
 	jit_value_t in[2];
 	php_jit_value_t *pval;
@@ -758,6 +775,61 @@ PHP_METHOD(Builder, doIsInf) {
 	php_jit_do_unary_op(jit_insn_is_inf, pbuild->func, zin, return_value TSRMLS_CC);
 }
 
+PHP_METHOD(Builder, doAlloca) {
+	zval *zin = NULL;
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_unary_op(jit_insn_alloca, pbuild->func, zin, return_value TSRMLS_CC);
+}
+
+PHP_METHOD(Builder, doAddressof) {
+	zval *zin = NULL;
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_unary_op(jit_insn_address_of, pbuild->func, zin, return_value TSRMLS_CC);
+}
+
+PHP_METHOD(Builder, doMemcpy) {
+	zval *zin[3] = {NULL, NULL, NULL};
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], &zin[1], &zin[3]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_mem_op(jit_insn_memcpy, pbuild->func, zin, return_value TSRMLS_CC);
+}
+
+PHP_METHOD(Builder, doMemmove) {
+	zval *zin[3] = {NULL, NULL, NULL};
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], &zin[1], &zin[3]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_mem_op(jit_insn_memmove, pbuild->func, zin, return_value TSRMLS_CC);
+}
+
+PHP_METHOD(Builder, doMemset) {
+	zval *zin[3] = {NULL, NULL, NULL};
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], &zin[1], &zin[3]) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_do_mem_op(jit_insn_memset, pbuild->func, zin, return_value TSRMLS_CC);
+}
+
 PHP_METHOD(Builder, doReturn) {
 	zval *zin;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
@@ -779,7 +851,6 @@ PHP_METHOD(Builder, doCall) {
 	jit_value_t *args;
 	zend_uint arg = 0;
 	long flags = 0;
-	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OH|l", &zfunction, jit_function_ce, &zparams, &flags) != SUCCESS) {
 		return;
@@ -797,19 +868,29 @@ PHP_METHOD(Builder, doCall) {
 	object_init_ex(return_value, jit_value_ce);
 
 	{
+		php_jit_builder_t *pbuild = 
+			PHP_JIT_FETCH_BUILDER(getThis());
+		php_jit_function_t *pfunc = 
+			PHP_JIT_FETCH_FUNCTION(zfunction);
 		php_jit_value_t *pval =
 			PHP_JIT_FETCH_VALUE(return_value);
-
+		
 		pval->value = jit_insn_call(
 			pbuild->func->func,
-			"function",
-			PHP_JIT_FETCH_FUNCTION_I(zfunction),
-			NULL, /* this should be signature */
+			NULL,
+			pfunc->func,
+			pfunc->sig->type,
 			args, arg, flags);
 	}
 
 	efree(args);
 }
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_ternary_arginfo, 0, 0, 3)
+	ZEND_ARG_INFO(0, op1) 
+	ZEND_ARG_INFO(0, op2) 
+	ZEND_ARG_INFO(0, op3)
+ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_binary_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, op1) 
@@ -894,6 +975,10 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, doIsFinite,   php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIsInf,      php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doCall,       php_jit_builder_doCall_arginfo,     ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doAlloca,     php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doMemcpy,     php_jit_builder_ternary_arginfo,    ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doMemmove,    php_jit_builder_ternary_arginfo,    ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doMemset,     php_jit_builder_ternary_arginfo,    ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturn,     php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
