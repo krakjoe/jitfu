@@ -887,6 +887,20 @@ PHP_METHOD(Builder, doReturn) {
 	RETURN_BOOL(jit_insn_return(pbuild->func->func, PHP_JIT_FETCH_VALUE_I(zin)));
 }
 
+PHP_METHOD(Builder, doReturnPtr) {
+	zval *zin[2] = {NULL, NULL};
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_type_ce) != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	RETURN_BOOL(jit_insn_return_ptr
+		(pbuild->func->func, PHP_JIT_FETCH_VALUE_I(zin[0]), PHP_JIT_FETCH_TYPE_I(zin[2])));
+}
+
 PHP_METHOD(Builder, doCall) {
 	zval *zfunction = NULL, *zsignature = NULL;
 	HashTable *zparams;
@@ -980,6 +994,11 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doMemset_arginfo, 0, 0, 3)
 	ZEND_ARG_INFO(0, size)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doReturnPtr_arginfo, 0, 0, 2) 
+	ZEND_ARG_INFO(0, value)
+	ZEND_ARG_INFO(0, type)
+ZEND_END_ARG_INFO()
+
 zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, __construct,  php_jit_builder_construct_arginfo,  ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIf,         php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
@@ -1046,6 +1065,7 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, doMemmove,    php_jit_builder_doMemmove_arginfo,  ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doMemset,     php_jit_builder_doMemset_arginfo,   ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturn,     php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doReturnPtr,  php_jit_builder_doReturnPtr_arginfo,ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 #endif
