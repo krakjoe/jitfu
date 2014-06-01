@@ -962,6 +962,24 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doCall_arginfo, 0, 0, 3)
 	ZEND_ARG_INFO(0, flags)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doMemcpy_arginfo, 0, 0, 3) 
+	ZEND_ARG_INFO(0, dest)
+	ZEND_ARG_INFO(0, src)
+	ZEND_ARG_INFO(0, size)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doMemmove_arginfo, 0, 0, 3) 
+	ZEND_ARG_INFO(0, dest)
+	ZEND_ARG_INFO(0, src)
+	ZEND_ARG_INFO(0, size)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doMemset_arginfo, 0, 0, 3) 
+	ZEND_ARG_INFO(0, dest)
+	ZEND_ARG_INFO(0, value)
+	ZEND_ARG_INFO(0, size)
+ZEND_END_ARG_INFO()
+
 zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, __construct,  php_jit_builder_construct_arginfo,  ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIf,         php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
@@ -1024,9 +1042,9 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, doLoadSmall,  php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doDup,        php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doStore,      php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
-	PHP_ME(Builder, doMemcpy,     php_jit_builder_ternary_arginfo,    ZEND_ACC_PUBLIC)
-	PHP_ME(Builder, doMemmove,    php_jit_builder_ternary_arginfo,    ZEND_ACC_PUBLIC)
-	PHP_ME(Builder, doMemset,     php_jit_builder_ternary_arginfo,    ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doMemcpy,     php_jit_builder_doMemcpy_arginfo,   ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doMemmove,    php_jit_builder_doMemmove_arginfo,  ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doMemset,     php_jit_builder_doMemset_arginfo,   ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturn,     php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
