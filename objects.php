@@ -28,7 +28,7 @@ $builder  = new Builder($function);
 /* if ($arg == 0) return 0; */
 $builder->doIf(
 	$builder->doEq($arg, $zero),
-	function($builder) use ($arg, $zero, $one, $two) {
+	function($builder) use ($zero) {
 		$builder->doReturn($zero);
 	}
 );
