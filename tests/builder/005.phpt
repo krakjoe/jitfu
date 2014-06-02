@@ -25,7 +25,7 @@ $y       = $function->getParameter(1);
 
 $builder = new Builder($function);
 
-/* return x - y; */
+/* return x / y; */
 $builder->doReturn(
 	$builder->doDiv($x, $y));
 
