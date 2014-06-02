@@ -272,9 +272,9 @@ PHP_METHOD(Func, getParameter) {
 static inline void** php_jit_array_args(zval *args TSRMLS_DC) {
 	HashTable *ht = Z_ARRVAL_P(args);
 	void **jargs = (void**) safe_emalloc
-		(sizeof(void*), zend_hash_num_elements(Z_ARRVAL_P(args)), 0);
+		(sizeof(void*), zend_hash_num_elements(ht), 0);
+
 	zend_uint narg = 0;
-	
 	HashPosition position;
 	zval **zmember;
 	
@@ -334,7 +334,7 @@ PHP_METHOD(Func, __invoke) {
 		}
 	
 		/** TODO(anyone) verify signature **/
-			
+		
 		while (narg < nargs) {
 			switch (Z_TYPE_P(args[narg])) {
 				case IS_LONG:
@@ -349,11 +349,11 @@ PHP_METHOD(Func, __invoke) {
 					jargs[narg] = &Z_STRVAL_P(args[narg]);
 				break;
 				
-				case IS_ARRAY:
-					/* not working, dunno why ... */
+				case IS_ARRAY: {
+					/* doesn't work, dunno why */
 					jargs[narg] = php_jit_array_args(args[narg] TSRMLS_CC);
 					/* store address for free after call */
-				break;
+				} break;
 				
 				default: {
 					/* throw arg at narg unknown to jit? */
@@ -391,6 +391,37 @@ PHP_METHOD(Func, __invoke) {
 	efree(jargs);
 }
 
+PHP_METHOD(Func, dump) {
+	zval *zname = NULL, *zoutput = NULL;
+	php_jit_function_t *pfunc;
+	php_stream *pstream = NULL;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &zname, &zoutput) != SUCCESS) {
+		return;
+	}
+
+	if (!zname || Z_TYPE_P(zname) != IS_STRING) {
+		/* throw expected name string */
+		return;
+	}
+
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	
+	if (!zoutput) {
+		jit_dump_function(stdout, pfunc->func, Z_STRVAL_P(zname));
+		return;
+	}
+	
+	php_stream_from_zval(pstream, &zoutput);
+	
+	if (php_stream_can_cast(pstream, PHP_STREAM_AS_STDIO|PHP_STREAM_CAST_TRY_HARD) == SUCCESS) {
+		FILE *stdio;
+		if (php_stream_cast(pstream, PHP_STREAM_AS_STDIO, (void**)&stdio, 0) == SUCCESS) {
+			jit_dump_function(stdio, pfunc->func, Z_STRVAL_P(zname));
+		}
+	}
+}
+
 ZEND_BEGIN_ARG_INFO_EX( php_jit_function_get_param_arginfo, 0, 0, 2) 
 	ZEND_ARG_INFO(0, parameter)
 ZEND_END_ARG_INFO()
@@ -410,6 +441,7 @@ zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, getContext,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, getSignature,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, getParameter,  php_jit_function_get_param_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, dump,          php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, __invoke,      NULL,    ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
