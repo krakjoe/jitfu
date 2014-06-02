@@ -86,3 +86,4 @@ TODO
   * expose ELF read/write api, somehow
   * bother with windows ... anyone ?
   * other cool things, probably
+  * pecl & phpdoc
