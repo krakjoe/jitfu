@@ -241,6 +241,71 @@ PHP_METHOD(Builder, doIfNot) {
 	}
 }
 
+PHP_METHOD(Builder, doJumpTable) {
+	zval *zvalue, **zmember;
+	HashTable *table;
+	HashPosition position;
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	jit_label_t *labels = NULL;
+	zend_uint nlabels = 0;
+	zend_uint nlabel = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OH", &zvalue, jit_value_ce, &table) != SUCCESS) {
+		return;
+	}
+	
+	nlabels = zend_hash_num_elements(table);
+	
+	if (!nlabels) {
+		return;
+	}
+	
+	labels = (jit_label_t*) ecalloc(nlabels, sizeof(jit_label_t));
+
+	for (nlabel = 0; nlabel < nlabels; nlabel++) {
+		labels[nlabel] = jit_label_undefined;
+	}
+	
+	jit_insn_jump_table
+		(pbuild->func->func, PHP_JIT_FETCH_VALUE_I(zvalue), labels, nlabels);
+
+	nlabel = 0;
+	
+	for (zend_hash_internal_pointer_reset_ex(table, &position);
+		zend_hash_get_current_data_ex(table, (void**)&zmember, &position) == SUCCESS;
+		zend_hash_move_forward_ex(table, &position)) {
+		zend_fcall_info fci;
+		zend_fcall_info_cache fcc;
+		zval *retval_ptr = NULL;
+		
+		jit_insn_label(pbuild->func->func, &labels[nlabel]);
+		
+		if (zend_fcall_info_init(*zmember, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
+			/* throw, not callable ? */
+			nlabel++;
+			continue;
+		}
+		
+		zend_fcall_info_argn(&fci TSRMLS_CC, 1, &getThis());
+		
+		fci.retval_ptr_ptr = &retval_ptr;
+
+		zend_try {
+			zend_call_function(&fci, &fcc TSRMLS_CC);
+		} zend_end_try();
+		
+		if (retval_ptr) {
+			zval_ptr_dtor(&retval_ptr);
+		}
+		
+		zend_fcall_info_args_clear(&fci, 1);	
+
+		nlabel++;
+	}
+	
+	efree(labels);
+}
+
 PHP_METHOD(Builder, doEq) {
 	zval *zin[2] = {NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
@@ -1125,6 +1190,11 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doStoreElem_arginfo, 0, 0, 3)
 	ZEND_ARG_INFO(0, value)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doJumpTable_arginfo, 0, 0, 2) 
+	ZEND_ARG_INFO(0, value)
+	ZEND_ARG_INFO(0, table)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doReturnPtr_arginfo, 0, 0, 2) 
 	ZEND_ARG_INFO(0, value)
 	ZEND_ARG_INFO(0, type)
@@ -1201,6 +1271,7 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, doLoadElem,        php_jit_builder_doLoadElem_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doLoadElemAddress, php_jit_builder_doLoadElem_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doStoreElem,       php_jit_builder_doStoreElem_arginfo,ZEND_ACC_PUBLIC) 
+	PHP_ME(Builder, doJumpTable,       php_jit_builder_doJumpTable_arginfo,ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturn,          php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturnPtr,       php_jit_builder_doReturnPtr_arginfo,ZEND_ACC_PUBLIC)
 	PHP_FE_END
