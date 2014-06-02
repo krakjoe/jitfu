@@ -512,7 +512,7 @@ PHP_METHOD(Builder, doNeg) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -600,7 +600,7 @@ PHP_METHOD(Builder, doToBool) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -611,7 +611,7 @@ PHP_METHOD(Builder, doToNotBool) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -622,7 +622,7 @@ PHP_METHOD(Builder, doAcos) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -633,7 +633,7 @@ PHP_METHOD(Builder, doAsin) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -644,7 +644,7 @@ PHP_METHOD(Builder, doAtan) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -688,7 +688,7 @@ PHP_METHOD(Builder, doCeil) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -699,7 +699,7 @@ PHP_METHOD(Builder, doCos) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -710,7 +710,7 @@ PHP_METHOD(Builder, doCosh) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -721,7 +721,7 @@ PHP_METHOD(Builder, doExp) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -732,7 +732,7 @@ PHP_METHOD(Builder, doFloor) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -743,7 +743,7 @@ PHP_METHOD(Builder, doLog) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -754,7 +754,7 @@ PHP_METHOD(Builder, doLog10) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -765,7 +765,7 @@ PHP_METHOD(Builder, doRint) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -776,7 +776,7 @@ PHP_METHOD(Builder, doRound) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -787,7 +787,7 @@ PHP_METHOD(Builder, doSin) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -798,7 +798,7 @@ PHP_METHOD(Builder, doSinh) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -809,7 +809,7 @@ PHP_METHOD(Builder, doSqrt) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -820,7 +820,7 @@ PHP_METHOD(Builder, doTan) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -831,7 +831,7 @@ PHP_METHOD(Builder, doTanh) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -842,7 +842,7 @@ PHP_METHOD(Builder, doAbs) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -853,7 +853,7 @@ PHP_METHOD(Builder, doSign) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -865,7 +865,7 @@ PHP_METHOD(Builder, doIsNAN) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -876,7 +876,7 @@ PHP_METHOD(Builder, doIsFinite) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -887,7 +887,7 @@ PHP_METHOD(Builder, doIsInf) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -898,7 +898,7 @@ PHP_METHOD(Builder, doAlloca) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -909,7 +909,7 @@ PHP_METHOD(Builder, doLoad) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -920,7 +920,7 @@ PHP_METHOD(Builder, doLoadSmall) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -931,7 +931,7 @@ PHP_METHOD(Builder, doDup) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -942,7 +942,7 @@ PHP_METHOD(Builder, doStore) {
 	zval *zin[2] = {NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], &zin[1]) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -953,7 +953,7 @@ PHP_METHOD(Builder, doAddressof) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -964,7 +964,7 @@ PHP_METHOD(Builder, doCheckNull) {
 	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -976,7 +976,7 @@ PHP_METHOD(Builder, doMemcpy) {
 	zval *zin[3] = {NULL, NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], &zin[1], &zin[3]) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -987,7 +987,7 @@ PHP_METHOD(Builder, doMemmove) {
 	zval *zin[3] = {NULL, NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], &zin[1], &zin[3]) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -998,7 +998,7 @@ PHP_METHOD(Builder, doMemset) {
 	zval *zin[3] = {NULL, NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], &zin[1], &zin[3]) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -1010,7 +1010,7 @@ PHP_METHOD(Builder, doLoadElem) {
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 	php_jit_value_t *pval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], &zin[1], &zin[3]) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_type_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -1031,7 +1031,7 @@ PHP_METHOD(Builder, doLoadElemAddress) {
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 	php_jit_value_t *pval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], &zin[1], &zin[3]) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_type_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -1051,7 +1051,7 @@ PHP_METHOD(Builder, doStoreElem) {
 	zval *zin[3] = {NULL, NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], &zin[1], &zin[3]) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -1274,7 +1274,7 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, doMemset,          php_jit_builder_doMemset_arginfo,   ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doLoadElem,        php_jit_builder_doLoadElem_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doLoadElemAddress, php_jit_builder_doLoadElem_arginfo, ZEND_ACC_PUBLIC)
-	PHP_ME(Builder, doStoreElem,       php_jit_builder_doStoreElem_arginfo,ZEND_ACC_PUBLIC) 
+	PHP_ME(Builder, doStoreElem,       php_jit_builder_doStoreElem_arginfo,ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doJumpTable,       php_jit_builder_doJumpTable_arginfo,ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturn,          php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturnPtr,       php_jit_builder_doReturnPtr_arginfo,ZEND_ACC_PUBLIC)

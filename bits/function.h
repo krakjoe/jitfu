@@ -269,6 +269,42 @@ PHP_METHOD(Func, getParameter) {
 	}
 }
 
+void* php_jit_array_args(zval *args TSRMLS_DC) {
+	HashTable *ht = Z_ARRVAL_P(args);
+	void **jargs = (void**) safe_emalloc
+		(sizeof(void*), zend_hash_num_elements(Z_ARRVAL_P(args)), 0);
+	zend_uint narg = 0;
+	
+	HashPosition position;
+	zval **zmember;
+	
+	for (zend_hash_internal_pointer_reset_ex(ht, &position);
+		zend_hash_get_current_data_ex(ht, (void**) &zmember, &position) == SUCCESS; 
+		zend_hash_move_forward_ex(ht, &position)) {
+		switch (Z_TYPE_PP(zmember)) {
+			case IS_LONG:
+				jargs[narg] = &Z_LVAL_PP(zmember);
+			break;
+			
+			case IS_DOUBLE:
+				jargs[narg] = &Z_DVAL_PP(zmember);
+			break;
+			
+			case IS_STRING:
+				jargs[narg] = &Z_STRVAL_PP(zmember);
+			break;
+			
+			case IS_ARRAY:
+				jargs[narg] = php_jit_array_args(*zmember TSRMLS_CC);
+			break;
+		}
+
+		narg++;
+	}
+	
+	return jargs;
+}
+
 PHP_METHOD(Func, __invoke) {
 	php_jit_function_t *pfunc;
 	
@@ -311,6 +347,11 @@ PHP_METHOD(Func, __invoke) {
 				
 				case IS_STRING:
 					jargs[narg] = &Z_STRVAL_P(args[narg]);
+				break;
+				
+				case IS_ARRAY:
+					jargs[narg] = php_jit_array_args(args[narg] TSRMLS_CC);
+					/* store address for free after call */
 				break;
 				
 				default: {
