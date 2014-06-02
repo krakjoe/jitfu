@@ -246,7 +246,7 @@ PHP_METHOD(Builder, doJumpTable) {
 	HashTable *table;
 	HashPosition position;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
-	jit_label_t *labels = NULL;
+	jit_label_t *labels = NULL, after = jit_label_undefined;
 	zend_uint nlabels = 0;
 	zend_uint nlabel = 0;
 	
@@ -268,7 +268,9 @@ PHP_METHOD(Builder, doJumpTable) {
 	
 	jit_insn_jump_table
 		(pbuild->func->func, PHP_JIT_FETCH_VALUE_I(zvalue), labels, nlabels);
-
+	jit_insn_branch
+		(pbuild->func->func, &after);
+	
 	nlabel = 0;
 	
 	for (zend_hash_internal_pointer_reset_ex(table, &position);
@@ -302,6 +304,8 @@ PHP_METHOD(Builder, doJumpTable) {
 
 		nlabel++;
 	}
+	
+	jit_insn_label(pbuild->func->func, &after);
 	
 	efree(labels);
 }
