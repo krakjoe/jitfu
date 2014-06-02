@@ -1,5 +1,5 @@
 --TEST--
-Test type object
+Test signature object
 --SKIPIF--
 <?php if (!extension_loaded("jitfu")) die("skip JITFu not loaded"); ?>
 --FILE--
