@@ -269,7 +269,7 @@ PHP_METHOD(Func, getParameter) {
 	}
 }
 
-void** php_jit_array_args(zval *args TSRMLS_DC) {
+static inline void** php_jit_array_args(zval *args TSRMLS_DC) {
 	HashTable *ht = Z_ARRVAL_P(args);
 	void **jargs = (void**) safe_emalloc
 		(sizeof(void*), zend_hash_num_elements(Z_ARRVAL_P(args)), 0);

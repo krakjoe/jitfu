@@ -23,6 +23,7 @@ typedef struct _php_jit_type_t {
 	zend_object_handle  h;
 	jit_type_t          type;
 	zend_ulong          id;
+	zend_ulong          pt;
 	zend_bool           copied;
 } php_jit_type_t;
 
@@ -84,7 +85,7 @@ static inline void php_jit_type_destroy(void *zobject, zend_object_handle handle
 static inline zend_object_value php_jit_type_create(zend_class_entry *ce TSRMLS_DC) {
 	zend_object_value intern;
 	php_jit_type_t *ptype = 
-		(php_jit_type_t*) emalloc(sizeof(php_jit_type_t));
+		(php_jit_type_t*) ecalloc(1, sizeof(php_jit_type_t));
 	
 	zend_object_std_init(&ptype->std, ce TSRMLS_CC);
 	object_properties_init(&ptype->std, ce);
@@ -123,29 +124,70 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 PHP_METHOD(Type, __construct) {
 	zval *ztype;
 	zend_bool zpointer = 0;
-	php_jit_type_t *intern;
+	php_jit_type_t *ptype;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|b", &ztype, &zpointer) != SUCCESS) {
 		return;
 	}
 	
-	intern = PHP_JIT_FETCH_TYPE(getThis());
+	ptype = PHP_JIT_FETCH_TYPE(getThis());
 	
 	switch (Z_TYPE_P(ztype)) {
 		case IS_LONG:
-			intern->id   = Z_LVAL_P(ztype);
 			if (zpointer) {
-				intern->type = jit_type_create_pointer(php_jit_type(Z_LVAL_P(ztype)), 1);
-			} else intern->type = php_jit_type(Z_LVAL_P(ztype));
+				ptype->type = jit_type_create_pointer(
+					php_jit_type(Z_LVAL_P(ztype)), 1);
+				ptype->pt   = 1;
+			} else ptype->type = php_jit_type(Z_LVAL_P(ztype));
+			ptype->id   = Z_LVAL_P(ztype);
 		break;
 		
-		case IS_OBJECT:
+		case IS_OBJECT: {
+			php_jit_type_t *patype = PHP_JIT_FETCH_TYPE(ztype);
 			if (zpointer) {
-				intern->type = jit_type_create_pointer(PHP_JIT_FETCH_TYPE_I(ztype), 1);
-			} else intern->type = jit_type_copy(PHP_JIT_FETCH_TYPE_I(ztype));
-			intern->copied = 1;
-		break;
+				ptype->type = jit_type_create_pointer(patype->type, 1);
+				ptype->pt   = (patype->pt + 1);
+			} else ptype->type = jit_type_copy(patype->type);
+			ptype->id = patype->id;
+			ptype->copied = 1;
+		} break;
 	}
+}
+
+PHP_METHOD(Type, getIdentifier) {
+	php_jit_type_t *ptype;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	ptype = PHP_JIT_FETCH_TYPE(getThis());
+	
+	RETURN_LONG(ptype->id);
+}
+
+PHP_METHOD(Type, getIndirection) {
+	php_jit_type_t *ptype;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	ptype = PHP_JIT_FETCH_TYPE(getThis());
+	
+	RETURN_LONG(ptype->pt);
+}
+
+PHP_METHOD(Type, isPointer) {
+	php_jit_type_t *ptype;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	ptype = PHP_JIT_FETCH_TYPE(getThis());
+	
+	RETURN_BOOL(ptype->pt > 0);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_type_construct_arginfo, 0, 0, 1) 
@@ -153,7 +195,10 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_type_construct_arginfo, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 zend_function_entry php_jit_type_methods[] = {
-	PHP_ME(Type, __construct,  php_jit_type_construct_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Type, __construct,     php_jit_type_construct_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Type, getIdentifier,   php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Type, getIndirection,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Type, isPointer,       php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 #endif
