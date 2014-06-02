@@ -97,11 +97,17 @@ void php_jit_minit_value(int module_number TSRMLS_DC) {
 }
 
 PHP_METHOD(Value, __construct) {
-	zval *zfunction, *zvalue, *ztype = NULL;
+	zval *zfunction, *zvalue = NULL, *ztype = NULL;
 	php_jit_value_t *pval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OzO", &zfunction, jit_function_ce, &zvalue, &ztype, jit_type_ce) != SUCCESS) {
-		return;
+	switch (ZEND_NUM_ARGS()) {
+		case 3: if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OzO", &zfunction, jit_function_ce, &zvalue, &ztype, jit_type_ce) != SUCCESS) {
+			return;
+		} break;
+		
+		default: if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zfunction, jit_function_ce, &ztype, jit_type_ce) != SUCCESS) {
+			return;
+		}
 	}
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
@@ -113,33 +119,37 @@ PHP_METHOD(Value, __construct) {
 	zend_objects_store_add_ref_by_handle
 		(pval->type->h TSRMLS_CC);
 	
-	switch (Z_TYPE_P(zvalue)) {
-		case IS_LONG:
-			if (pval->type) {
-				pval->value = jit_value_create_long_constant(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));	
-			} else pval->value = jit_value_create_long_constant(pval->func->func, jit_type_sys_long, Z_LVAL_P(zvalue));
-		break;
+	if (zvalue) {
+		switch (Z_TYPE_P(zvalue)) {
+			case IS_LONG:
+				if (pval->type) {
+					pval->value = jit_value_create_long_constant(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));	
+				} else pval->value = jit_value_create_long_constant(pval->func->func, jit_type_sys_long, Z_LVAL_P(zvalue));
+			break;
 		
-		case IS_DOUBLE:
-			if (pval->type) {
-				pval->value = jit_value_create_nfloat_constant(pval->func->func, pval->type->type, Z_DVAL_P(zvalue));
-			} else pval->value = jit_value_create_nfloat_constant(pval->func->func, jit_type_sys_double, Z_DVAL_P(zvalue));
-		break;
+			case IS_DOUBLE:
+				if (pval->type) {
+					pval->value = jit_value_create_nfloat_constant(pval->func->func, pval->type->type, Z_DVAL_P(zvalue));
+				} else pval->value = jit_value_create_nfloat_constant(pval->func->func, jit_type_sys_double, Z_DVAL_P(zvalue));
+			break;
 		
-		case IS_STRING: {
-			jit_constant_t con;
+			case IS_STRING: {
+				jit_constant_t con;
+
+				pval->dup        = estrndup
+					(Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue));
+				con.un.ptr_value = pval->dup;
+				con.type         = pval->type->type;
 			
-			pval->dup        = estrndup
-				(Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue));
-			con.un.ptr_value = pval->dup;
-			con.type         = pval->type->type;
-			
-			pval->value = jit_value_create_constant(pval->func->func, &con);
-		} break;
+				pval->value = jit_value_create_constant(pval->func->func, &con);
+			} break;
 		
-		default: {
-			/* throw unknown type */
+			default: {
+				/* throw unknown type */
+			}
 		}
+	} else {
+		pval->value = jit_value_create(pval->func->func, pval->type->type);
 	}
 }
 
