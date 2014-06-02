@@ -269,7 +269,7 @@ PHP_METHOD(Func, getParameter) {
 	}
 }
 
-void* php_jit_array_args(zval *args TSRMLS_DC) {
+void** php_jit_array_args(zval *args TSRMLS_DC) {
 	HashTable *ht = Z_ARRVAL_P(args);
 	void **jargs = (void**) safe_emalloc
 		(sizeof(void*), zend_hash_num_elements(Z_ARRVAL_P(args)), 0);
@@ -350,6 +350,7 @@ PHP_METHOD(Func, __invoke) {
 				break;
 				
 				case IS_ARRAY:
+					/* not working, dunno why ... */
 					jargs[narg] = php_jit_array_args(args[narg] TSRMLS_CC);
 					/* store address for free after call */
 				break;
