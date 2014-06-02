@@ -75,7 +75,7 @@ var_dump($function(40)); /* __invoke with magicalness */
 ?>
 ```
 
-The code above will yield the following output:
+The code above will yield something like the following output:
 
 ```
 [joe@localhost jit]$ time php -dextension=jitfu.so objects.php 
