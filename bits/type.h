@@ -42,12 +42,18 @@ zend_class_entry *jit_type_ce;
 #define PHP_JIT_TYPE_ULONG		6
 #define PHP_JIT_TYPE_DOUBLE		7
 #define PHP_JIT_TYPE_VOID_PTR	8
+#define PHP_JIT_TYPE_HASH       9
+#define PHP_JIT_TYPE_BUCKET     10
 
 jit_type_t php_jit_type(short type);
 void php_jit_minit_type(int module_number TSRMLS_DC);
 
 extern zend_function_entry php_jit_type_methods[];
 extern zend_object_handlers php_jit_type_handlers;
+
+jit_type_t jit_type_hash;
+jit_type_t jit_type_bucket;
+
 #else
 #ifndef HAVE_BITS_TYPE
 #define HAVE_BITS_TYPE
@@ -64,6 +70,8 @@ jit_type_t php_jit_type(short type) {
 		case PHP_JIT_TYPE_ULONG:	return jit_type_sys_ulong;
 		case PHP_JIT_TYPE_DOUBLE:	return jit_type_sys_double;
 		case PHP_JIT_TYPE_VOID_PTR:	return jit_type_void_ptr;
+		case PHP_JIT_TYPE_HASH:     return jit_type_hash;
+		case PHP_JIT_TYPE_BUCKET:   return jit_type_bucket;		
 	}
 	
 	return jit_type_void;
@@ -120,6 +128,47 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 	REGISTER_LONG_CONSTANT("JIT_TYPE_LONG",      PHP_JIT_TYPE_LONG,        CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_ULONG",     PHP_JIT_TYPE_ULONG,       CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_DOUBLE",    PHP_JIT_TYPE_DOUBLE,      CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_HASH",      PHP_JIT_TYPE_HASH,        CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_BUCKET",    PHP_JIT_TYPE_BUCKET,      CONST_CS|CONST_PERSISTENT);
+	
+	{	
+		jit_type_t hFields[] = 
+		{
+			jit_type_sys_uint,
+			jit_type_sys_uint,
+			jit_type_sys_uint,
+			jit_type_sys_ulong,
+			jit_type_void_ptr,
+			jit_type_void_ptr,
+			jit_type_void_ptr,
+			jit_type_void_ptr,
+			jit_type_void_ptr,
+			jit_type_sys_ushort,
+			jit_type_sys_uchar,
+			jit_type_sys_ushort,
+#ifdef ZEND_DEBUG
+			jit_type_sys_int,
+#endif
+		};
+
+		jit_type_t bFields[] =
+		{
+			jit_type_sys_ulong,
+			jit_type_sys_uint,
+			jit_type_void_ptr,
+			jit_type_void_ptr,
+			jit_type_void_ptr,
+			jit_type_void_ptr,
+			jit_type_void_ptr,
+			jit_type_void_ptr,
+			jit_type_void_ptr
+		};
+		
+		jit_type_hash   = jit_type_create_struct
+			(hFields, sizeof(hFields)/sizeof(jit_type_t), 0);
+		jit_type_bucket = jit_type_create_struct
+			(bFields, sizeof(bFields)/sizeof(jit_type_t), 0);
+	}
 }
 
 PHP_METHOD(Type, __construct) {

@@ -67,7 +67,7 @@ ZEND_GET_MODULE(jitfu)
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(jitfu)
-{
+{	
 	php_jit_minit_context(module_number TSRMLS_CC);
 	php_jit_minit_type(module_number TSRMLS_CC);
 	php_jit_minit_signature(module_number TSRMLS_CC);
@@ -76,7 +76,7 @@ PHP_MINIT_FUNCTION(jitfu)
 	php_jit_minit_struct(module_number TSRMLS_CC);
 	php_jit_minit_union(module_number TSRMLS_CC);
 	php_jit_minit_builder(module_number TSRMLS_CC);
-	
+
 	return SUCCESS;
 }
 /* }}} */
