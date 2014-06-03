@@ -278,7 +278,6 @@ PHP_METHOD(Func, __invoke) {
 	void **jargs = nargs ? 
 		(void**) safe_emalloc(sizeof(void*), nargs, 0) : NULL;
 	void *result;
-	zend_llist stack;
 	
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
@@ -294,7 +293,6 @@ PHP_METHOD(Func, __invoke) {
 		
 		if (zend_get_parameters_array(ht, nargs, args) != SUCCESS) {
 			/* throw failed to fetch arguments */
-			zend_llist_destroy(&stack);
 			efree(args);
 			return;
 		}
