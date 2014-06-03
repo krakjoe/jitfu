@@ -282,21 +282,17 @@ static inline void** php_jit_array_args(zval *args TSRMLS_DC) {
 		zend_hash_get_current_data_ex(ht, (void**) &zmember, &position) == SUCCESS; 
 		zend_hash_move_forward_ex(ht, &position)) {
 		switch (Z_TYPE_PP(zmember)) {
-			case IS_LONG:
-				jargs[narg] = &Z_LVAL_PP(zmember);
-			break;
-			
-			case IS_DOUBLE:
-				jargs[narg] = &Z_DVAL_PP(zmember);
-			break;
-			
-			case IS_STRING:
-				jargs[narg] = &Z_STRVAL_PP(zmember);
-			break;
+			case IS_OBJECT: {
+				/* cannot use objects */
+			} break;
 			
 			case IS_ARRAY:
 				jargs[narg] = php_jit_array_args(*zmember TSRMLS_CC);
 			break;
+			
+			default: {
+				jargs[narg] = &(*zmember)->value;
+			}
 		}
 
 		narg++;
@@ -337,17 +333,9 @@ PHP_METHOD(Func, __invoke) {
 		
 		while (narg < nargs) {
 			switch (Z_TYPE_P(args[narg])) {
-				case IS_LONG:
-					jargs[narg] = &Z_LVAL_P(args[narg]);
-				break;
-				
-				case IS_DOUBLE:
-					jargs[narg] = &Z_DVAL_P(args[narg]);
-				break;
-				
-				case IS_STRING:
-					jargs[narg] = &Z_STRVAL_P(args[narg]);
-				break;
+				case IS_OBJECT: {
+					/* cannot use objects */
+				} break;
 				
 				case IS_ARRAY: {
 					/* doesn't work, dunno why */
@@ -356,6 +344,7 @@ PHP_METHOD(Func, __invoke) {
 				} break;
 				
 				default: {
+					jargs[narg] = &args[narg]->value;
 					/* throw arg at narg unknown to jit? */
 					/* we need to do something different here so we can pass around structures, I 'unno */
 				}
