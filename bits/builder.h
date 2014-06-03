@@ -1032,7 +1032,7 @@ PHP_METHOD(Builder, doLoadRelative) {
 	long index = 0;
 	php_jit_value_t *pval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &index, &zin[1], jit_type_ce) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OlO", &zin[0], jit_value_ce, &index, &zin[1], jit_type_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -1080,7 +1080,7 @@ PHP_METHOD(Builder, doConvert) {
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_convert(
 		pbuild->func->func,
-		PHP_JIT_FETCH_VALUE_I(zin[0]), 
+		PHP_JIT_FETCH_VALUE_I(zin[0]),
 		PHP_JIT_FETCH_TYPE_I(zin[1]), overflow);
 	pval->type = PHP_JIT_FETCH_TYPE(zin[1]);
 	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);

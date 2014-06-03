@@ -133,20 +133,14 @@ PHP_METHOD(Value, __construct) {
 				} else pval->value = jit_value_create_nfloat_constant(pval->func->func, jit_type_sys_double, Z_DVAL_P(zvalue));
 			break;
 		
-			case IS_STRING: {
+			default: {
 				jit_constant_t con;
 
-				pval->dup        = estrndup
-					(Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue));
-				con.un.ptr_value = pval->dup;
+				con.un.ptr_value = &zvalue->value;
 				con.type         = pval->type->type;
-			
+
 				pval->value = jit_value_create_constant(pval->func->func, &con);
 			} break;
-		
-			default: {
-				/* throw unknown type */
-			}
 		}
 	} else {
 		pval->value = jit_value_create(pval->func->func, pval->type->type);

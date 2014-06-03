@@ -60,7 +60,8 @@ static inline void php_jit_signature_destroy(void *zobject, zend_object_handle h
 	}
 	
 	jit_type_free(psig->type);
-	
+
+	efree(psig->params);
 	efree(psig);
 }
 
