@@ -1029,8 +1029,8 @@ PHP_METHOD(Builder, doLoadElem) {
 PHP_METHOD(Builder, doLoadRelative) {
 	zval *zin[2] = {NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
-	php_jit_value_t *pval;
 	long index = 0;
+	php_jit_value_t *pval;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &index, &zin[1], jit_type_ce) != SUCCESS) {
 		return;
@@ -1051,21 +1051,37 @@ PHP_METHOD(Builder, doLoadRelative) {
 PHP_METHOD(Builder, doStoreRelative) {
 	zval *zin[2] = {NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
-	php_jit_value_t *pval;
 	long index = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &index, &zin[1], jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
-	object_init_ex(return_value, jit_value_ce);
-	
-	pval = PHP_JIT_FETCH_VALUE(return_value);
-	pval->value = jit_insn_store_relative(
+	RETURN_LONG(jit_insn_store_relative(
 		pbuild->func->func,
 		PHP_JIT_FETCH_VALUE_I(zin[0]), 
 		index, 
-		PHP_JIT_FETCH_VALUE_I(zin[1]));
+		PHP_JIT_FETCH_VALUE_I(zin[1])));
+}
+
+PHP_METHOD(Builder, doConvert) {
+	zval *zin[2] = {NULL, NULL};
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	php_jit_value_t *pval;
+	zend_bool overflow = 0;
+	long index = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO|b", &zin[0], jit_value_ce, &zin[1], jit_type_ce, &overflow) != SUCCESS) {
+		return;
+	}
+	
+	object_init_ex(return_value, jit_value_ce);
+	
+	pval = PHP_JIT_FETCH_VALUE(return_value);
+	pval->value = jit_insn_convert(
+		pbuild->func->func,
+		PHP_JIT_FETCH_VALUE_I(zin[0]), 
+		PHP_JIT_FETCH_TYPE_I(zin[1]), overflow);
 	pval->type = PHP_JIT_FETCH_TYPE(zin[1]);
 	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
 }
@@ -1253,6 +1269,12 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doJumpTable_arginfo, 0, 0, 2) 
 	ZEND_ARG_INFO(0, value)
 	ZEND_ARG_INFO(0, table)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doConvert_arginfo, 0, 0, 2) 
+	ZEND_ARG_INFO(0, value)
+	ZEND_ARG_INFO(0, type)
+	ZEND_ARG_INFO(0, overflow)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doReturnPtr_arginfo, 0, 0, 2) 
