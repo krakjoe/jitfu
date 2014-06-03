@@ -316,7 +316,7 @@ PHP_METHOD(Func, __invoke) {
 	}
 	
 	jit_function_apply(pfunc->func, jargs, &result);
-	
+
 	switch (pfunc->sig->returns->id) {
 		case PHP_JIT_TYPE_CHAR: ZVAL_STRING(return_value, (char*) result, 1); break;
 		case PHP_JIT_TYPE_ULONG:
