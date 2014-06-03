@@ -44,6 +44,7 @@ zend_class_entry *jit_type_ce;
 #define PHP_JIT_TYPE_VOID_PTR	8
 #define PHP_JIT_TYPE_HASH       9
 #define PHP_JIT_TYPE_BUCKET     10
+#define PHP_JIT_TYPE_ZVAL		11
 
 jit_type_t php_jit_type(short type);
 void php_jit_minit_type(int module_number TSRMLS_DC);
@@ -51,6 +52,10 @@ void php_jit_minit_type(int module_number TSRMLS_DC);
 extern zend_function_entry php_jit_type_methods[];
 extern zend_object_handlers php_jit_type_handlers;
 
+jit_type_t jit_type_zval;
+jit_type_t jit_type_zvalue;
+jit_type_t jit_type_zobject;
+jit_type_t jit_type_zstring;
 jit_type_t jit_type_hash;
 jit_type_t jit_type_bucket;
 
@@ -71,7 +76,8 @@ jit_type_t php_jit_type(short type) {
 		case PHP_JIT_TYPE_DOUBLE:	return jit_type_sys_double;
 		case PHP_JIT_TYPE_VOID_PTR:	return jit_type_void_ptr;
 		case PHP_JIT_TYPE_HASH:     return jit_type_hash;
-		case PHP_JIT_TYPE_BUCKET:   return jit_type_bucket;		
+		case PHP_JIT_TYPE_BUCKET:   return jit_type_bucket;	
+		case PHP_JIT_TYPE_ZVAL:     return jit_type_zval;	
 	}
 	
 	return jit_type_void;
@@ -130,7 +136,8 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 	REGISTER_LONG_CONSTANT("JIT_TYPE_DOUBLE",    PHP_JIT_TYPE_DOUBLE,      CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_HASH",      PHP_JIT_TYPE_HASH,        CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_BUCKET",    PHP_JIT_TYPE_BUCKET,      CONST_CS|CONST_PERSISTENT);
-	
+	REGISTER_LONG_CONSTANT("JIT_TYPE_ZVAL",      PHP_JIT_TYPE_ZVAL,        CONST_CS|CONST_PERSISTENT);
+
 	{	
 		jit_type_t hFields[] = 
 		{
@@ -164,6 +171,39 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 			jit_type_void_ptr
 		};
 		
+		jit_type_t zsFields[] = {
+			jit_type_void_ptr,
+			jit_type_sys_int
+		};
+		
+		jit_type_t zvFields[] = {
+			jit_type_sys_long,
+			jit_type_sys_double,
+			jit_type_zstring,
+			jit_type_void_ptr,
+			jit_type_zobject
+		};
+		
+		jit_type_t zoFields[] = {
+			jit_type_sys_uint,
+			jit_type_void_ptr
+		};
+		
+		jit_type_t zFields[] = {
+			jit_type_zvalue,
+			jit_type_sys_uint,
+			jit_type_sys_uchar,
+			jit_type_sys_uchar
+		};
+		
+		jit_type_zstring = jit_type_create_struct
+			(zsFields, sizeof(zsFields)/sizeof(jit_type_t), 0);
+		jit_type_zobject = jit_type_create_struct
+			(zoFields, sizeof(zoFields)/sizeof(jit_type_t), 0);
+		jit_type_zvalue = jit_type_create_union
+			(zvFields, sizeof(zvFields)/sizeof(jit_type_t), 0);
+		jit_type_zval   = jit_type_create_struct
+			(zFields, sizeof(zFields)/sizeof(jit_type_t), 0);
 		jit_type_hash   = jit_type_create_struct
 			(hFields, sizeof(hFields)/sizeof(jit_type_t), 0);
 		jit_type_bucket = jit_type_create_struct

@@ -273,9 +273,9 @@ PHP_METHOD(Func, __invoke) {
 	php_jit_function_t *pfunc;
 	
 	zend_uint nargs = ZEND_NUM_ARGS();
-	zval **args = nargs ? 
+	zval **args = nargs ?
 		(zval**) safe_emalloc(sizeof(zval*), nargs, 0) : NULL;
-	void **jargs = nargs ? 
+	void **jargs = nargs ?
 		(void**) safe_emalloc(sizeof(void*), nargs, 0) : NULL;
 	void *result;
 	
@@ -318,7 +318,6 @@ PHP_METHOD(Func, __invoke) {
 	jit_function_apply(pfunc->func, jargs, &result);
 	
 	switch (pfunc->sig->returns->id) {
-		/* TODO(anyone) hash/bucket */
 		case PHP_JIT_TYPE_CHAR: ZVAL_STRING(return_value, (char*) result, 1); break;
 		case PHP_JIT_TYPE_ULONG:
 		case PHP_JIT_TYPE_LONG:
@@ -330,16 +329,19 @@ PHP_METHOD(Func, __invoke) {
 
 			ZVAL_DOUBLE(return_value, doubled);
 		} break;
-		
+
 		case PHP_JIT_TYPE_HASH: {
 			zval tmp;
-			
+
 			Z_ARRVAL(tmp) = result;
-			Z_TYPE(tmp) = IS_ARRAY;
-			
-			ZVAL_ZVAL(return_value, &tmp, 1, 1);
+			Z_TYPE(tmp)   = IS_ARRAY;
+			ZVAL_ZVAL(return_value, &tmp, 1, 0);
 		} break;
 		
+		case PHP_JIT_TYPE_ZVAL: {
+			
+		} break;
+
 		case PHP_JIT_TYPE_VOID_PTR: ZVAL_LONG(return_value, (long) result); break;
 		
 		default: {
