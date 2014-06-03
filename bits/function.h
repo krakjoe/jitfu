@@ -330,7 +330,16 @@ PHP_METHOD(Func, __invoke) {
 
 			ZVAL_DOUBLE(return_value, doubled);
 		} break;
-
+		
+		case PHP_JIT_TYPE_HASH: {
+			zval tmp;
+			
+			Z_ARRVAL(tmp) = result;
+			Z_TYPE(tmp) = IS_ARRAY;
+			
+			ZVAL_ZVAL(return_value, &tmp, 1, 1);
+		} break;
+		
 		case PHP_JIT_TYPE_VOID_PTR: ZVAL_LONG(return_value, (long) result); break;
 		
 		default: {
