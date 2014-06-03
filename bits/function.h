@@ -269,7 +269,7 @@ PHP_METHOD(Func, getParameter) {
 	}
 }
 
-static inline void** php_jit_array_args(zval *args TSRMLS_DC) {
+static inline void** php_jit_array_args(zval *args, zend_llist *stack TSRMLS_DC) {
 	HashTable *ht = Z_ARRVAL_P(args);
 	void **jargs = (void**) safe_emalloc
 		(sizeof(void*), zend_hash_num_elements(ht), 0);
@@ -277,6 +277,8 @@ static inline void** php_jit_array_args(zval *args TSRMLS_DC) {
 	zend_uint narg = 0;
 	HashPosition position;
 	zval **zmember;
+	
+	zend_llist_add_element(stack, &jargs);
 	
 	for (zend_hash_internal_pointer_reset_ex(ht, &position);
 		zend_hash_get_current_data_ex(ht, (void**) &zmember, &position) == SUCCESS; 
@@ -288,7 +290,7 @@ static inline void** php_jit_array_args(zval *args TSRMLS_DC) {
 			} break;
 			
 			case IS_ARRAY:
-				jargs[narg] = php_jit_array_args(*zmember TSRMLS_CC);
+				jargs[narg] = php_jit_array_args(*zmember, stack TSRMLS_CC);
 			break;
 			
 			default: {
@@ -302,6 +304,10 @@ static inline void** php_jit_array_args(zval *args TSRMLS_DC) {
 	return jargs;
 }
 
+static inline void php_jit_invoke_stack_dtor(void *ptr) {
+	efree(*(void**)ptr);
+}
+
 PHP_METHOD(Func, __invoke) {
 	php_jit_function_t *pfunc;
 	
@@ -311,7 +317,8 @@ PHP_METHOD(Func, __invoke) {
 	void **jargs = nargs ? 
 		(void**) safe_emalloc(sizeof(void*), nargs, 0) : NULL;
 	void *result;
-
+	zend_llist stack;
+	
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
 	if (!jit_function_is_compiled(pfunc->func)) {
@@ -321,11 +328,14 @@ PHP_METHOD(Func, __invoke) {
 		return;
 	}
 
+	zend_llist_init(&stack, sizeof(void**), php_jit_invoke_stack_dtor, 0);
+
 	if (args) {
 		zend_uint narg = 0;
 		
 		if (zend_get_parameters_array(ht, nargs, args) != SUCCESS) {
 			/* throw failed to fetch arguments */
+			zend_llist_destroy(&stack);
 			efree(args);
 			return;
 		}
@@ -341,7 +351,7 @@ PHP_METHOD(Func, __invoke) {
 				
 				case IS_ARRAY: {
 					/* doesn't work, dunno why */
-					jargs[narg] = php_jit_array_args(args[narg] TSRMLS_CC);
+					jargs[narg] = php_jit_array_args(args[narg], &stack TSRMLS_CC);
 					/* store address for free after call */
 				} break;
 				
@@ -375,6 +385,8 @@ PHP_METHOD(Func, __invoke) {
 			/* throw type unknown to zend */
 		}
 	}
+	
+	zend_llist_destroy(&stack);
 	
 	efree(args);
 	efree(jargs);
