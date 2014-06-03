@@ -282,8 +282,9 @@ static inline void** php_jit_array_args(zval *args TSRMLS_DC) {
 		zend_hash_get_current_data_ex(ht, (void**) &zmember, &position) == SUCCESS; 
 		zend_hash_move_forward_ex(ht, &position)) {
 		switch (Z_TYPE_PP(zmember)) {
+			case IS_RESOURCE:
 			case IS_OBJECT: {
-				/* cannot use objects */
+				/* cannot use objects or resources */
 			} break;
 			
 			case IS_ARRAY:
@@ -333,8 +334,9 @@ PHP_METHOD(Func, __invoke) {
 		
 		while (narg < nargs) {
 			switch (Z_TYPE_P(args[narg])) {
+				case IS_RESOURCE:
 				case IS_OBJECT: {
-					/* cannot use objects */
+					/* cannot use objects or resources */
 				} break;
 				
 				case IS_ARRAY: {
@@ -345,8 +347,6 @@ PHP_METHOD(Func, __invoke) {
 				
 				default: {
 					jargs[narg] = &args[narg]->value;
-					/* throw arg at narg unknown to jit? */
-					/* we need to do something different here so we can pass around structures, I 'unno */
 				}
 			}
 
