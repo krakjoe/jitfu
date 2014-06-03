@@ -1026,6 +1026,50 @@ PHP_METHOD(Builder, doLoadElem) {
 	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
 }
 
+PHP_METHOD(Builder, doLoadRelative) {
+	zval *zin[2] = {NULL, NULL};
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	php_jit_value_t *pval;
+	long index = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &index, &zin[1], jit_type_ce) != SUCCESS) {
+		return;
+	}
+	
+	object_init_ex(return_value, jit_value_ce);
+	
+	pval = PHP_JIT_FETCH_VALUE(return_value);
+	pval->value = jit_insn_load_relative(
+		pbuild->func->func,
+		PHP_JIT_FETCH_VALUE_I(zin[0]), 
+		index, 
+		PHP_JIT_FETCH_TYPE_I(zin[1]));
+	pval->type = PHP_JIT_FETCH_TYPE(zin[1]);
+	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
+}
+
+PHP_METHOD(Builder, doStoreRelative) {
+	zval *zin[2] = {NULL, NULL};
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	php_jit_value_t *pval;
+	long index = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &index, &zin[1], jit_value_ce) != SUCCESS) {
+		return;
+	}
+	
+	object_init_ex(return_value, jit_value_ce);
+	
+	pval = PHP_JIT_FETCH_VALUE(return_value);
+	pval->value = jit_insn_store_relative(
+		pbuild->func->func,
+		PHP_JIT_FETCH_VALUE_I(zin[0]), 
+		index, 
+		PHP_JIT_FETCH_VALUE_I(zin[1]));
+	pval->type = PHP_JIT_FETCH_TYPE(zin[1]);
+	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
+}
+
 PHP_METHOD(Builder, doLoadElemAddress) {
 	zval *zin[3] = {NULL, NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
@@ -1188,6 +1232,18 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doLoadElem_arginfo, 0, 0, 3)
 	ZEND_ARG_INFO(0, type)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doLoadRelative_arginfo, 0, 0, 3) 
+	ZEND_ARG_INFO(0, base)
+	ZEND_ARG_INFO(0, offset)
+	ZEND_ARG_INFO(0, type)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doStoreRelative_arginfo, 0, 0, 3) 
+	ZEND_ARG_INFO(0, base)
+	ZEND_ARG_INFO(0, offset)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doStoreElem_arginfo, 0, 0, 3) 
 	ZEND_ARG_INFO(0, base)
 	ZEND_ARG_INFO(0, index)
@@ -1273,11 +1329,13 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, doMemmove,         php_jit_builder_doMemmove_arginfo,  ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doMemset,          php_jit_builder_doMemset_arginfo,   ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doLoadElem,        php_jit_builder_doLoadElem_arginfo, ZEND_ACC_PUBLIC)
-	PHP_ME(Builder, doLoadElemAddress, php_jit_builder_doLoadElem_arginfo, ZEND_ACC_PUBLIC)
-	PHP_ME(Builder, doStoreElem,       php_jit_builder_doStoreElem_arginfo,ZEND_ACC_PUBLIC)
-	PHP_ME(Builder, doJumpTable,       php_jit_builder_doJumpTable_arginfo,ZEND_ACC_PUBLIC)
-	PHP_ME(Builder, doReturn,          php_jit_builder_unary_arginfo,      ZEND_ACC_PUBLIC)
-	PHP_ME(Builder, doReturnPtr,       php_jit_builder_doReturnPtr_arginfo,ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doLoadRelative,    php_jit_builder_doLoadRelative_arginfo,  ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doLoadElemAddress, php_jit_builder_doLoadElem_arginfo,      ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doStoreElem,       php_jit_builder_doStoreElem_arginfo,     ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doStoreRelative,   php_jit_builder_doStoreRelative_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doJumpTable,       php_jit_builder_doJumpTable_arginfo,     ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doReturn,          php_jit_builder_unary_arginfo,           ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doReturnPtr,       php_jit_builder_doReturnPtr_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 #endif
