@@ -23,7 +23,7 @@ $function = new Func($context, $signature);
 
 /*
 long function (long *n, long f) {
-	return n[f];
+	return n[f] * f;
 }
 */
 
@@ -31,9 +31,10 @@ $n = $function->getParameter(0);
 $f = $function->getParameter(1);
 
 $builder  = new Builder($function);
-$r = 
-	$builder->doLoadElem($n, $f, $longs);
-$builder->doReturn($r);
+
+$builder->doReturn(
+	$builder->doMul(
+		$builder->doLoadElem($n, $f, $longs), $f));
 
 $context->finish();
 
@@ -47,6 +48,6 @@ var_dump(
 	$function($numbers, 1)); /* should return 1 */ 
 ?>
 --EXPECT--
-int(3)
-int(2)
+int(9)
+int(4)
 int(1)
