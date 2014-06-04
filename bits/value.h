@@ -299,10 +299,45 @@ PHP_METHOD(Value, getFunction) {
 	}
 }
 
+PHP_METHOD(Value, dump) {
+	zval *zoutput = NULL, *zprefix = NULL;
+	php_jit_value_t *pval;
+	php_stream *pstream = NULL;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zz", &zoutput, &zprefix) != SUCCESS) {
+		return;
+	}
+
+	pval = PHP_JIT_FETCH_VALUE(getThis());
+	
+	if (!zoutput) {
+		jit_dump_value(stdout, 
+			jit_value_get_function(pval->value), 
+			pval->value, zprefix ? Z_STRVAL_P(zprefix) : NULL);
+		return;
+	}
+	
+	php_stream_from_zval(pstream, &zoutput);
+
+	if (php_stream_can_cast(pstream, PHP_STREAM_AS_STDIO|PHP_STREAM_CAST_TRY_HARD) == SUCCESS) {
+		FILE *stdio;
+		if (php_stream_cast(pstream, PHP_STREAM_AS_STDIO, (void**)&stdio, 0) == SUCCESS) {
+			jit_dump_value(stdio, 
+				jit_value_get_function(pval->value), 
+				pval->value, zprefix ? Z_STRVAL_P(zprefix) : NULL);
+		}
+	}
+}
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_value_construct_arginfo, 0, 0, 2) 
 	ZEND_ARG_INFO(0, function)
 	ZEND_ARG_INFO(0, value)
 	ZEND_ARG_INFO(0, type)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_value_dump_arginfo, 0, 0, 0) 
+	ZEND_ARG_INFO(0, output)
+	ZEND_ARG_INFO(0, prefix)
 ZEND_END_ARG_INFO()
 
 zend_function_entry php_jit_value_methods[] = {
@@ -318,6 +353,7 @@ zend_function_entry php_jit_value_methods[] = {
 	PHP_ME(Value, setAddressable, php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Value, getType,        php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Value, getFunction,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Value, dump,           php_jit_value_dump_arginfo, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 #endif

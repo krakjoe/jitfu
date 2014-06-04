@@ -280,8 +280,38 @@ PHP_METHOD(Type, isPointer) {
 	RETURN_BOOL(ptype->pt > 0);
 }
 
+PHP_METHOD(Type, dump) {
+	zval *zoutput = NULL;
+	php_jit_type_t *ptype;
+	php_stream *pstream = NULL;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|z", &zoutput) != SUCCESS) {
+		return;
+	}
+
+	ptype = PHP_JIT_FETCH_TYPE(getThis());
+	
+	if (!zoutput) {
+		jit_dump_type(stdout, ptype->type);
+		return;
+	}
+	
+	php_stream_from_zval(pstream, &zoutput);
+	
+	if (php_stream_can_cast(pstream, PHP_STREAM_AS_STDIO|PHP_STREAM_CAST_TRY_HARD) == SUCCESS) {
+		FILE *stdio;
+		if (php_stream_cast(pstream, PHP_STREAM_AS_STDIO, (void**)&stdio, 0) == SUCCESS) {
+			jit_dump_type(stdio, ptype->type);
+		}
+	}
+}
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_type_construct_arginfo, 0, 0, 1) 
 	ZEND_ARG_INFO(0, type)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_type_dump_arginfo, 0, 0, 0) 
+	ZEND_ARG_INFO(0, output)
 ZEND_END_ARG_INFO()
 
 zend_function_entry php_jit_type_methods[] = {
@@ -289,6 +319,7 @@ zend_function_entry php_jit_type_methods[] = {
 	PHP_ME(Type, getIdentifier,   php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Type, getIndirection,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Type, isPointer,       php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Type, dump,            php_jit_type_dump_arginfo, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 #endif
