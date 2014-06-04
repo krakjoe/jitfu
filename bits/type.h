@@ -35,10 +35,13 @@ zend_class_entry *jit_type_ce;
 	(PHP_JIT_FETCH_TYPE(from))->type
 
 #define PHP_JIT_TYPE_VOID  		1
-#define PHP_JIT_TYPE_STRING		2
-#define PHP_JIT_TYPE_LONG		3
-#define PHP_JIT_TYPE_DOUBLE		4
-#define PHP_JIT_TYPE_VOID_PTR	5
+#define PHP_JIT_TYPE_UINT       2
+#define PHP_JIT_TYPE_INT        3
+#define PHP_JIT_TYPE_ULONG      4
+#define PHP_JIT_TYPE_LONG		5
+#define PHP_JIT_TYPE_DOUBLE		6
+#define PHP_JIT_TYPE_STRING		7
+#define PHP_JIT_TYPE_VOID_PTR	8
 
 jit_type_t php_jit_type(short type);
 void php_jit_minit_type(int module_number TSRMLS_DC);
@@ -57,9 +60,12 @@ jit_type_t php_jit_type(short type) {
 
 	switch (type) {
 		case PHP_JIT_TYPE_VOID:		return jit_type_void;
-		case PHP_JIT_TYPE_STRING:   return jit_type_string;
+		case PHP_JIT_TYPE_UINT:     return jit_type_sys_uint;
+		case PHP_JIT_TYPE_INT:      return jit_type_sys_int;
+		case PHP_JIT_TYPE_ULONG:    return jit_type_sys_ulong;
 		case PHP_JIT_TYPE_LONG:		return jit_type_sys_long;
 		case PHP_JIT_TYPE_DOUBLE:	return jit_type_sys_double;
+		case PHP_JIT_TYPE_STRING:   return jit_type_string;
 		case PHP_JIT_TYPE_VOID_PTR:	return jit_type_void_ptr;
 	}
 
@@ -110,9 +116,12 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 		sizeof(php_jit_type_handlers));
 	
 	REGISTER_LONG_CONSTANT("JIT_TYPE_VOID",      PHP_JIT_TYPE_VOID,        CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_STRING",    PHP_JIT_TYPE_STRING,      CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_INT",       PHP_JIT_TYPE_INT,         CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_UINT",      PHP_JIT_TYPE_UINT,        CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_LONG",      PHP_JIT_TYPE_LONG,        CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_ULONG",     PHP_JIT_TYPE_ULONG,       CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_DOUBLE",    PHP_JIT_TYPE_DOUBLE,      CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_STRING",    PHP_JIT_TYPE_STRING,      CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_VOID_PTR",  PHP_JIT_TYPE_VOID_PTR,    CONST_CS|CONST_PERSISTENT);
 
 	jit_type_string = jit_type_create_pointer(jit_type_sys_char, 0);

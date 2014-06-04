@@ -278,22 +278,21 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 	void **uargs = NULL;
 	void **pargs = NULL;
 	zval **zmember;
-	
+
+#define PHP_JIT_INIT_ARGS(type) do { \
+	\
+	uargs = emalloc(sizeof(type) * nuargs); \
+	pargs = emalloc(sizeof(type*) * nuargs); \
+} while (0)
+
 	switch (pfunc->sig->params[narg]->id) {
-		case PHP_JIT_TYPE_LONG: {
-			uargs = emalloc(sizeof(long) * nuargs);
-			pargs = emalloc(sizeof(long*) * nuargs);
-		} break;
-		
-		case PHP_JIT_TYPE_DOUBLE: {
-			uargs = emalloc(sizeof(double) * nuargs);
-			pargs = emalloc(sizeof(double*) * nuargs);
-		} break;
-		
-		case PHP_JIT_TYPE_STRING: {
-			uargs = emalloc(sizeof(char*) * nuargs);
-			pargs = emalloc(sizeof(char**) * nuargs);
-		} break;
+		case PHP_JIT_TYPE_INT:    PHP_JIT_INIT_ARGS(int);     break;
+		case PHP_JIT_TYPE_UINT:   PHP_JIT_INIT_ARGS(uint);    break;
+		case PHP_JIT_TYPE_LONG:   PHP_JIT_INIT_ARGS(long);    break;
+		case PHP_JIT_TYPE_ULONG:  PHP_JIT_INIT_ARGS(ulong);   break;
+		case PHP_JIT_TYPE_DOUBLE: PHP_JIT_INIT_ARGS(double);  break;
+		case PHP_JIT_TYPE_STRING: PHP_JIT_INIT_ARGS(char*);   break;
+		case PHP_JIT_TYPE_VOID_PTR: PHP_JIT_INIT_ARGS(void*); break;
 		
 		default: {
 			/* throw cannot manage arguments */
@@ -302,40 +301,24 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 			return;
 		}
 	}
-	
+
+#undef PHP_JIT_INIT_ARGS
+
 	zend_llist_add_element(stack, &uargs);
 	zend_llist_add_element(stack, &pargs);
-	
+
 	for (zend_hash_internal_pointer_reset_ex(uht, &pos);
 		zend_hash_get_current_data_ex(uht, (void**) &zmember, &pos) == SUCCESS;
 		zend_hash_move_forward_ex(uht, &pos)) {
 		
 		switch (pfunc->sig->params[narg]->id) {
-			case PHP_JIT_TYPE_LONG:
-				if (Z_TYPE_PP(zmember) != IS_LONG) {
-					/* throw wrong type */
-					return;
-				}
-				
-				((long*)uargs)[nuarg] = Z_LVAL_PP(zmember);
-			break;
-			
-			case PHP_JIT_TYPE_DOUBLE:
-				if (Z_TYPE_PP(zmember) != IS_DOUBLE) {
-					/* throw, wrong type */
-					return;
-				}
-				
-				((double*)uargs)[nuarg] = Z_DVAL_PP(zmember);
-			break;
-			
-			case PHP_JIT_TYPE_STRING:
-				if (Z_TYPE_PP(zmember) != IS_STRING) {
-					/* throw, wrong type */
-					return;
-				}
-				((char**)uargs)[nuarg] = Z_STRVAL_PP(zmember);
-			break;
+			case PHP_JIT_TYPE_LONG:   ((long*)uargs)[nuarg]   = Z_LVAL_PP(zmember);           break;
+			case PHP_JIT_TYPE_ULONG:  ((ulong*)uargs)[nuarg]  = (ulong) Z_LVAL_PP(zmember);   break;
+			case PHP_JIT_TYPE_INT:    ((int*)uargs)[nuarg]    = (int) Z_LVAL_PP(zmember);     break;
+			case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint) Z_LVAL_PP(zmember);    break;
+			case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = Z_DVAL_PP(zmember);           break;
+			case PHP_JIT_TYPE_STRING: ((char**)uargs)[nuarg]  = Z_STRVAL_PP(zmember);         break;
+			case PHP_JIT_TYPE_VOID_PTR: ((void**)uargs)[nuarg] = &(*zmember)->value;          break;
 		}
 		
 		pargs[nuarg] = &uargs[nuarg];
@@ -362,6 +345,8 @@ PHP_METHOD(Func, __invoke) {
 		
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
+	/* TODO(krakjoe) this requires more thought and work ... */
+	
 	if (!jit_function_is_compiled(pfunc->func)) {
 		/* throw function not compiled */
 		efree(jargs);
@@ -369,9 +354,16 @@ PHP_METHOD(Func, __invoke) {
 		return;
 	}
 
+	if (nargs != pfunc->sig->nparams) {
+		/* throw, function signature does not match */
+		efree(jargs);
+		efree(args);
+		return;
+	}
+
 	if (args) {
 		zend_uint narg = 0;
-		
+
 		if (zend_get_parameters_array(ht, nargs, args) != SUCCESS) {
 			/* throw failed to fetch arguments */
 			efree(jargs);
@@ -380,29 +372,30 @@ PHP_METHOD(Func, __invoke) {
 		}
 
 		zend_llist_init(&stack, sizeof(void**), php_jit_invoke_stack_dtor, 0);
-		
+
 		while (narg < nargs) {
-			switch (Z_TYPE_P(args[narg])) {
-				case IS_LONG: {
-					jargs[narg] = &Z_LVAL_P(args[narg]);
-				} break;
-				
-				case IS_DOUBLE: {
-					jargs[narg] = &Z_LVAL_P(args[narg]);
-				} break;
-				
-				case IS_STRING: {
-					jargs[narg] = &Z_STRVAL_P(args[narg]);
-				} break;
-				
-				case IS_ARRAY: {
-					jargs[narg] = php_jit_array_args
-						(pfunc, &stack, args[narg], narg TSRMLS_CC);
-				} break;
-				
-				default: {
-					/* throw unsupport argument type from zend */
+			if (Z_TYPE_P(args[narg]) == IS_ARRAY) {
+				if (!pfunc->sig->params[narg]->pt) {
+					/* throw, this is not a pointer type */
+					zend_llist_destroy(&stack);
+					efree(jargs);
+					efree(args);
+					return;
 				}
+
+				jargs[narg] = php_jit_array_args
+						(pfunc, &stack, args[narg], narg TSRMLS_CC);
+			} else switch (pfunc->sig->params[narg]->id) {
+				case PHP_JIT_TYPE_UINT:
+				case PHP_JIT_TYPE_INT:
+				case PHP_JIT_TYPE_ULONG:
+				case PHP_JIT_TYPE_LONG: {
+					jargs[narg] = &Z_LVAL_P(args[narg]);
+				} break;
+
+				case PHP_JIT_TYPE_DOUBLE:   jargs[narg] = &Z_LVAL_P(args[narg]);   break;
+				case PHP_JIT_TYPE_STRING:   jargs[narg] = &Z_STRVAL_P(args[narg]); break;
+				case PHP_JIT_TYPE_VOID_PTR: jargs[narg] = &args[narg]->value;      break;
 			}
 
 			narg++;
@@ -413,7 +406,12 @@ PHP_METHOD(Func, __invoke) {
 
 	switch (pfunc->sig->returns->id) {
 		case PHP_JIT_TYPE_STRING: ZVAL_STRING(return_value, (char*) result, 1); break;
+		
+		case PHP_JIT_TYPE_INT:
+		case PHP_JIT_TYPE_UINT:
+		case PHP_JIT_TYPE_ULONG:
 		case PHP_JIT_TYPE_LONG:   ZVAL_LONG(return_value, (long) result); break;
+		
 		case PHP_JIT_TYPE_DOUBLE: {
 			double doubled =
 				*(double *) &result;
