@@ -311,7 +311,18 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 		zend_hash_get_current_data_ex(uht, (void**) &zmember, &pos) == SUCCESS;
 		zend_hash_move_forward_ex(uht, &pos)) {
 		
-		switch (pfunc->sig->params[narg]->id) {
+		if (Z_TYPE_PP(zmember) == IS_ARRAY) {
+			if (!pfunc->sig->params[narg]->pt) {
+				/* throw, this is not a pointer type */
+				efree(pargs);
+				efree(uargs);
+				return NULL;
+			}
+			
+			((void**)uargs)[nuarg] = * php_jit_array_args
+				(pfunc, stack, *zmember, narg TSRMLS_CC);
+			
+		} else switch (pfunc->sig->params[narg]->id) {
 			case PHP_JIT_TYPE_LONG:   ((long*)uargs)[nuarg]   = Z_LVAL_PP(zmember);           break;
 			case PHP_JIT_TYPE_ULONG:  ((ulong*)uargs)[nuarg]  = (ulong) Z_LVAL_PP(zmember);   break;
 			case PHP_JIT_TYPE_INT:    ((int*)uargs)[nuarg]    = (int) Z_LVAL_PP(zmember);     break;
