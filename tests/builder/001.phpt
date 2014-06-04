@@ -13,10 +13,10 @@ use JITFu\Builder;
 $context = new Context();
 $context->start();
 
-$int      = new Type(JIT_TYPE_INT);
+$long      = new Type(JIT_TYPE_LONG);
 
-/* int function(int n); */
-$sig      = new Signature($int, [$int]);
+/* long function(long n); */
+$sig      = new Signature($long, [$long]);
 
 $function = new Func($context, $sig);
 

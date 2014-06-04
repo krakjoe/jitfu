@@ -12,7 +12,7 @@ use JITFu\Func;
 $context = new Context();
 $context->start();
 
-$int      = new Type(JIT_TYPE_INT);
+$int      = new Type(JIT_TYPE_LONG);
 
 /* int function(int); */
 $sig      = new Signature($int, [$int]);
