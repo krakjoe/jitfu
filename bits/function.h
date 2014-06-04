@@ -392,6 +392,7 @@ PHP_METHOD(Func, __invoke) {
 				} break;
 				
 				case IS_STRING: {
+					printf("string in %s\n", Z_STRVAL_P(args[narg]));
 					jargs[narg] = &Z_STRVAL_P(args[narg]);
 				} break;
 				
@@ -401,6 +402,7 @@ PHP_METHOD(Func, __invoke) {
 				} break;
 				
 				default: {
+					printf("whatevs\n");
 					/* throw unsupport argument type from zend */
 				}
 			}
