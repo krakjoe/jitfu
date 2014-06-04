@@ -24,8 +24,6 @@ use JITFU\Builder;
 
 $context = new Context();
 
-$context->start();
-
 $integer   = new Type(JIT_TYPE_INT);
 $signature = new Signature
 	($integer, [$integer]);
