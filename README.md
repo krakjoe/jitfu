@@ -14,19 +14,19 @@ Fibonacci
 
 ```php
 <?php
-/* This is a fibonacci function, and is ~60 times faster than PHP :o */
-use JITFu\Context;
-use JITFu\Type;
-use JITFu\Signature;
-use JITFu\Func;
-use JITFu\Value;
-use JITFu\Builder;
+use JITFU\Context;
+use JITFU\Type;
+use JITFU\Struct;
+use JITFU\Signature;
+use JITFU\Func;
+use JITFU\Value;
+use JITFU\Builder;
 
 $context = new Context();
 
 $context->start();
 
-$integer   = new Type(JIT_TYPE_LONG);
+$integer   = new Type(JIT_TYPE_INT);
 $signature = new Signature
 	($integer, [$integer]);
 
@@ -61,15 +61,7 @@ $builder->doReturn(
 		$builder->doCall($function, [$builder->doSub($arg, $one)]),
 		$builder->doCall($function, [$builder->doSub($arg, $two)])));
 
-$context->finish();
-
-$function->compile();
-
-/* write disassembly to stdout */
-
 $function->dump("Fibonacci");
-
-/* now the function is compiled, it can be passed around like a callable ... */
 
 var_dump($function(40)); /* __invoke with magicalness */
 ?>
@@ -79,59 +71,44 @@ The code above will yield something like the following output:
 
 ```
 [joe@localhost jit]$ time php -dextension=jitfu.so objects.php 
-function Fibonacci(long) : long
-
-/tmp/libjit-dump.o:     file format elf64-x86-64
-
-
-Disassembly of section .text:
-
-00007ff108046144 <.text>:
-    7ff108046144:       55                      push   %rbp
-    7ff108046145:       48 8b ec                mov    %rsp,%rbp
-    7ff108046148:       48 83 ec 20             sub    $0x20,%rsp
-    7ff10804614c:       4c 89 3c 24             mov    %r15,(%rsp)
-    7ff108046150:       4c 8b ff                mov    %rdi,%r15
-    7ff108046153:       33 c0                   xor    %eax,%eax
-    7ff108046155:       4c 3b f8                cmp    %rax,%r15
-    7ff108046158:       0f 85 07 00 00 00       jne    0x7ff108046165
-    7ff10804615e:       33 c0                   xor    %eax,%eax
-    7ff108046160:       e9 5b 00 00 00          jmpq   0x7ff1080461c0
-    7ff108046165:       b8 01 00 00 00          mov    $0x1,%eax
-    7ff10804616a:       4c 3b f8                cmp    %rax,%r15
-    7ff10804616d:       0f 85 0a 00 00 00       jne    0x7ff10804617d
-    7ff108046173:       b8 01 00 00 00          mov    $0x1,%eax
-    7ff108046178:       e9 43 00 00 00          jmpq   0x7ff1080461c0
-    7ff10804617d:       49 8b c7                mov    %r15,%rax
-    7ff108046180:       b9 01 00 00 00          mov    $0x1,%ecx
-    7ff108046185:       48 2b c1                sub    %rcx,%rax
-    7ff108046188:       48 8b f8                mov    %rax,%rdi
-    7ff10804618b:       48 89 45 f8             mov    %rax,-0x8(%rbp)
-    7ff10804618f:       b8 08 00 00 00          mov    $0x8,%eax
-    7ff108046194:       e8 67 ff ff ff          callq  0x7ff108046100
-    7ff108046199:       48 89 45 f0             mov    %rax,-0x10(%rbp)
-    7ff10804619d:       49 8b c7                mov    %r15,%rax
-    7ff1080461a0:       b9 02 00 00 00          mov    $0x2,%ecx
-    7ff1080461a5:       48 2b c1                sub    %rcx,%rax
-    7ff1080461a8:       48 8b f8                mov    %rax,%rdi
-    7ff1080461ab:       48 89 45 e8             mov    %rax,-0x18(%rbp)
-    7ff1080461af:       b8 08 00 00 00          mov    $0x8,%eax
-    7ff1080461b4:       e8 47 ff ff ff          callq  0x7ff108046100
-    7ff1080461b9:       48 8b 4d f0             mov    -0x10(%rbp),%rcx
-    7ff1080461bd:       48 03 c1                add    %rcx,%rax
-    7ff1080461c0:       4c 8b 3c 24             mov    (%rsp),%r15
-    7ff1080461c4:       48 8b e5                mov    %rbp,%rsp
-    7ff1080461c7:       5d                      pop    %rbp
-    7ff1080461c8:       c3                      retq   
-
+function Fibonacci(i1 : int) : int
+        incoming_reg(i1, rdi)
+.L:
+        i6 = i1 == 0
+        if i1 != 0 then goto .L0
+.L:
+        return_int(0)
+        ends_in_dead
+.L0:
+        i7 = i1 == 1
+        if i1 != 1 then goto .L1
+.L:
+        return_int(1)
+        ends_in_dead
+.L1:
+        i8 = i1 - 1
+        outgoing_reg(i8, rdi)
+        call 0x08215dfd0
+.L:
+        return_reg(i10, rax)
+        i12 = i1 - 2
+        outgoing_reg(i12, rdi)
+        call 0x08215dfd0
+.L:
+        return_reg(i14, rax)
+        i15 = i10 + i14
+        return_int(i15)
+        ends_in_dead
+.L:
+.L:
 end
 
 int(102334155)
 
 
-real    0m1.092s
-user    0m1.078s
-sys     0m0.011s
+real    0m1.001s
+user    0m0.997s
+sys     0m0.003s
 ```
 
 **This library is not useful for compiling Zend opcodes**
