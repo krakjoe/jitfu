@@ -91,7 +91,9 @@ static inline void php_jit_builder_destroy(void *zobject, zend_object_handle han
 
 	zend_object_std_dtor(&pbuild->std TSRMLS_CC);
 
-	zend_objects_store_del_ref_by_handle(pbuild->func->h TSRMLS_CC);
+	if (pbuild->func) {
+		zend_objects_store_del_ref_by_handle(pbuild->func->h TSRMLS_CC);	
+	}
 	
 	efree(pbuild);
 }
