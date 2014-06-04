@@ -1134,6 +1134,20 @@ PHP_METHOD(Builder, doDefaultReturn) {
 	RETURN_BOOL(jit_insn_default_return(pbuild->func->func));
 }
 
+PHP_METHOD(Builder, doGetCallStack) {
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	php_jit_value_t   *pval;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	object_init_ex(return_value, jit_value_ce);
+	
+	pval = PHP_JIT_FETCH_VALUE(return_value);
+	pval->value = jit_insn_get_call_stack(pbuild->func->func);
+}
+
 PHP_METHOD(Builder, doReturn) {
 	zval *zin;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
@@ -1454,6 +1468,7 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, doReturn,          php_jit_builder_unary_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturnPtr,       php_jit_builder_doReturnPtr_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doDefaultReturn,   php_jit_no_arginfo,                      ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doGetCallStack,    php_jit_no_arginfo,                      ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 #endif
