@@ -65,7 +65,7 @@ jit_type_t jit_type_bucket;
 zend_object_handlers php_jit_type_handlers;
 
 jit_type_t php_jit_type(short type) {
-	
+
 	switch (type) {
 		case PHP_JIT_TYPE_VOID:		return jit_type_void;
 		case PHP_JIT_TYPE_CHAR:		return jit_type_sys_char;
@@ -76,10 +76,10 @@ jit_type_t php_jit_type(short type) {
 		case PHP_JIT_TYPE_DOUBLE:	return jit_type_sys_double;
 		case PHP_JIT_TYPE_VOID_PTR:	return jit_type_void_ptr;
 		case PHP_JIT_TYPE_HASH:     return jit_type_hash;
-		case PHP_JIT_TYPE_BUCKET:   return jit_type_bucket;	
-		case PHP_JIT_TYPE_ZVAL:     return jit_type_zval;	
+		case PHP_JIT_TYPE_BUCKET:   return jit_type_bucket;
+		case PHP_JIT_TYPE_ZVAL:     return jit_type_zval;
 	}
-	
+
 	return jit_type_void;
 }
 

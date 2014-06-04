@@ -307,7 +307,7 @@ PHP_METHOD(Func, __invoke) {
 				} break;
 				
 				default: {
-					jargs[narg] = &args[narg]->value;
+					jargs[narg] = &args[narg];
 				}
 			}
 
@@ -339,7 +339,7 @@ PHP_METHOD(Func, __invoke) {
 		} break;
 		
 		case PHP_JIT_TYPE_ZVAL: {
-			
+
 		} break;
 
 		case PHP_JIT_TYPE_VOID_PTR: ZVAL_LONG(return_value, (long) result); break;
