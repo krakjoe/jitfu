@@ -1122,6 +1122,18 @@ PHP_METHOD(Builder, doStoreElem) {
 		PHP_JIT_FETCH_VALUE_I(zin[2])));
 }
 
+PHP_METHOD(Builder, doDefaultReturn) {
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	RETURN_BOOL(jit_insn_default_return(pbuild->func->func));
+}
+
 PHP_METHOD(Builder, doReturn) {
 	zval *zin;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
@@ -1441,6 +1453,7 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, doFlushDeferPop,   php_jit_builder_doPop_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturn,          php_jit_builder_unary_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturnPtr,       php_jit_builder_doReturnPtr_arginfo,     ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doDefaultReturn,   php_jit_no_arginfo,                      ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 #endif
