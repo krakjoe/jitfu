@@ -48,9 +48,9 @@ $longs = [
 	[0, 1, 2]];
 
 var_dump(
-	$function($longs, 0, 2),  /* should return Hello */
-	$function($longs, 1, 1),  /* should return World */ 
-	$function($longs, 2, 0)); /* should return PHP */
+	$function($longs, 0, 2),
+	$function($longs, 1, 1),
+	$function($longs, 2, 0));
 ?>
 --EXPECT--
 int(2)
