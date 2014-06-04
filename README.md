@@ -120,7 +120,6 @@ TODO
 
   * integration tests for as much as possible
   * builder methods for all common control structures
-  * develop struct/union API
   * expose ELF read/write api, somehow
   * bother with windows ... anyone ?
   * other cool things, probably

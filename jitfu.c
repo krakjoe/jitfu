@@ -36,8 +36,6 @@
 #include "bits/signature.h"
 #include "bits/function.h"
 #include "bits/value.h"
-#include "bits/struct.h"
-#include "bits/union.h"
 #include "bits/builder.h"
 
 /* {{{ jit_module_entry
@@ -73,8 +71,6 @@ PHP_MINIT_FUNCTION(jitfu)
 	php_jit_minit_signature(module_number TSRMLS_CC);
 	php_jit_minit_function(module_number TSRMLS_CC);
 	php_jit_minit_value(module_number TSRMLS_CC);
-	php_jit_minit_struct(module_number TSRMLS_CC);
-	php_jit_minit_union(module_number TSRMLS_CC);
 	php_jit_minit_builder(module_number TSRMLS_CC);
 
 	return SUCCESS;
@@ -96,8 +92,6 @@ PHP_MINFO_FUNCTION(jitfu)
 #include "bits/signature.h"
 #include "bits/function.h"
 #include "bits/value.h"
-#include "bits/struct.h"
-#include "bits/union.h"
 #include "bits/builder.h"
 
 /*
