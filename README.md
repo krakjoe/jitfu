@@ -111,6 +111,8 @@ user    0m0.997s
 sys     0m0.003s
 ```
 
+On *my machine*, this is ~60 times faster than PHP.
+
 **This library is not useful for compiling Zend opcodes**
 
 TODO
