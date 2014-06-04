@@ -1148,6 +1148,48 @@ PHP_METHOD(Builder, doPush) {
 	RETURN_BOOL(jit_insn_push(pbuild->func->func, PHP_JIT_FETCH_VALUE_I(zin)));
 }
 
+PHP_METHOD(Builder, doPop) {
+	zval *zin;
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	long nitems = 1;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|l", &nitems) != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	RETURN_LONG(jit_insn_pop_stack(pbuild->func->func, (jit_nint) nitems));
+}
+
+PHP_METHOD(Builder, doDeferPop) {
+	zval *zin;
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	long nitems = 1;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|l", &nitems) != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	RETURN_LONG(jit_insn_defer_pop_stack(pbuild->func->func, (jit_nint) nitems));
+}
+
+PHP_METHOD(Builder, doFlushDeferPop) {
+	zval *zin;
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	long nitems = 1;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|l", &nitems) != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	RETURN_LONG(jit_insn_flush_defer_pop(pbuild->func->func, (jit_nint) nitems));
+}
+
 PHP_METHOD(Builder, doReturnPtr) {
 	zval *zin[2] = {NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
@@ -1314,6 +1356,10 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doPushPtr_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, type)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doPop_arginfo, 0, 0, 0) 
+	ZEND_ARG_INFO(0, items)
+ZEND_END_ARG_INFO()
+
 zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, __construct,  php_jit_builder_construct_arginfo,  ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIf,         php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
@@ -1390,6 +1436,9 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, doJumpTable,       php_jit_builder_doJumpTable_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doPush,            php_jit_builder_unary_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doPushPtr,         php_jit_builder_doPushPtr_arginfo,       ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doPop,             php_jit_builder_doPop_arginfo,           ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doDeferPop,        php_jit_builder_doPop_arginfo,           ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doFlushDeferPop,   php_jit_builder_doPop_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturn,          php_jit_builder_unary_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doReturnPtr,       php_jit_builder_doReturnPtr_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_FE_END
