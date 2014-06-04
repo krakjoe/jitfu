@@ -11,7 +11,6 @@ use JITFu\Func;
 use JITFu\Builder;
 
 $context = new Context();
-$context->start();
 
 $long = new Type(JIT_TYPE_LONG);
 
@@ -28,8 +27,6 @@ $builder = new Builder($function);
 /* return -x; */
 $builder->doReturn(
 	$builder->doNeg($x));
-
-$function->compile();
 
 var_dump(
 	$function(20),

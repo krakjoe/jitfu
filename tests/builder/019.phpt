@@ -8,12 +8,9 @@ use JITFU\Context;
 use JITFU\Type;
 use JITFU\Signature;
 use JITFU\Func;
-use JITFU\Value;
 use JITFU\Builder;
 
 $context = new Context();
-
-$context->start();
 
 $string  = new Type(JIT_TYPE_STRING);
 $strings = new Type($string, true);
@@ -35,10 +32,6 @@ $builder  = new Builder($function);
 $builder->doReturn(
 	$builder->doLoadElem($n, $f, $strings));
 
-$context->finish();
-
-$function->compile();
-
 $strings = [
 	"Hello",
 	"World",
@@ -47,10 +40,10 @@ $strings = [
 ];
 
 var_dump(
-	$function($strings, 0),  /* should return Hello */
-	$function($strings, 1),  /* should return World */ 
-	$function($strings, 2),  /* should return PHP */
-	$function($strings, 3)); /* should return Rocks */ 
+	$function($strings, 0),
+	$function($strings, 1),
+	$function($strings, 2),
+	$function($strings, 3));
 ?>
 --EXPECT--
 string(5) "Hello"

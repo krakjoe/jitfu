@@ -113,6 +113,13 @@ PHP_METHOD(Func, __construct) {
 	zend_objects_store_add_ref_by_handle
 		(pfunc->ctx->h TSRMLS_CC);
 	
+	if (!(pfunc->ctx->st & PHP_JIT_CONTEXT_STARTED)) {
+		
+		jit_context_build_start(pfunc->ctx->ctx);
+		
+		pfunc->ctx->st |= PHP_JIT_CONTEXT_STARTED;
+	}
+	
 	pfunc->sig = PHP_JIT_FETCH_SIGNATURE(zsignature);
 	zend_objects_store_add_ref_by_handle
 		(pfunc->sig->h TSRMLS_CC);

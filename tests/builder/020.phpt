@@ -13,8 +13,6 @@ use JITFU\Builder;
 
 $context = new Context();
 
-$context->start();
-
 $long  = new Type(JIT_TYPE_LONG);
 $longs = new Type($long, true);
 $llongs = new Type($longs, true);

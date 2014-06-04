@@ -11,7 +11,6 @@ use JITFu\Func;
 use JITFu\Builder;
 
 $context = new Context();
-$context->start();
 
 $int      = new Type(JIT_TYPE_LONG);
 
@@ -28,8 +27,6 @@ $builder = new Builder($function);
 /* return x * y; */
 $builder->doReturn(
 	$builder->doMul($x, $y));
-
-$function->compile();
 
 var_dump(
 	$function(1, 2), 

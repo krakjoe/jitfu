@@ -11,7 +11,6 @@ use JITFu\Func;
 use JITFu\Builder;
 
 $context = new Context();
-$context->start();
 
 $double   = new Type(JIT_TYPE_DOUBLE);
 
@@ -28,8 +27,6 @@ $builder = new Builder($function);
 /* return x / y; */
 $builder->doReturn(
 	$builder->doDiv($x, $y));
-
-$function->compile();
 
 var_dump(
 	$function(20, 2),
