@@ -34,13 +34,10 @@ $x = $function->getParameter(2);
 
 $builder  = new Builder($function);
 
-$base = 
-	$builder
-		->doLoadElem($n, $f, $llongs);
-$y = $builder->doLoadElem($base, $x, $longs);
-
-$builder
-	->doReturn($y);
+$builder->doReturn
+	($builder->doLoadElem
+		($builder->doLoadElem
+			($n, $f, $llongs), $x, $longs));
 
 $longs = [
 	[0, 1, 2],
