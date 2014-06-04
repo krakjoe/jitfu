@@ -348,10 +348,12 @@ PHP_METHOD(Func, __invoke) {
 	/* TODO(krakjoe) this requires more thought and work ... */
 	
 	if (!jit_function_is_compiled(pfunc->func)) {
-		/* throw function not compiled */
-		efree(jargs);
-		efree(args);
-		return;
+		if (!(pfunc->ctx->st & PHP_JIT_CONTEXT_FINISHED)) {
+			jit_context_build_end(pfunc->ctx->ctx);
+			pfunc->ctx->st |= PHP_JIT_CONTEXT_FINISHED;
+		}
+		
+		jit_function_compile(pfunc->func);
 	}
 
 	if (nargs != pfunc->sig->nparams) {
