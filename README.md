@@ -16,7 +16,6 @@ Fibonacci
 <?php
 use JITFU\Context;
 use JITFU\Type;
-use JITFU\Struct;
 use JITFU\Signature;
 use JITFU\Func;
 use JITFU\Value;
@@ -25,39 +24,36 @@ use JITFU\Builder;
 $context = new Context();
 
 $integer   = new Type(JIT_TYPE_INT);
-$signature = new Signature
-	($integer, [$integer]);
 
-$function = new Func($context, $signature);
-$zero     = new Value($function, 0, $integer);
-$one      = new Value($function, 1, $integer);
-$two      = new Value($function, 2, $integer);
+$function = new Func($context, new Signature($integer, [$integer]));
 
-$arg      = $function->getParameter(0);
+new Builder($function, function(Value $arg) use($function, $integer) {
+	$zero     = new Value($this, 0, $integer);
+	$one      = new Value($this, 1, $integer);
+	$two      = new Value($this, 2, $integer);
 
-$builder  = new Builder($function);
+	/* if ($arg == 0) return 0; */
+	$this->doIf(
+		$this->doEq($arg, $zero),
+		function() use ($zero) {
+			$this->doReturn($zero);
+		}
+	);
 
-/* if ($arg == 0) return 0; */
-$builder->doIf(
-	$builder->doEq($arg, $zero),
-	function($builder) use ($zero) {
-		$builder->doReturn($zero);
-	}
-);
+	/* if ($arg == 1) return 1; */
+	$this->doIf(
+		$this->doEq($arg, $one),
+		function() use($one) {
+			$this->doReturn($one);
+		}
+	);
 
-/* if ($arg == 1) return 1; */
-$builder->doIf(
-	$builder->doEq($arg, $one),
-	function($builder) use($one) {
-		$builder->doReturn($one);
-	}
-);
-
-/* return $function($arg-1) + $function($arg-2); */
-$builder->doReturn(
-	$builder->doAdd(
-		$builder->doCall($function, [$builder->doSub($arg, $one)]),
-		$builder->doCall($function, [$builder->doSub($arg, $two)])));
+	/* return $function($arg-1) + $function($arg-2); */
+	$this->doReturn(
+		$this->doAdd(
+			$this->doCall($function, [$this->doSub($arg, $one)]),
+			$this->doCall($function, [$this->doSub($arg, $two)])));	
+});
 
 $function->dump("Fibonacci");
 
