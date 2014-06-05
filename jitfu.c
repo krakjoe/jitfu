@@ -35,8 +35,8 @@
 #include "bits/type.h"
 #include "bits/signature.h"
 #include "bits/function.h"
-#include "bits/value.h"
 #include "bits/builder.h"
+#include "bits/value.h"
 
 /* {{{ jit_module_entry
  */

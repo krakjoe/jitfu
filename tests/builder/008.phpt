@@ -8,6 +8,7 @@ use JITFu\Context;
 use JITFu\Type;
 use JITFu\Signature;
 use JITFu\Func;
+use JITFu\Value;
 use JITFu\Builder;
 
 $context = new Context();
@@ -15,18 +16,13 @@ $context = new Context();
 $long = new Type(JIT_TYPE_LONG);
 
 /* long function(long x); */
-$sig      = new Signature($long, [$long]);
+$function = new Func($context, new Signature($long, [$long]));
 
-$function = new Func($context, $sig);
-
-$x       = $function->getParameter(0);
-$y       = $function->getParameter(1);
-
-$builder = new Builder($function);
-
-/* return -x; */
-$builder->doReturn(
-	$builder->doNeg($x));
+new Builder($function, function(Value $x) {
+	/* return -x; */
+	$this->doReturn(
+		$this->doNeg($x));
+});
 
 var_dump(
 	$function(20),

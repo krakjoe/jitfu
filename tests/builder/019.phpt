@@ -8,6 +8,7 @@ use JITFU\Context;
 use JITFU\Type;
 use JITFU\Signature;
 use JITFU\Func;
+use JITFu\Value;
 use JITFU\Builder;
 
 $context = new Context();
@@ -15,22 +16,18 @@ $context = new Context();
 $string  = new Type(JIT_TYPE_STRING);
 $strings = new Type($string, true);
 
-$signature = new Signature($string, [$strings, $string]);
-$function = new Func($context, $signature);
-
 /*
 string function (string *n, long f) {
 	return n[f];
 }
 */
 
-$n = $function->getParameter(0);
-$f = $function->getParameter(1);
+$function = new Func($context, new Signature($string, [$strings, $string]));
 
-$builder  = new Builder($function);
-
-$builder->doReturn(
-	$builder->doLoadElem($n, $f, $strings));
+new Builder($function, function(Value $n, Value $f) {
+	$this->doReturn(
+		$this->doLoadElem($n, $f));
+});
 
 $strings = [
 	"Hello",

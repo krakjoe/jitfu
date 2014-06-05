@@ -17,10 +17,6 @@ $long  = new Type(JIT_TYPE_LONG);
 $longs = new Type($long, true);
 $llongs = new Type($longs, true);
 
-$signature = new Signature($long, [$llongs, $long, $long]);
-$function = new Func($context, $signature);
-$builder = new Builder($function);
-
 /*
 long function (long **n, long f, long x) {
 	long zero = 0;
@@ -37,33 +33,33 @@ long function (long **n, long f, long x) {
 }
 */
 
-/* body starts here */
-$n = $function->getParameter(0);
-$f = $function->getParameter(1);
-$x = $function->getParameter(2);
+$function = new Func($context, new Signature($long, [$llongs, $long, $long]));
 
-/* long zero = 0; */
-$zero = new Value($function, 0, new Type(JIT_TYPE_LONG));
-/* long one = 1; */
-$one  = new Value($function, 1, new Type(JIT_TYPE_LONG));
-/* long r = n[f][x]; */
-$r = $builder->doLoadElem
-		($builder->doLoadElem
-			($n, $f, $llongs), $x, $longs);
+new Builder($function, function(Value $n, Value $f, Value $x) {
+	/* long zero = 0; */
+	$zero = new Value($this, 0, new Type(JIT_TYPE_LONG));
+	/* long one = 1; */
+	$one  = new Value($this, 1, new Type(JIT_TYPE_LONG));
 
-/* do { */
-$builder->doWhile(function($builder) use($r, $zero, $one) {	
-	/* if (r > zero) { */
-	$builder->doIf($builder->doGt($r, $zero), function($builder) use($r, $zero, $one){
-		/* r = (r - one); */
-		$builder->doStore(
-			$r, $builder->doSub($r, $one));
-	});
-	/* } */
-}, $r); /* while (r); */
+	/* long r = n[f][x]; */
+	$r = $this->doLoadElem
+			($this->doLoadElem
+				($n, $f), $x);
 
-/* return r; */
-$builder->doReturn($r);
+	/* do { */
+	$this->doWhile(function() use($r, $zero, $one) {	
+		/* if (r > zero) { */
+		$this->doIf($this->doGt($r, $zero), function() use($r, $zero, $one){
+			/* r = (r - one); */
+			$this->doStore(
+				$r, $this->doSub($r, $one));
+		});
+		/* } */
+	}, $r); /* while (r); */
+
+	/* return r; */
+	$this->doReturn($r);		
+});
 
 $longs = [
 	[0, 1, 2],

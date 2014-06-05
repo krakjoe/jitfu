@@ -251,32 +251,6 @@ PHP_METHOD(Func, getSignature) {
 	}
 }
 
-PHP_METHOD(Func, getParameter) {
-	php_jit_function_t *pfunc;
-	long param;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &param) != SUCCESS) {
-		return;
-	}
-	
-	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
-
-	if (pfunc->sig->nparams > param) {
-		php_jit_value_t *pval;
-
-		object_init_ex(return_value, jit_value_ce);
-		
-		pval = PHP_JIT_FETCH_VALUE(return_value);
-		pval->func = PHP_JIT_FETCH_FUNCTION(getThis());
-		zend_objects_store_add_ref_by_handle(pval->func->h TSRMLS_CC);
-		
-		pval->type = pfunc->sig->params[param];
-		pval->value = jit_value_get_param(pfunc->func, param);
-		zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
-	}
-}
-
-
 static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *stack, zval *member, zend_uint narg TSRMLS_DC) {
 	HashTable *uht = Z_ARRVAL_P(member);
 	HashPosition pos;
@@ -499,7 +473,6 @@ zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, getParent,     php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, getContext,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, getSignature,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
-	PHP_ME(Func, getParameter,  php_jit_function_get_param_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, dump,          php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, __invoke,      NULL,    ZEND_ACC_PUBLIC)
 	PHP_FE_END

@@ -17,8 +17,6 @@ $long  = new Type(JIT_TYPE_LONG);
 $longs = new Type($long, true);
 $llongs = new Type($longs, true);
 
-$signature = new Signature($long, [$llongs, $long, $long]);
-$function = new Func($context, $signature);
 
 /*
 long function (long **n, long f, long x) {
@@ -26,16 +24,14 @@ long function (long **n, long f, long x) {
 }
 */
 
-$n = $function->getParameter(0);
-$f = $function->getParameter(1);
-$x = $function->getParameter(2);
+$function = new Func($context, new Signature($long, [$llongs, $long, $long]));
 
-$builder  = new Builder($function);
-
-$builder->doReturn
-	($builder->doLoadElem
-		($builder->doLoadElem
-			($n, $f, $llongs), $x, $longs));
+new Builder($function, function(Value $n, Value $f, Value $x) {
+	$this->doReturn
+		($this->doLoadElem
+			($this->doLoadElem
+				($n, $f), $x));	
+});
 
 $longs = [
 	[0, 1, 2],

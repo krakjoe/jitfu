@@ -8,6 +8,7 @@ use JITFU\Context;
 use JITFU\Type;
 use JITFU\Signature;
 use JITFU\Func;
+use JITFu\Value;
 use JITFU\Builder;
 
 $context = new Context();
@@ -15,8 +16,7 @@ $context = new Context();
 $long  = new type(JIT_TYPE_LONG);
 $longs = new Type($long, true);
 
-$signature = new Signature($long, [$longs, $long]);
-$function = new Func($context, $signature);
+$function = new Func($context, new Signature($long, [$longs, $long]));
 
 /*
 long function (long *n, long f) {
@@ -24,14 +24,11 @@ long function (long *n, long f) {
 }
 */
 
-$n = $function->getParameter(0);
-$f = $function->getParameter(1);
-
-$builder  = new Builder($function);
-
-$builder->doReturn(
-	$builder->doMul(
-		$builder->doLoadElem($n, $f, $longs), $f));
+new Builder($function, function(Value $n, Value $f) {
+	$this->doReturn(
+		$this->doMul(
+			$this->doLoadElem($n, $f), $f));	
+});
 
 $numbers = [0, 1, 2, 3, 4, 5];
 

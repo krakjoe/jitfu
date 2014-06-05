@@ -132,8 +132,9 @@ void php_jit_minit_builder(int module_number TSRMLS_DC) {
 PHP_METHOD(Builder, __construct) {
 	zval *zfunction;
 	php_jit_builder_t *pbuild;
+	zval *zbuilder;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zfunction, jit_function_ce) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|O", &zfunction, jit_function_ce, &zbuilder, zend_ce_closure) != SUCCESS) {
 		return;
 	}
 	
@@ -141,6 +142,70 @@ PHP_METHOD(Builder, __construct) {
 	pbuild->func = PHP_JIT_FETCH_FUNCTION(zfunction);
 	zend_objects_store_add_ref_by_handle
 		(pbuild->func->h TSRMLS_CC);
+		
+	if (ZEND_NUM_ARGS() > 1) {
+		zval *retval_ptr = NULL, 
+			 *tmp_ptr = NULL, 
+			 params;
+		zval closure;
+		zend_fcall_info       fci;
+		zend_fcall_info_cache fcc;
+		zend_uint             nparam = 0;
+		
+		zend_create_closure(
+			&closure, 
+			(zend_function*)
+				zend_get_closure_method_def(zbuilder TSRMLS_CC), 
+			EG(scope), EG(This) TSRMLS_CC);
+			
+		if (zend_fcall_info_init(&closure, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
+			/* throw failed to initialize closure method */
+			zval_dtor(&closure);
+			return;
+		}
+		
+		array_init(&params);
+		
+		fci.retval_ptr_ptr = &retval_ptr;
+		
+		while (nparam < pbuild->func->sig->nparams) {
+			zval *o;
+			php_jit_value_t *pval;
+			
+			MAKE_STD_ZVAL(o);
+			
+			object_init_ex(o, jit_value_ce);
+	
+			pval = PHP_JIT_FETCH_VALUE(o);
+			
+			pval->builder = pbuild;
+			zend_objects_store_add_ref_by_handle(pval->builder->h TSRMLS_CC);
+			
+			pval->type = pbuild->func->sig->params[nparam];
+			zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
+			
+			pval->value = jit_value_get_param(pbuild->func->func, nparam);
+			
+			add_next_index_zval(&params, o);
+			
+			nparam++;
+		}
+		
+		zend_fcall_info_args(&fci, &params TSRMLS_CC);
+		
+		zend_try {
+			zend_call_function(&fci, &fcc TSRMLS_CC);
+		} zend_end_try();
+		
+		zend_fcall_info_args_clear(&fci, 1);
+		
+		if (retval_ptr) {
+			zval_ptr_dtor(&retval_ptr);
+		}
+		
+		zval_dtor(&params);
+		zval_dtor(&closure);
+	}
 }
 
 PHP_METHOD(Builder, doWhile) {
@@ -1055,45 +1120,66 @@ PHP_METHOD(Builder, doMemset) {
 }
 
 PHP_METHOD(Builder, doLoadElem) {
-	zval *zin[3] = {NULL, NULL, NULL};
+	zval *zin[2] = {NULL, NULL};
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
-	php_jit_value_t *pval;
+	php_jit_value_t *pval, *lval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_type_ce) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
+	lval = PHP_JIT_FETCH_VALUE(zin[0]);
 	object_init_ex(return_value, jit_value_ce);
-	
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_load_elem(
 		pbuild->func->func,
-		PHP_JIT_FETCH_VALUE_I(zin[0]), 
+		lval->value, 
+		PHP_JIT_FETCH_VALUE_I(zin[1]),
+		lval->type->type);
+	pval->type = lval->type;
+	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
+}
+
+PHP_METHOD(Builder, doLoadElemAddress) {
+	zval *zin[2] = {NULL, NULL};
+	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	php_jit_value_t *pval, *lval;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		return;
+	}
+
+	lval = PHP_JIT_FETCH_VALUE(zin[0]);
+	object_init_ex(return_value, jit_value_ce);
+	pval = PHP_JIT_FETCH_VALUE(return_value);
+	pval->value = jit_insn_load_elem_address(
+		pbuild->func->func,
+		lval->value, 
 		PHP_JIT_FETCH_VALUE_I(zin[1]), 
-		PHP_JIT_FETCH_TYPE_I(zin[2]));
-	pval->type = PHP_JIT_FETCH_TYPE(zin[2]);
+		lval->type->type);
+	pval->type = lval->type;
 	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
 }
 
 PHP_METHOD(Builder, doLoadRelative) {
-	zval *zin[2] = {NULL, NULL};
+	zval *zin = NULL;
 	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 	long index = 0;
-	php_jit_value_t *pval;
+	php_jit_value_t *pval, *lval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OlO", &zin[0], jit_value_ce, &index, &zin[1], jit_type_ce) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Ol", &zin, jit_value_ce, &index) != SUCCESS) {
 		return;
 	}
 	
+	lval = PHP_JIT_FETCH_VALUE(zin);
 	object_init_ex(return_value, jit_value_ce);
-	
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_load_relative(
 		pbuild->func->func,
-		PHP_JIT_FETCH_VALUE_I(zin[0]), 
-		index, 
-		PHP_JIT_FETCH_TYPE_I(zin[1]));
-	pval->type = PHP_JIT_FETCH_TYPE(zin[1]);
+		lval->value,
+		index,
+		lval->type->type);
+	pval->type = lval->type;
 	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
 }
 
@@ -1132,27 +1218,6 @@ PHP_METHOD(Builder, doConvert) {
 		PHP_JIT_FETCH_VALUE_I(zin[0]),
 		PHP_JIT_FETCH_TYPE_I(zin[1]), overflow);
 	pval->type = PHP_JIT_FETCH_TYPE(zin[1]);
-	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
-}
-
-PHP_METHOD(Builder, doLoadElemAddress) {
-	zval *zin[3] = {NULL, NULL, NULL};
-	php_jit_builder_t *pbuild = PHP_JIT_FETCH_BUILDER(getThis());
-	php_jit_value_t *pval;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_type_ce) != SUCCESS) {
-		return;
-	}
-	
-	object_init_ex(return_value, jit_value_ce);
-	
-	pval = PHP_JIT_FETCH_VALUE(return_value);
-	pval->value = jit_insn_load_elem_address(
-		pbuild->func->func,
-		PHP_JIT_FETCH_VALUE_I(zin[0]), 
-		PHP_JIT_FETCH_VALUE_I(zin[1]), 
-		PHP_JIT_FETCH_TYPE_I(zin[2]));
-	pval->type = PHP_JIT_FETCH_TYPE(zin[2]);
 	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
 }
 
@@ -1399,16 +1464,14 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doMemset_arginfo, 0, 0, 3)
 	ZEND_ARG_INFO(0, size)
 ZEND_END_ARG_INFO()
 	
-ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doLoadElem_arginfo, 0, 0, 3) 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doLoadElem_arginfo, 0, 0, 2) 
 	ZEND_ARG_INFO(0, base)
 	ZEND_ARG_INFO(0, index)
-	ZEND_ARG_INFO(0, type)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doLoadRelative_arginfo, 0, 0, 3) 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doLoadRelative_arginfo, 0, 0, 2) 
 	ZEND_ARG_INFO(0, base)
 	ZEND_ARG_INFO(0, offset)
-	ZEND_ARG_INFO(0, type)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doStoreRelative_arginfo, 0, 0, 3) 

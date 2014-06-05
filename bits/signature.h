@@ -52,7 +52,10 @@ static inline void php_jit_signature_destroy(void *zobject, zend_object_handle h
 	
 	zend_object_std_dtor(&psig->std TSRMLS_CC);
 	
-	zend_objects_store_del_ref_by_handle(psig->returns->h TSRMLS_CC);
+	if (psig->returns) {
+		zend_objects_store_del_ref_by_handle(psig->returns->h TSRMLS_CC);
+	}
+	
 	while (param < psig->nparams) {
 		zend_objects_store_del_ref_by_handle
 			(psig->params[param]->h TSRMLS_CC);
@@ -68,7 +71,7 @@ static inline void php_jit_signature_destroy(void *zobject, zend_object_handle h
 static inline zend_object_value php_jit_signature_create(zend_class_entry *ce TSRMLS_DC) {
 	zend_object_value intern;
 	php_jit_signature_t *psig = 
-		(php_jit_signature_t*) emalloc(sizeof(php_jit_signature_t));
+		(php_jit_signature_t*) ecalloc(1, sizeof(php_jit_signature_t));
 	
 	zend_object_std_init(&psig->std, ce TSRMLS_CC);
 	object_properties_init(&psig->std, ce);
