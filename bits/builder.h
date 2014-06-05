@@ -143,6 +143,50 @@ PHP_METHOD(Builder, __construct) {
 		(pbuild->func->h TSRMLS_CC);
 }
 
+PHP_METHOD(Builder, doWhile) {
+	zval *op = NULL;
+	php_jit_builder_t *pbuild;
+	jit_value_t condition, stop, compare;
+	jit_label_t label[2] = 
+		{jit_label_undefined, jit_label_undefined};
+	zend_fcall_info fci;
+	zend_fcall_info_cache fcc;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "fO", &fci, &fcc, &op, jit_value_ce) != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	condition = PHP_JIT_FETCH_VALUE_I(op);
+
+	stop      = jit_value_create_nint_constant(pbuild->func->func, jit_type_sys_long, 0);
+	
+	jit_insn_label(pbuild->func->func, &label[0]);
+	{
+		zval *retval_ptr = NULL;
+		
+		fci.retval_ptr_ptr = &retval_ptr;
+		
+		zend_fcall_info_argn(&fci TSRMLS_CC, 1, &getThis());
+		
+		zend_try {
+			zend_call_function(&fci, &fcc TSRMLS_CC);
+		} zend_end_try();
+		
+		zend_fcall_info_args_clear(&fci, 1);
+		
+		if (retval_ptr) {
+			zval_ptr_dtor(&retval_ptr);
+		}
+		
+		compare = jit_insn_gt
+			(pbuild->func->func, condition, stop);
+		
+		jit_insn_branch_if(pbuild->func->func, compare, &label[0]);
+	}
+}
+
 PHP_METHOD(Builder, doIf) {
 	zval *op = NULL;
 	php_jit_builder_t *pbuild;
@@ -948,7 +992,10 @@ PHP_METHOD(Builder, doStore) {
 		return;
 	}
 	
-	php_jit_do_binary_op((jit_builder_binary_func) jit_insn_store, pbuild->func, zin, return_value TSRMLS_CC);
+	RETURN_LONG(jit_insn_store(
+		pbuild->func->func,
+		PHP_JIT_FETCH_VALUE_I(zin[0]),
+		PHP_JIT_FETCH_VALUE_I(zin[1])));
 }
 
 PHP_METHOD(Builder, doAddressof) {
@@ -1308,6 +1355,19 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_construct_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, function)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doWhile_arginfo, 0, 0, 2) 
+	ZEND_ARG_INFO(0, block)
+	ZEND_ARG_INFO(0, condition)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doIncrement_arginfo, 0, 0, 1) 
+	ZEND_ARG_INFO(0, op)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doDecrement_arginfo, 0, 0, 1) 
+	ZEND_ARG_INFO(0, op)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doIf_arginfo, 0, 0, 3) 
 	ZEND_ARG_INFO(0, op)
 	ZEND_ARG_INFO(0, positive)
@@ -1392,6 +1452,7 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, __construct,  php_jit_builder_construct_arginfo,  ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIf,         php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIfNot,      php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doWhile,      php_jit_builder_doWhile_arginfo,    ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doMul,        php_jit_builder_binary_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doMulOvf,     php_jit_builder_binary_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doAdd,        php_jit_builder_binary_arginfo,     ZEND_ACC_PUBLIC)
