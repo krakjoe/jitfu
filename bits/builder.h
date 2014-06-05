@@ -140,8 +140,7 @@ PHP_METHOD(Builder, __construct) {
 	
 	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 	pbuild->func = PHP_JIT_FETCH_FUNCTION(zfunction);
-	zend_objects_store_add_ref_by_handle
-		(pbuild->func->h TSRMLS_CC);
+	zend_objects_store_add_ref_by_handle(pbuild->func->h TSRMLS_CC);
 		
 	if (ZEND_NUM_ARGS() > 1) {
 		zval *retval_ptr = NULL, 
@@ -158,17 +157,16 @@ PHP_METHOD(Builder, __construct) {
 			return;
 		}
 		
-		zend_create_closure(
-			&closure, 
-			(zend_function*) function, 
-			EG(scope), EG(This) TSRMLS_CC);
-			
+		/* bind builder function to current scope and object */
+		zend_create_closure(&closure, (zend_function*) function, EG(scope), EG(This) TSRMLS_CC);
+
 		if (zend_fcall_info_init(&closure, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
 			/* throw failed to initialize closure method */
 			zval_dtor(&closure);
 			return;
 		}
 		
+		/* build params for builder function */
 		array_init(&params);
 		
 		fci.retval_ptr_ptr = &retval_ptr;
@@ -178,36 +176,38 @@ PHP_METHOD(Builder, __construct) {
 			php_jit_value_t *pval;
 			
 			MAKE_STD_ZVAL(o);
-			
+
 			object_init_ex(o, jit_value_ce);
-	
+
 			pval = PHP_JIT_FETCH_VALUE(o);
-			
+
 			pval->builder = pbuild;
 			zend_objects_store_add_ref_by_handle(pval->builder->h TSRMLS_CC);
-			
+
 			pval->type = pbuild->func->sig->params[nparam];
 			zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
-			
+
 			pval->value = jit_value_get_param(pbuild->func->func, nparam);
-			
+
 			add_next_index_zval(&params, o);
-			
+
 			nparam++;
 		}
-		
+
+		/* call builder function */
 		zend_fcall_info_args(&fci, &params TSRMLS_CC);
-		
+
 		zend_try {
 			zend_call_function(&fci, &fcc TSRMLS_CC);
 		} zend_end_try();
 		
+		/* cleanup */
 		zend_fcall_info_args_clear(&fci, 1);
 		
 		if (retval_ptr) {
 			zval_ptr_dtor(&retval_ptr);
 		}
-		
+
 		zval_dtor(&params);
 		zval_dtor(&closure);
 	}
