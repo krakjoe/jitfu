@@ -1129,6 +1129,12 @@ PHP_METHOD(Builder, doLoadElem) {
 	}
 	
 	lval = PHP_JIT_FETCH_VALUE(zin[0]);
+	
+	if (!lval->type->pt) {
+		/* throw not a pointer type */
+		return;
+	}
+	
 	object_init_ex(return_value, jit_value_ce);
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_load_elem(
@@ -1150,6 +1156,12 @@ PHP_METHOD(Builder, doLoadElemAddress) {
 	}
 
 	lval = PHP_JIT_FETCH_VALUE(zin[0]);
+	
+	if (!lval->type->pt) {
+		/* throw not a pointer type */
+		return;
+	}
+	
 	object_init_ex(return_value, jit_value_ce);
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_load_elem_address(
@@ -1172,6 +1184,12 @@ PHP_METHOD(Builder, doLoadRelative) {
 	}
 	
 	lval = PHP_JIT_FETCH_VALUE(zin);
+	
+	if (!lval->type->pt) {
+		/* throw not a pointer type */
+		return;
+	}
+	
 	object_init_ex(return_value, jit_value_ce);
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_load_relative(
