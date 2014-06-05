@@ -151,11 +151,16 @@ PHP_METHOD(Builder, __construct) {
 		zend_fcall_info       fci;
 		zend_fcall_info_cache fcc;
 		zend_uint             nparam = 0;
+		const zend_function   *function = zend_get_closure_method_def(zbuilder TSRMLS_CC);
+		
+		if (function->common.num_args != pbuild->func->sig->nparams) {
+			/* throw incorrect number of argument accepted by builder function */
+			return;
+		}
 		
 		zend_create_closure(
 			&closure, 
-			(zend_function*)
-				zend_get_closure_method_def(zbuilder TSRMLS_CC), 
+			(zend_function*) function, 
 			EG(scope), EG(This) TSRMLS_CC);
 			
 		if (zend_fcall_info_init(&closure, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
@@ -232,14 +237,12 @@ PHP_METHOD(Builder, doWhile) {
 		zval *retval_ptr = NULL;
 		
 		fci.retval_ptr_ptr = &retval_ptr;
-		
-		zend_fcall_info_argn(&fci TSRMLS_CC, 1, &getThis());
+		fci.params = NULL;
+		fci.param_count = 0;
 		
 		zend_try {
 			zend_call_function(&fci, &fcc TSRMLS_CC);
 		} zend_end_try();
-		
-		zend_fcall_info_args_clear(&fci, 1);
 		
 		if (retval_ptr) {
 			zval_ptr_dtor(&retval_ptr);
@@ -270,14 +273,12 @@ PHP_METHOD(Builder, doIf) {
 	jit_insn_branch_if_not(pbuild->func->func, PHP_JIT_FETCH_VALUE_I(op), &label);
 	
 	zpfci.retval_ptr_ptr = &zretnull;
-	
-	zend_fcall_info_argn(&zpfci TSRMLS_CC, 1, &getThis());
+	zpfci.params = NULL;
+	zpfci.param_count = 0;
 	
 	zend_try {
 		zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
 	} zend_end_try();
-	
-	zend_fcall_info_args_clear(&zpfci, 1);
 	
 	if (zretnull) {
 		zval_ptr_dtor(&zretnull);
@@ -287,14 +288,12 @@ PHP_METHOD(Builder, doIf) {
 	
 	if (ZEND_NUM_ARGS() > 3) {
 		znfci.retval_ptr_ptr = &zretnull;
-	
-		zend_fcall_info_argn(&znfci TSRMLS_CC, 1, &getThis());
-	
+		znfci.params = NULL;
+		znfci.param_count = 0;
+
 		zend_try {
 			zend_call_function(&znfci, &znfcc TSRMLS_CC);
 		} zend_end_try();
-	
-		zend_fcall_info_args_clear(&znfci, 1);
 
 		if (zretnull) {
 			zval_ptr_dtor(&zretnull);
@@ -320,15 +319,13 @@ PHP_METHOD(Builder, doIfNot) {
 	jit_insn_branch_if(pbuild->func->func, PHP_JIT_FETCH_VALUE_I(op), &label);
 	
 	zpfci.retval_ptr_ptr = &zretnull;
-	
-	zend_fcall_info_argn(&zpfci TSRMLS_CC, 1, &getThis());
+	zpfci.params = NULL;
+	zpfci.param_count = 0;
 	
 	zend_try {
 		zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
 	} zend_end_try();
-	
-	zend_fcall_info_args_clear(&zpfci, 1);
-	
+
 	if (zretnull) {
 		zval_ptr_dtor(&zretnull);
 	}
@@ -337,14 +334,12 @@ PHP_METHOD(Builder, doIfNot) {
 	
 	if (ZEND_NUM_ARGS() > 3) {
 		znfci.retval_ptr_ptr = &zretnull;
-	
-		zend_fcall_info_argn(&znfci TSRMLS_CC, 1, &getThis());
-	
+		znfci.params = NULL;
+		znfci.param_count = 0;
+
 		zend_try {
 			zend_call_function(&znfci, &znfcc TSRMLS_CC);
 		} zend_end_try();
-	
-		zend_fcall_info_args_clear(&znfci, 1);
 
 		if (zretnull) {
 			zval_ptr_dtor(&zretnull);
@@ -399,10 +394,10 @@ PHP_METHOD(Builder, doJumpTable) {
 			continue;
 		}
 		
-		zend_fcall_info_argn(&fci TSRMLS_CC, 1, &getThis());
-		
 		fci.retval_ptr_ptr = &retval_ptr;
-
+		fci.params = NULL;
+		fci.param_count = 0;
+		
 		zend_try {
 			zend_call_function(&fci, &fcc TSRMLS_CC);
 		} zend_end_try();
@@ -411,8 +406,6 @@ PHP_METHOD(Builder, doJumpTable) {
 			zval_ptr_dtor(&retval_ptr);
 		}
 		
-		zend_fcall_info_args_clear(&fci, 1);	
-
 		nlabel++;
 	}
 	
