@@ -321,70 +321,88 @@ PHP_METHOD(Builder, doIf) {
 
 PHP_METHOD(Builder, doLabel) {
 	php_jit_builder_t *pbuild;
-	jit_label_t label = jit_label_undefined;
+	php_jit_label_t   *plabel;
+	zval *zlabel = NULL;
 	
-	if (zend_parse_parameters_none() != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|O", &zlabel, jit_label_ce)) {
 		return;
 	}
 	
 	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 	
-	jit_insn_label(pbuild->func->func, &label);
+	if (!zlabel) {
+		object_init_ex(return_value, jit_label_ce);
+		plabel = PHP_JIT_FETCH_LABEL(return_value);
+		plabel->builder = pbuild;
+		zend_objects_store_add_ref_by_handle(plabel->builder->h TSRMLS_CC);
+	} else plabel = PHP_JIT_FETCH_LABEL(zlabel);
 	
-	RETURN_LONG(label);
+	jit_insn_label(pbuild->func->func, &plabel->label);
 }
 
 PHP_METHOD(Builder, doBranch) {
 	php_jit_builder_t *pbuild;
-	jit_label_t label = jit_label_undefined;
+	php_jit_label_t   *plabel;
+	zval *zlabel;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &label) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zlabel, jit_label_ce) != SUCCESS) {
 		return;
 	}
 	
 	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	plabel = PHP_JIT_FETCH_LABEL(zlabel);
 	
-	jit_insn_branch(pbuild->func->func, &label);
-	
-	RETURN_LONG(label);
+	RETURN_LONG(jit_insn_branch(pbuild->func->func, &plabel->label));
 }
 
 PHP_METHOD(Builder, doBranchIf) {
 	php_jit_builder_t *pbuild;
-	jit_label_t label = jit_label_undefined;
-	zval *zin = NULL;
+	php_jit_label_t   *plabel;
+	zval *zin = NULL, *zlabel = NULL;
 	php_jit_value_t *pval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Ol", &zin, jit_value_ce, &label) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|O", &zin, jit_value_ce, &zlabel) != SUCCESS) {
 		return;
 	}
 	
 	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
-
+	
+	if (!zlabel) {
+		object_init_ex(return_value, jit_label_ce);
+		
+		plabel = PHP_JIT_FETCH_LABEL(return_value);
+		plabel->builder = pbuild;
+		zend_objects_store_add_ref_by_handle(plabel->builder->h TSRMLS_CC);
+	} else plabel = PHP_JIT_FETCH_LABEL(zlabel);
+	
 	pval = PHP_JIT_FETCH_VALUE(zin);
 	
-	jit_insn_branch_if(pbuild->func->func, pval->value, &label);
-	
-	RETURN_LONG(label);
+	jit_insn_branch_if(pbuild->func->func, pval->value, &plabel->label);
 }
 
 PHP_METHOD(Builder, doBranchIfNot) {
 	php_jit_builder_t *pbuild;
-	jit_label_t label = jit_label_undefined;
-	zval *zin = NULL;
+	php_jit_label_t   *plabel;
+	zval *zin = NULL, *zlabel = NULL;
 	php_jit_value_t *pval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Ol", &zin, jit_value_ce, &label) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|O", &zin, jit_value_ce, &zlabel) != SUCCESS) {
 		return;
 	}
 	
 	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
-
+	
+	if (!zlabel) {
+		object_init_ex(return_value, jit_label_ce);
+		
+		plabel = PHP_JIT_FETCH_LABEL(return_value);
+		plabel->builder = pbuild;
+		zend_objects_store_add_ref_by_handle(plabel->builder->h TSRMLS_CC);
+	} else plabel = PHP_JIT_FETCH_LABEL(zlabel);
+	
 	pval = PHP_JIT_FETCH_VALUE(zin);
 	
-	jit_insn_branch_if_not(pbuild->func->func, pval->value, &label);
-	
-	RETURN_LONG(label);
+	jit_insn_branch_if_not(pbuild->func->func, pval->value, &plabel->label);
 }
 
 PHP_METHOD(Builder, doIfNot) {
@@ -1542,18 +1560,19 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doDecrement_arginfo, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doLabel_arginfo, 0, 0, 0)
+	ZEND_ARG_INFO(0, label)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doBranch_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, label) 
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doBranchIf_arginfo, 0, 0, 2)
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doBranchIf_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, op)
 	ZEND_ARG_INFO(0, label) 
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doBranchIfNot_arginfo, 0, 0, 2)
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doBranchIfNot_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, op)
 	ZEND_ARG_INFO(0, label) 
 ZEND_END_ARG_INFO()

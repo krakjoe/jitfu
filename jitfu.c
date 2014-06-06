@@ -36,6 +36,7 @@
 #include "bits/signature.h"
 #include "bits/function.h"
 #include "bits/builder.h"
+#include "bits/label.h"
 #include "bits/value.h"
 
 /* {{{ jit_module_entry
@@ -72,7 +73,8 @@ PHP_MINIT_FUNCTION(jitfu)
 	php_jit_minit_function(module_number TSRMLS_CC);
 	php_jit_minit_value(module_number TSRMLS_CC);
 	php_jit_minit_builder(module_number TSRMLS_CC);
-
+	php_jit_minit_label(module_number TSRMLS_CC);
+	
 	return SUCCESS;
 }
 /* }}} */
@@ -93,6 +95,7 @@ PHP_MINFO_FUNCTION(jitfu)
 #include "bits/function.h"
 #include "bits/value.h"
 #include "bits/builder.h"
+#include "bits/label.h"
 
 /*
  * Local variables:
