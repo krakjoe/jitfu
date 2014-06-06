@@ -197,9 +197,7 @@ PHP_METHOD(Builder, __construct) {
 		/* call builder function */
 		zend_fcall_info_args(&fci, &params TSRMLS_CC);
 
-		zend_try {
-			zend_call_function(&fci, &fcc TSRMLS_CC);
-		} zend_end_try();
+		zend_call_function(&fci, &fcc TSRMLS_CC);
 		
 		/* cleanup */
 		zend_fcall_info_args_clear(&fci, 1);
@@ -302,6 +300,32 @@ PHP_METHOD(Builder, doIf) {
 			zval_ptr_dtor(&zretnull);
 		}
 	}
+}
+
+PHP_METHOD(Builder, doLabel) {
+	php_jit_builder_t *pbuild;
+	jit_label_t label = jit_label_undefined;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	RETURN_LONG(jit_insn_label(pbuild->func->func, &label));
+}
+
+PHP_METHOD(Builder, doBranch) {
+	php_jit_builder_t *pbuild;
+	jit_label_t label = jit_label_undefined;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &label) != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+	
+	RETURN_LONG(jit_insn_branch(pbuild->func->func, &label));
 }
 
 PHP_METHOD(Builder, doIfNot) {
@@ -1447,6 +1471,13 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doDecrement_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, op)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doLabel_arginfo, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doBranch_arginfo, 0, 0, 1)
+	ZEND_ARG_INFO(0, label) 
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doIf_arginfo, 0, 0, 3) 
 	ZEND_ARG_INFO(0, op)
 	ZEND_ARG_INFO(0, positive)
@@ -1527,6 +1558,8 @@ ZEND_END_ARG_INFO()
 
 zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, __construct,  php_jit_builder_construct_arginfo,  ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doLabel,      php_jit_builder_doLabel_arginfo,    ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doBranch,     php_jit_builder_doBranch_arginfo,   ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIf,         php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIfNot,      php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doWhile,      php_jit_builder_doWhile_arginfo,    ZEND_ACC_PUBLIC)
