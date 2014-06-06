@@ -19,15 +19,12 @@ use JITFU\Type;
 use JITFU\Signature;
 use JITFU\Func;
 use JITFU\Value;
-use JITFU\Builder;
 
 $context = new Context();
 
 $integer   = new Type(JIT_TYPE_INT);
 
-$function = new Func($context, new Signature($integer, [$integer]));
-
-new Builder($function, function(Value $arg) use($function, $integer) {
+$function = new Func($context, new Signature($integer, [$integer]), function(Value $arg) use($function, $integer) {
 	$zero     = new Value($this, 0, $integer);
 	$one      = new Value($this, 1, $integer);
 	$two      = new Value($this, 2, $integer);
@@ -113,7 +110,6 @@ TODO
 ====
 
   * integration tests for as much as possible
-  * builder methods for all common control structures
   * expose ELF read/write api, somehow
   * bother with windows ... anyone ?
   * other cool things, probably

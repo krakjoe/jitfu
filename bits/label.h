@@ -21,7 +21,7 @@
 typedef struct _php_jit_label_t {
 	zend_object         std;
 	zend_object_handle  h;
-	php_jit_builder_t  *builder;
+	php_jit_function_t  *func;
 	jit_label_t         label;
 } php_jit_label_t;
 
@@ -48,8 +48,8 @@ static inline void php_jit_label_destroy(void *zobject, zend_object_handle handl
 
 	zend_object_std_dtor(&plabel->std TSRMLS_CC);
 	
-	if (plabel->builder) {
-		zend_objects_store_del_ref_by_handle(plabel->builder->h TSRMLS_CC);
+	if (plabel->func) {
+		zend_objects_store_del_ref_by_handle(plabel->func->h TSRMLS_CC);
 	}
 	
 	efree(plabel);
@@ -88,22 +88,22 @@ void php_jit_minit_label(int module_number TSRMLS_DC) {
 }
 
 PHP_METHOD(Label, __construct) {
-	zval *zbuilder;
-	php_jit_builder_t *pbuild;
-	php_jit_label_t *plabel;
+	zval *zfunction = NULL;
+	php_jit_function_t *pfunc = NULL;
+	php_jit_label_t *plabel = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zbuilder, jit_builder_ce) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zfunction, jit_function_ce) != SUCCESS) {
 		return;
 	}
 	
 	plabel = PHP_JIT_FETCH_LABEL(getThis());
-	pbuild = PHP_JIT_FETCH_BUILDER(zbuilder);
+	pfunc = PHP_JIT_FETCH_FUNCTION(zfunction);
 	
-	jit_insn_label(pbuild->func->func, &plabel->label);
+	jit_insn_label(pfunc->func, &plabel->label);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_label_construct_arginfo, 0, 0, 1) 
-	ZEND_ARG_INFO(0, builder)
+	ZEND_ARG_INFO(0, function)
 ZEND_END_ARG_INFO()
 
 zend_function_entry php_jit_label_methods[] = {

@@ -1,5 +1,5 @@
 --TEST--
-Test function object
+Test builder object basic
 --SKIPIF--
 <?php if (!extension_loaded("jitfu")) die("skip JITFu not loaded"); ?>
 --FILE--
@@ -8,26 +8,25 @@ use JITFu\Context;
 use JITFu\Type;
 use JITFu\Signature;
 use JITFu\Func;
+use JITFu\Value;
 
 $context = new Context();
-$context->start();
 
-$int      = new Type(JIT_TYPE_LONG);
+$long      = new Type(JIT_TYPE_LONG);
 
-/* int function(int); */
-$sig      = new Signature($int, [$int]);
+/* long function(long n); */
+$sig      = new Signature($long, [$long]);
 
-$function = new Func($context, $sig);
-
-var_dump($function->isCompiled());
-
-$function->compile();
+$function = new Func($context, $sig, function(Value $n){
+	$this->doReturn($n);
+});
 
 var_dump(
-	$function->isCompiled(), 
-	is_callable($function));
+	$function(10), 
+	$function(20), 
+	$function(30));
 ?>
 --EXPECT--
-bool(false)
-bool(true)
-bool(true)
+int(10)
+int(20)
+int(30)
