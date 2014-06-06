@@ -230,7 +230,7 @@ PHP_METHOD(Func, __construct) {
 	
 	php_jit_function_t *pfunc;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO|zO", &zcontext, jit_context_ce, &zsignature, jit_signature_ce, &zbuilder, &zparent, jit_function_ce) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOz|O", &zcontext, jit_context_ce, &zsignature, jit_signature_ce, &zbuilder, zend_ce_closure, &zparent, jit_function_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -267,9 +267,8 @@ PHP_METHOD(Func, __construct) {
 
 	pfunc->st |= PHP_JIT_FUNCTION_CREATED;
 	
-	if (zbuilder) {
-		php_jit_function_invoke_builder(getThis(), zbuilder TSRMLS_CC);
-	}
+	php_jit_function_invoke_builder
+		(getThis(), zbuilder TSRMLS_CC);
 }
 
 PHP_METHOD(Func, compile) {
@@ -1821,7 +1820,7 @@ ZEND_BEGIN_ARG_INFO_EX( php_jit_function_get_param_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, parameter)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(php_jit_function_construct_arginfo, 0, 0, 2) 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_function_construct_arginfo, 0, 0, 3) 
 	ZEND_ARG_INFO(0, context)
 	ZEND_ARG_INFO(0, signature)
 	ZEND_ARG_INFO(0, builder)
