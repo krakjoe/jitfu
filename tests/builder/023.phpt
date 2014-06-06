@@ -1,5 +1,5 @@
 --TEST--
-Test builder doBranchIfNot
+Test builder doBranchIf
 --SKIPIF--
 <?php if (!extension_loaded("jitfu")) die("skip JITFu not loaded"); ?>
 --FILE--
@@ -20,13 +20,13 @@ long function (long n) {
 	long zero = 0;
 	long one = 1;
 	
-	if (!n) {
-		goto false;
+	if (n) {
+		goto label;
 	}
 	
 	return one;
 	
-false:
+label:
 	return zero;
 }
 */
@@ -37,11 +37,11 @@ new Builder($function, function(Value $n) {
 	$zero = new Value($this, 0, new Type(JIT_TYPE_LONG));
 	$one  = new Value($this, 1, new Type(JIT_TYPE_LONG));
 
-	$false = $this->doBranchIfNot($n);
+	$label = $this->doBranchIf($n);
 	
 	$this->doReturn($one);
 	
-	$this->doLabel($false);
+	$this->doLabel($label);
 	
 	$this->doReturn($zero);
 });
@@ -51,6 +51,6 @@ var_dump(
 	$function(0));
 ?>
 --EXPECT--
-int(1)
 int(0)
+int(1)
 
