@@ -151,6 +151,7 @@ PHP_METHOD(Builder, __construct) {
 		zend_fcall_info_cache fcc;
 		zend_uint             nparam = 0;
 		const zend_function   *function = zend_get_closure_method_def(zbuilder TSRMLS_CC);
+		int result = FAILURE;
 		
 		if (function->common.num_args != pbuild->func->sig->nparams) {
 			/* throw incorrect number of argument accepted by builder function */
@@ -197,7 +198,12 @@ PHP_METHOD(Builder, __construct) {
 		/* call builder function */
 		zend_fcall_info_args(&fci, &params TSRMLS_CC);
 
-		zend_call_function(&fci, &fcc TSRMLS_CC);
+		result = zend_call_function(&fci, &fcc TSRMLS_CC);
+		
+		if (result == FAILURE) {
+			/* throw failed to call builder */
+			return;
+		}
 		
 		/* cleanup */
 		zend_fcall_info_args_clear(&fci, 1);
@@ -219,6 +225,7 @@ PHP_METHOD(Builder, doWhile) {
 		{jit_label_undefined, jit_label_undefined};
 	zend_fcall_info fci;
 	zend_fcall_info_cache fcc;
+	int result = FAILURE;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Of", &op, jit_value_ce, &fci, &fcc) != SUCCESS) {
 		return;
@@ -242,9 +249,12 @@ PHP_METHOD(Builder, doWhile) {
 		fci.params = NULL;
 		fci.param_count = 0;
 		
-		zend_try {
-			zend_call_function(&fci, &fcc TSRMLS_CC);
-		} zend_end_try();
+		result = zend_call_function(&fci, &fcc TSRMLS_CC);
+		
+		if (result == FAILURE) {
+			/* throw failed to call builder */
+			return;
+		}
 		
 		if (retval_ptr) {
 			zval_ptr_dtor(&retval_ptr);
@@ -264,6 +274,7 @@ PHP_METHOD(Builder, doIf) {
 	zend_fcall_info zpfci, znfci;
 	zend_fcall_info_cache zpfcc, znfcc;
 	zval *zretnull = NULL;
+	int result = FAILURE;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Of|f", &op, jit_value_ce, &zpfci, &zpfcc, &znfci, &znfcc) != SUCCESS) {
 		return;
@@ -277,9 +288,12 @@ PHP_METHOD(Builder, doIf) {
 	zpfci.params = NULL;
 	zpfci.param_count = 0;
 	
-	zend_try {
-		zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
-	} zend_end_try();
+	result = zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
+	
+	if (result == FAILURE) {
+		/* throw failed to call builder function */
+		return;
+	}
 	
 	if (zretnull) {
 		zval_ptr_dtor(&zretnull);
@@ -292,9 +306,12 @@ PHP_METHOD(Builder, doIf) {
 		znfci.params = NULL;
 		znfci.param_count = 0;
 
-		zend_try {
-			zend_call_function(&znfci, &znfcc TSRMLS_CC);
-		} zend_end_try();
+		result = zend_call_function(&znfci, &znfcc TSRMLS_CC);
+		
+		if (result == FAILURE) {
+			/* throw failed to call builder function */
+			return;
+		}
 
 		if (zretnull) {
 			zval_ptr_dtor(&zretnull);
@@ -336,6 +353,7 @@ PHP_METHOD(Builder, doIfNot) {
 	zend_fcall_info zpfci, znfci;
 	zend_fcall_info_cache zpfcc, znfcc;
 	zval *zretnull = NULL;
+	int result = FAILURE;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Of|f", &op, jit_value_ce, &zpfci, &zpfcc, &znfci, &znfcc) != SUCCESS) {
 		return;
@@ -349,9 +367,12 @@ PHP_METHOD(Builder, doIfNot) {
 	zpfci.params = NULL;
 	zpfci.param_count = 0;
 	
-	zend_try {
-		zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
-	} zend_end_try();
+	result = zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
+	
+	if (result == FAILURE) {
+		/* throw failed to call builder */
+		return;
+	}
 
 	if (zretnull) {
 		zval_ptr_dtor(&zretnull);
@@ -364,9 +385,12 @@ PHP_METHOD(Builder, doIfNot) {
 		znfci.params = NULL;
 		znfci.param_count = 0;
 
-		zend_try {
-			zend_call_function(&znfci, &znfcc TSRMLS_CC);
-		} zend_end_try();
+		result = zend_call_function(&znfci, &znfcc TSRMLS_CC);
+		
+		if (result == FAILURE) {
+			/* throw failed to call builder */
+			return;
+		}
 
 		if (zretnull) {
 			zval_ptr_dtor(&zretnull);
@@ -412,6 +436,7 @@ PHP_METHOD(Builder, doJumpTable) {
 		zend_fcall_info fci;
 		zend_fcall_info_cache fcc;
 		zval *retval_ptr = NULL;
+		int result = FAILURE;
 		
 		jit_insn_label(pbuild->func->func, &labels[nlabel]);
 		
@@ -425,9 +450,12 @@ PHP_METHOD(Builder, doJumpTable) {
 		fci.params = NULL;
 		fci.param_count = 0;
 		
-		zend_try {
-			zend_call_function(&fci, &fcc TSRMLS_CC);
-		} zend_end_try();
+		result = zend_call_function(&fci, &fcc TSRMLS_CC);
+		
+		if (result == FAILURE) {
+			/* throw failed to call builder */
+			return;
+		}
 		
 		if (retval_ptr) {
 			zval_ptr_dtor(&retval_ptr);
