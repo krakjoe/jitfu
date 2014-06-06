@@ -329,7 +329,9 @@ PHP_METHOD(Builder, doLabel) {
 	
 	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 	
-	RETURN_LONG(jit_insn_label(pbuild->func->func, &label));
+	jit_insn_label(pbuild->func->func, &label);
+	
+	RETURN_LONG(label);
 }
 
 PHP_METHOD(Builder, doBranch) {
@@ -342,7 +344,47 @@ PHP_METHOD(Builder, doBranch) {
 	
 	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
 	
-	RETURN_LONG(jit_insn_branch(pbuild->func->func, &label));
+	jit_insn_branch(pbuild->func->func, &label);
+	
+	RETURN_LONG(label);
+}
+
+PHP_METHOD(Builder, doBranchIf) {
+	php_jit_builder_t *pbuild;
+	jit_label_t label = jit_label_undefined;
+	zval *zin = NULL;
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Ol", &zin, jit_value_ce, &label) != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	pval = PHP_JIT_FETCH_VALUE(zin);
+	
+	jit_insn_branch_if(pbuild->func->func, pval->value, &label);
+	
+	RETURN_LONG(label);
+}
+
+PHP_METHOD(Builder, doBranchIfNot) {
+	php_jit_builder_t *pbuild;
+	jit_label_t label = jit_label_undefined;
+	zval *zin = NULL;
+	php_jit_value_t *pval;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Ol", &zin, jit_value_ce, &label) != SUCCESS) {
+		return;
+	}
+	
+	pbuild = PHP_JIT_FETCH_BUILDER(getThis());
+
+	pval = PHP_JIT_FETCH_VALUE(zin);
+	
+	jit_insn_branch_if_not(pbuild->func->func, pval->value, &label);
+	
+	RETURN_LONG(label);
 }
 
 PHP_METHOD(Builder, doIfNot) {
@@ -1506,6 +1548,16 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doBranch_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, label) 
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doBranchIf_arginfo, 0, 0, 2)
+	ZEND_ARG_INFO(0, op)
+	ZEND_ARG_INFO(0, label) 
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doBranchIfNot_arginfo, 0, 0, 2)
+	ZEND_ARG_INFO(0, op)
+	ZEND_ARG_INFO(0, label) 
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doIf_arginfo, 0, 0, 3) 
 	ZEND_ARG_INFO(0, op)
 	ZEND_ARG_INFO(0, positive)
@@ -1588,6 +1640,8 @@ zend_function_entry php_jit_builder_methods[] = {
 	PHP_ME(Builder, __construct,  php_jit_builder_construct_arginfo,  ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doLabel,      php_jit_builder_doLabel_arginfo,    ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doBranch,     php_jit_builder_doBranch_arginfo,   ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doBranchIf,   php_jit_builder_doBranchIf_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Builder, doBranchIfNot,php_jit_builder_doBranchIfNot_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIf,         php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doIfNot,      php_jit_builder_doIf_arginfo,       ZEND_ACC_PUBLIC)
 	PHP_ME(Builder, doWhile,      php_jit_builder_doWhile_arginfo,    ZEND_ACC_PUBLIC)
