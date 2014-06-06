@@ -222,7 +222,7 @@ PHP_METHOD(Builder, doWhile) {
 	zend_fcall_info fci;
 	zend_fcall_info_cache fcc;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "fO", &fci, &fcc, &op, jit_value_ce) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Of", &op, jit_value_ce, &fci, &fcc) != SUCCESS) {
 		return;
 	}
 	
@@ -233,6 +233,10 @@ PHP_METHOD(Builder, doWhile) {
 	stop      = jit_value_create_nint_constant(pbuild->func->func, jit_type_sys_long, 0);
 	
 	jit_insn_label(pbuild->func->func, &label[0]);
+	
+	compare = jit_insn_gt(pbuild->func->func, condition, stop);
+	
+	jit_insn_branch_if_not(pbuild->func->func, compare, &label[1]);
 	{
 		zval *retval_ptr = NULL;
 		
@@ -248,11 +252,10 @@ PHP_METHOD(Builder, doWhile) {
 			zval_ptr_dtor(&retval_ptr);
 		}
 		
-		compare = jit_insn_gt
-			(pbuild->func->func, condition, stop);
-		
-		jit_insn_branch_if(pbuild->func->func, compare, &label[0]);
+		jit_insn_branch(pbuild->func->func, &label[0]);
 	}
+	
+	jit_insn_label(pbuild->func->func, &label[1]);
 }
 
 PHP_METHOD(Builder, doIf) {
@@ -916,8 +919,8 @@ PHP_METHOD(Builder, doSqrt) {
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
 		return;
 	}
-	
 	php_jit_do_unary_op(jit_insn_sqrt, pbuild->func, zin, return_value TSRMLS_CC);
+	
 }
 
 PHP_METHOD(Builder, doTan) {
@@ -1432,8 +1435,8 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_construct_arginfo, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doWhile_arginfo, 0, 0, 2) 
-	ZEND_ARG_INFO(0, block)
 	ZEND_ARG_INFO(0, condition)
+	ZEND_ARG_INFO(0, block)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_builder_doIncrement_arginfo, 0, 0, 1) 

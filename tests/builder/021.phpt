@@ -23,11 +23,9 @@ long function (long **n, long f, long x) {
 	long one = 1;
 	long r = n[f][x];
 
-	do {
-		if (r > zero) {
-			r = (r - 1);
-		}
-	} while (r);
+	while (r) {
+		r = (r - 1);
+	}
 	
 	return r;
 }
@@ -46,19 +44,16 @@ new Builder($function, function(Value $n, Value $f, Value $x) {
 			($this->doLoadElem
 				($n, $f), $x);
 
-	/* do { */
-	$this->doWhile(function() use($r, $zero, $one) {	
-		/* if (r > zero) { */
-		$this->doIf($this->doGt($r, $zero), function() use($r, $zero, $one){
-			/* r = (r - one); */
-			$this->doStore(
-				$r, $this->doSub($r, $one));
-		});
-		/* } */
-	}, $r); /* while (r); */
+	/* while(r) { */
+	$this->doWhile($r, function() use($r, $zero, $one) {	
+		/* r = (r - one); */
+		$this->doStore(
+			$r, $this->doSub($r, $one));
+	}); 
+	/* } */
 
 	/* return r; */
-	$this->doReturn($r);		
+	$this->doReturn($r);
 });
 
 $longs = [
