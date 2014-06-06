@@ -118,7 +118,7 @@ static inline void php_jit_function_invoke_builder(zval *this_ptr, zval *zbuilde
 	}
 	
 	/* bind builder function to current scope and object */
-	zend_create_closure(&closure, (zend_function*) function, EG(scope), getThis() TSRMLS_CC);
+	zend_create_closure(&closure, (zend_function*) function, Z_OBJCE_P(this_ptr), this_ptr TSRMLS_CC);
 
 	if (zend_fcall_info_init(&closure, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
 		/* throw failed to initialize closure method */
