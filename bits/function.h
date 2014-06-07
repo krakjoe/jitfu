@@ -812,7 +812,7 @@ PHP_METHOD(Func, doBranchIf) {
 	zval *zin = NULL, *zlabel = NULL;
 	php_jit_value_t   *pval   = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|O", &zin, jit_value_ce, &zlabel) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|O", &zin, jit_value_ce, &zlabel, jit_label_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -837,7 +837,7 @@ PHP_METHOD(Func, doBranchIfNot) {
 	zval *zin = NULL, *zlabel = NULL;
 	php_jit_value_t   *pval   = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|O", &zin, jit_value_ce, &zlabel) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|O", &zin, jit_value_ce, &zlabel, jit_label_ce) != SUCCESS) {
 		return;
 	}
 	
