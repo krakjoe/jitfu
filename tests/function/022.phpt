@@ -44,6 +44,7 @@ $function->implement(function($args) {
 	
 	$this->doReturn($zero);
 });
+
 var_dump(
 	$function(1),
 	$function(0));

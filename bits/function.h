@@ -490,7 +490,10 @@ PHP_METHOD(Func, __invoke) {
 		
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
-	/* TODO(krakjoe) this requires more thought and work ... */
+	if (!(pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED)) {	
+		/* throw attempt to call function without implementation */
+		return;
+	}
 	
 	if (!jit_function_is_compiled(pfunc->func)) {
 		if (!(pfunc->ctx->st & PHP_JIT_CONTEXT_FINISHED)) {
