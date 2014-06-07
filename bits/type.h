@@ -143,11 +143,12 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 }
 
 PHP_METHOD(Type, __construct) {
-	zval *ztype;
+	zval *ztype = NULL;
 	zend_bool zpointer = 0;
 	php_jit_type_t *ptype;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|b", &ztype, &zpointer) != SUCCESS) {
+	if (php_jit_parameters("z|b", &ztype, &zpointer) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (int|Type of [, bool pointer = false])");
 		return;
 	}
 	
@@ -172,45 +173,31 @@ PHP_METHOD(Type, __construct) {
 			ptype->id = patype->id;
 			ptype->copied = 1;
 		} break;
+		
+		default:
+			php_jit_exception("unexpected parameters, expected (int|Type of [, bool pointer = false])");
 	}
 }
 
 PHP_METHOD(Type, of) {
-	zval *ztype = NULL,
-		 **zcache = NULL;
+	long ztype = 0;
+	zval **zcache = NULL;
 	php_jit_type_t *ptype;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &ztype) != SUCCESS) {
+	if (php_jit_parameters("l", &ztype) != SUCCESS || !ztype) {
+		php_jit_exception("unexpected parameters, expected (int type)");
 		return;
 	}
 	
-	if (!ztype) {
-		php_jit_exception("null type in constructor");
-		return;
-	}
-	
-	switch (Z_TYPE_P(ztype)) {
-		case IS_LONG: {
-			 if (zend_hash_index_find(&JG(types), Z_LVAL_P(ztype), (void**)&zcache) != SUCCESS) {
-			 	object_init_ex(return_value, jit_type_ce);
-			 	ptype = PHP_JIT_FETCH_TYPE(return_value);
-			 	ptype->id = Z_LVAL_P(ztype);
-			 	ptype->type = php_jit_type(Z_LVAL_P(ztype));
-			 	zend_hash_index_update(
-			 		&JG(types), Z_LVAL_P(ztype), (void**) &return_value, sizeof(zval*), NULL);
-			 	Z_ADDREF_P(return_value);
-			 } else ZVAL_ZVAL(return_value, *zcache, 1, 0);
-		} break;
-		
-		case IS_STRING: {
-			
-		} break;
-		
-		default: {
-			php_jit_exception("unexpected type in constructor, %s",
-				zend_get_type_by_const(Z_TYPE_P(ztype)));
-		}
-	}
+	if (zend_hash_index_find(&JG(types), ztype, (void**)&zcache) != SUCCESS) {
+	 	object_init_ex(return_value, jit_type_ce);
+	 	ptype = PHP_JIT_FETCH_TYPE(return_value);
+	 	ptype->id = ztype;
+	 	ptype->type = php_jit_type(ztype);
+	 	zend_hash_index_update(
+	 		&JG(types), ztype, (void**) &return_value, sizeof(zval*), NULL);
+	 	Z_ADDREF_P(return_value);
+	 } else ZVAL_ZVAL(return_value, *zcache, 1, 0);
 }
 
 PHP_METHOD(Type, getIdentifier) {
@@ -254,7 +241,8 @@ PHP_METHOD(Type, dump) {
 	php_jit_type_t *ptype;
 	php_stream *pstream = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|z", &zoutput) != SUCCESS) {
+	if (php_jit_parameters("|r", &zoutput) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected ([resource output = STDOUT])");
 		return;
 	}
 

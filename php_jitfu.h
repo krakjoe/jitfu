@@ -61,13 +61,9 @@ ZEND_END_MODULE_GLOBALS(jitfu)
 
 extern zend_class_entry *jit_exception_ce;
 
-#define php_jit_exception(s, ...) zend_throw_exception_ex(jit_exception_ce, 0 TSRMLS_CC, s, ##__VA_ARGS__)
-#define php_jit_parameters(e, s, ...) do { \
-	if (zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, s, ##__VA_ARGS__) != SUCCESS) { \
-		php_jit_exception("expected " e); \
-		return; \
-	} \
-} while(0)
+#define php_jit_exception(s, ...)     zend_throw_exception_ex(jit_exception_ce, 0 TSRMLS_CC, s, ##__VA_ARGS__)
+#define php_jit_parameters(s, ...)    zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, s, ##__VA_ARGS__)
+
 #endif	/* PHP_JITFU_H */
 
 /*

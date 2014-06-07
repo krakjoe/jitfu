@@ -118,7 +118,8 @@ PHP_METHOD(Signature, __construct) {
 	jit_type_t *params;
 	zend_uint   param = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OH", &ztype, jit_type_ce, &ztypes) != SUCCESS) {
+	if (php_jit_parameters("OH", &ztype, jit_type_ce, &ztypes) != SUCCESS) {
+		php_jit_exception("invalid parameters, expected (Type returns, Type[] parameters)");
 		return;
 	}
 	
@@ -181,7 +182,8 @@ PHP_METHOD(Signature, getParamType) {
 	php_jit_signature_t *psig;
 	long param = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &param) != SUCCESS) {
+	if (php_jit_parameters("l", &param) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (int parameter)");
 		return;
 	}
 	
