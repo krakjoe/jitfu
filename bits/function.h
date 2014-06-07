@@ -509,6 +509,8 @@ PHP_METHOD(Func, __invoke) {
 		}
 		
 		jit_function_compile(pfunc->func);
+		
+		pfunc->st |= PHP_JIT_FUNCTION_COMPILED;
 	}
 
 	if (nargs != pfunc->sig->nparams) {
