@@ -1708,13 +1708,13 @@ PHP_METHOD(Func, doStoreRelative) {
 	php_jit_function_t *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	long index = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &index, &zin[1], jit_value_ce) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OlO", &zin[0], jit_value_ce, &index, &zin[1], jit_value_ce) != SUCCESS) {
 		return;
 	}
 	
 	RETURN_LONG(jit_insn_store_relative(
 		pfunc->func,
-		PHP_JIT_FETCH_VALUE_I(zin[0]), 
+		PHP_JIT_FETCH_VALUE_I(zin[0]),
 		index, 
 		PHP_JIT_FETCH_VALUE_I(zin[1])));
 }

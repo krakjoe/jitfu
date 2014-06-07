@@ -288,7 +288,7 @@ PHP_METHOD(Value, getFunction) {
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (pval) {
+	if (pval && pval->func) {
 		zend_object_value value;
 		
 		value.handle = pval->func->h;
