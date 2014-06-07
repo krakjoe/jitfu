@@ -1770,14 +1770,14 @@ PHP_METHOD(Func, doStoreRelative) {
 	long index = 0;
 	
 	if (php_jit_parameters("OlO", &zin[0], jit_value_ce, &index, &zin[1], jit_value_ce) != SUCCESS) {
-		php_jit_exception("unexpected parameters, expected (Value dest, int index, Value type)");
+		php_jit_exception("unexpected parameters, expected (Value dest, int index, Value value)");
 		return;
 	}
 	
 	RETURN_LONG(jit_insn_store_relative(
 		pfunc->func,
 		PHP_JIT_FETCH_VALUE_I(zin[0]),
-		index, 
+		(jit_nint) index, 
 		PHP_JIT_FETCH_VALUE_I(zin[1])));
 }
 
