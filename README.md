@@ -24,14 +24,14 @@ $context = new Context();
 
 $integer   = new Type(JIT_TYPE_INT);
 
-$function = new Func($context, new Signature($integer, [$integer]), function(Value $arg) use($integer) {
+$function = new Func($context, new Signature($integer, [$integer]), function($args) use($integer) {
 	$zero     = new Value($this, 0, $integer);
 	$one      = new Value($this, 1, $integer);
 	$two      = new Value($this, 2, $integer);
 
 	/* if ($arg == 0) return 0; */
 	$this->doIf(
-		$this->doEq($arg, $zero),
+		$this->doEq($args[0], $zero),
 		function() use ($zero) {
 			$this->doReturn($zero);
 		}
@@ -39,7 +39,7 @@ $function = new Func($context, new Signature($integer, [$integer]), function(Val
 
 	/* if ($arg == 1) return 1; */
 	$this->doIf(
-		$this->doEq($arg, $one),
+		$this->doEq($args[0], $one),
 		function() use($one) {
 			$this->doReturn($one);
 		}
@@ -48,8 +48,8 @@ $function = new Func($context, new Signature($integer, [$integer]), function(Val
 	/* return $function($arg-1) + $function($arg-2); */
 	$this->doReturn(
 		$this->doAdd(
-			$this->doCall($this, [$this->doSub($arg, $one)]),
-			$this->doCall($this, [$this->doSub($arg, $two)])));	
+			$this->doCall($this, [$this->doSub($args[0], $one)]),
+			$this->doCall($this, [$this->doSub($args[0], $two)])));	
 });
 
 $function->dump("Fibonacci");
