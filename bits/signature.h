@@ -98,7 +98,7 @@ void php_jit_minit_signature(int module_number TSRMLS_DC) {
 	zend_class_entry ce;
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Signature", php_jit_signature_methods);
-	jit_signature_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	jit_signature_ce = zend_register_internal_class_ex(&ce, jit_type_ce, NULL TSRMLS_CC);
 	jit_signature_ce->create_object = php_jit_signature_create;
 	
 	memcpy(
@@ -116,11 +116,6 @@ PHP_METHOD(Signature, __construct) {
 	zend_uint   param = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OH", &ztype, jit_type_ce, &ztypes) != SUCCESS) {
-		return;
-	}
-	
-	if (!ztype) {
-		zend_throw_exception_ex(NULL, 0 TSRMLS_CC, "no return type given");
 		return;
 	}
 	
