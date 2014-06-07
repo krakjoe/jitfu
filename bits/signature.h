@@ -49,21 +49,28 @@ static inline void php_jit_signature_destroy(void *zobject, zend_object_handle h
 	php_jit_signature_t *psig = 
 		(php_jit_signature_t *) zobject;
 	zend_uint param = 0;
-	
+
 	zend_object_std_dtor(&psig->std TSRMLS_CC);
+	
+	while (param < psig->nparams) {
+		if (psig->params[param]) {
+			zend_objects_store_del_ref_by_handle
+				(psig->params[param]->h TSRMLS_CC);
+			param++;
+		}
+	}
 	
 	if (psig->returns) {
 		zend_objects_store_del_ref_by_handle(psig->returns->h TSRMLS_CC);
 	}
-	
-	while (param < psig->nparams) {
-		zend_objects_store_del_ref_by_handle
-			(psig->params[param]->h TSRMLS_CC);
-		param++;
-	}
+}
+
+static inline void php_jit_signature_free(void *zobject TSRMLS_DC) {
+	php_jit_signature_t *psig = 
+		(php_jit_signature_t *) zobject;
 	
 	jit_type_free(psig->type);
-
+	
 	efree(psig->params);
 	efree(psig);
 }
@@ -77,8 +84,9 @@ static inline zend_object_value php_jit_signature_create(zend_class_entry *ce TS
 	object_properties_init(&psig->std, ce);
 	
 	psig->h = zend_objects_store_put(
-		psig, 
-		php_jit_signature_destroy, NULL, NULL TSRMLS_CC);
+		psig,
+		php_jit_signature_destroy, 
+		php_jit_signature_free, NULL TSRMLS_CC);
 
 	intern.handle   = psig->h;
 	intern.handlers = &php_jit_signature_handlers;
@@ -90,7 +98,7 @@ void php_jit_minit_signature(int module_number TSRMLS_DC) {
 	zend_class_entry ce;
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Signature", php_jit_signature_methods);
-	jit_signature_ce = zend_register_internal_class_ex(&ce, jit_type_ce, NULL TSRMLS_CC);
+	jit_signature_ce = zend_register_internal_class(&ce TSRMLS_CC);
 	jit_signature_ce->create_object = php_jit_signature_create;
 	
 	memcpy(
@@ -111,12 +119,17 @@ PHP_METHOD(Signature, __construct) {
 		return;
 	}
 	
+	if (!ztype) {
+		zend_throw_exception_ex(NULL, 0 TSRMLS_CC, "no return type given");
+		return;
+	}
+	
 	psig = PHP_JIT_FETCH_SIGNATURE(getThis());
 	psig->returns = PHP_JIT_FETCH_TYPE(ztype);
 	zend_objects_store_add_ref_by_handle(psig->returns->h TSRMLS_CC);
 	
 	psig->nparams = zend_hash_num_elements(ztypes);
-	psig->params = (php_jit_type_t**) 
+	psig->params = (php_jit_type_t**)
 		ecalloc(psig->nparams, sizeof(php_jit_type_t));
 	
 	params = (jit_type_t*)

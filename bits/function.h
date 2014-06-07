@@ -112,7 +112,12 @@ static inline void php_jit_function_destroy(void *zobject, zend_object_handle ha
 	if (pfunc->parent) {
 		zend_objects_store_del_ref_by_handle(pfunc->parent->h TSRMLS_CC);
 	}
-	
+}
+
+static inline void php_jit_function_free(void *zobject TSRMLS_DC) {
+	php_jit_function_t *pfunc = 
+		(php_jit_function_t *) zobject;
+		
 	efree(pfunc);
 }
 
@@ -126,7 +131,8 @@ static inline zend_object_value php_jit_function_create(zend_class_entry *ce TSR
 	
 	pfunc->h = zend_objects_store_put(
 		pfunc, 
-		php_jit_function_destroy, NULL, NULL TSRMLS_CC);
+		php_jit_function_destroy, 
+		php_jit_function_free, NULL TSRMLS_CC);
 
 	value.handle   = pfunc->h;
 	value.handlers = &php_jit_function_handlers;
@@ -1129,6 +1135,8 @@ PHP_METHOD(Func, doDiv) {
 	}
 	
 	php_jit_do_binary_op(jit_insn_div, this_func, zin, return_value TSRMLS_CC);
+	
+	
 }
 
 PHP_METHOD(Func, doPow) {

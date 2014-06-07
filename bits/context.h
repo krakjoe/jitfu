@@ -49,7 +49,12 @@ static inline void php_jit_context_destroy(void *zobject, zend_object_handle han
 		(php_jit_context_t *) zobject;
 
 	zend_object_std_dtor(&pcontext->std TSRMLS_CC);
+}
 
+static inline void php_jit_context_free(void *zobject TSRMLS_DC) {
+	php_jit_context_t *pcontext = 
+		(php_jit_context_t *) zobject;
+		
 	jit_context_destroy(pcontext->ctx);
 	
 	efree(pcontext);
@@ -68,7 +73,8 @@ static inline zend_object_value php_jit_context_create(zend_class_entry *ce TSRM
 	
 	pcontext->h = zend_objects_store_put(
 		pcontext,
-		php_jit_context_destroy, NULL, NULL TSRMLS_CC);
+		php_jit_context_destroy, 
+		php_jit_context_free, NULL TSRMLS_CC);
 		
 	value.handle   = pcontext->h;
 	value.handlers = &php_jit_context_handlers;

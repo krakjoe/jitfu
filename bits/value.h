@@ -57,7 +57,12 @@ static inline void php_jit_value_destroy(void *zobject, zend_object_handle handl
 	if (pval->type) {
 		zend_objects_store_del_ref_by_handle(pval->type->h TSRMLS_CC);
 	}
+}
 
+static inline void php_jit_value_free(void *zobject TSRMLS_DC) {
+	php_jit_value_t *pval = 
+		(php_jit_value_t *) zobject;
+		
 	if (pval->dup) {
 		efree(pval->dup);
 	}
@@ -75,7 +80,8 @@ static inline zend_object_value php_jit_value_create(zend_class_entry *ce TSRMLS
 	
 	pval->h = zend_objects_store_put(
 		pval, 
-		php_jit_value_destroy, NULL, NULL TSRMLS_CC);
+		php_jit_value_destroy, 
+		php_jit_value_free, NULL TSRMLS_CC);
 
 	value.handle   = pval->h;
 	value.handlers = &php_jit_value_handlers;

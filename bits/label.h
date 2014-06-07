@@ -51,7 +51,12 @@ static inline void php_jit_label_destroy(void *zobject, zend_object_handle handl
 	if (plabel->func) {
 		zend_objects_store_del_ref_by_handle(plabel->func->h TSRMLS_CC);
 	}
-	
+}
+
+static inline void php_jit_label_free(void *zobject TSRMLS_DC) {
+	php_jit_label_t *plabel = 
+		(php_jit_label_t *) zobject;
+
 	efree(plabel);
 }
 
@@ -65,7 +70,8 @@ static inline zend_object_value php_jit_label_create(zend_class_entry *ce TSRMLS
 	
 	plabel->h = zend_objects_store_put(
 		plabel, 
-		php_jit_label_destroy, NULL, NULL TSRMLS_CC);
+		php_jit_label_destroy, 
+		php_jit_label_free, NULL TSRMLS_CC);
 	plabel->label = jit_label_undefined;
 		
 	intern.handle   = plabel->h;

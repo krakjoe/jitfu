@@ -77,7 +77,12 @@ static inline void php_jit_type_destroy(void *zobject, zend_object_handle handle
 		(php_jit_type_t *) zobject;
 
 	zend_object_std_dtor(&ptype->std TSRMLS_CC);
+}
 
+static inline void php_jit_type_free(void *zobject TSRMLS_DC) {
+	php_jit_type_t *ptype = 
+		(php_jit_type_t *) zobject;
+		
 	if (ptype->copied) {
 		jit_type_free(ptype->type);
 	}
@@ -95,7 +100,8 @@ static inline zend_object_value php_jit_type_create(zend_class_entry *ce TSRMLS_
 	
 	ptype->h = zend_objects_store_put(
 		ptype, 
-		php_jit_type_destroy, NULL, NULL TSRMLS_CC);
+		php_jit_type_destroy, 
+		php_jit_type_free, NULL TSRMLS_CC);
 	
 	intern.handle   = ptype->h;
 	intern.handlers = &php_jit_type_handlers;
