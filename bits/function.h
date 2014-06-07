@@ -1846,6 +1846,12 @@ PHP_METHOD(Func, doCall) {
 		php_jit_value_t *pval =
 			PHP_JIT_FETCH_VALUE(return_value);
 		
+		if (pfunc != pcall) {
+			if (!jit_function_is_compiled(pcall->func)) {
+				jit_function_compile(pcall->func);
+			}
+		}
+		
 		pval->value = jit_insn_call(
 			pfunc->func,
 			NULL,
