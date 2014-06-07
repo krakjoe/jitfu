@@ -15,7 +15,8 @@ $context = new Context();
 $int      = new Type(JIT_TYPE_LONG);
 
 /* int function(int x, int y); */
-$function = new Func($context, new Signature($int, [$int, $int]), function($args) {
+$function = new Func($context, new Signature($int, [$int, $int]));
+$function->implement(function($args) {
 	/* return x + y; */
 	$this->doReturn(
 		$this->doAdd($args[0], $args[1]));

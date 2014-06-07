@@ -38,8 +38,9 @@ void php_jit_minit_function(int module_number TSRMLS_DC);
 #define PHP_JIT_FETCH_FUNCTION_I(from) \
 	(PHP_JIT_FETCH_FUNCTION(from))->func
 	
-#define PHP_JIT_FUNCTION_CREATED  (1<<1)
-#define PHP_JIT_FUNCTION_COMPILED (1<<2)
+#define PHP_JIT_FUNCTION_CREATED     (1<<1)
+#define PHP_JIT_FUNCTION_COMPILED    (1<<2)
+#define PHP_JIT_FUNCTION_IMPLEMENTED (1<<3)
 
 extern zend_function_entry php_jit_function_methods[];
 extern zend_object_handlers php_jit_function_handlers;
@@ -99,79 +100,6 @@ static inline void php_jit_do_unary_op(php_jit_unary_func_t func, php_jit_functi
 	pval->value = func(pfunc->func, in);
 } /* }}} */
 
-/* {{ */
-static inline void php_jit_function_invoke_builder(zval *this_ptr, zval *zbuilder TSRMLS_DC) {
-	zval *retval_ptr = NULL, 
-		 *tmp_ptr = NULL, 
-		 *params = NULL;
-	zval closure;
-	zend_fcall_info       fci;
-	zend_fcall_info_cache fcc;
-	zend_uint             nparam = 0;
-	php_jit_function_t    *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
-	const zend_function   *function = zend_get_closure_method_def(zbuilder TSRMLS_CC);
-	int result = FAILURE;
-	
-	/* bind builder function to current scope and object */
-	zend_create_closure(&closure, (zend_function*) function, Z_OBJCE_P(this_ptr), this_ptr TSRMLS_CC);
-
-	if (zend_fcall_info_init(&closure, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
-		/* throw failed to initialize closure method */
-		zval_dtor(&closure);
-		return;
-	}
-	
-	MAKE_STD_ZVAL(params);
-	
-	/* build params for builder function */
-	array_init(params);
-	
-	fci.retval_ptr_ptr = &retval_ptr;
-	
-	while (nparam < pfunc->sig->nparams) {
-		zval *o;
-		php_jit_value_t *pval;
-		
-		MAKE_STD_ZVAL(o);
-
-		object_init_ex(o, jit_value_ce);
-
-		pval = PHP_JIT_FETCH_VALUE(o);
-
-		pval->func = pfunc;
-		zend_objects_store_add_ref_by_handle(pval->func->h TSRMLS_CC);
-
-		pval->type = pfunc->sig->params[nparam];
-		zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
-
-		pval->value = jit_value_get_param(pfunc->func, nparam);
-
-		add_next_index_zval(params, o);
-
-		nparam++;
-	}
-
-	/* call builder function */
-	zend_fcall_info_argn(&fci TSRMLS_CC, 1, &params);
-
-	result = zend_call_function(&fci, &fcc TSRMLS_CC);
-	
-	if (result == FAILURE) {
-		/* throw failed to call builder */
-		return;
-	}
-	
-	/* cleanup */
-	zend_fcall_info_args_clear(&fci, 1);
-	
-	if (retval_ptr) {
-		zval_ptr_dtor(&retval_ptr);
-	}
-
-	zval_ptr_dtor(&params);
-	zval_dtor(&closure);
-} /* }} */
-
 static inline void php_jit_function_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
 	php_jit_function_t *pfunc = 
 		(php_jit_function_t *) zobject;
@@ -222,12 +150,11 @@ void php_jit_minit_function(int module_number TSRMLS_DC) {
 PHP_METHOD(Func, __construct) {
 	zval *zcontext = NULL,
 		 *zsignature = NULL,
-		 *zbuilder = NULL,
 		 *zparent = NULL;
 	
 	php_jit_function_t *pfunc;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOz|O", &zcontext, jit_context_ce, &zsignature, jit_signature_ce, &zbuilder, zend_ce_closure, &zparent, jit_function_ce) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO|zO", &zcontext, jit_context_ce, &zsignature, jit_signature_ce, zend_ce_closure, &zparent, jit_function_ce) != SUCCESS) {
 		return;
 	}
 	
@@ -263,9 +190,102 @@ PHP_METHOD(Func, __construct) {
 	}
 
 	pfunc->st |= PHP_JIT_FUNCTION_CREATED;
+}
+
+PHP_METHOD(Func, isImplemented) {
+	php_jit_function_t *pfunc = NULL;
 	
-	php_jit_function_invoke_builder
-		(getThis(), zbuilder TSRMLS_CC);
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	
+	RETURN_BOOL((pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED) == PHP_JIT_FUNCTION_IMPLEMENTED);
+}
+
+PHP_METHOD(Func, implement) {
+	zval *retval_ptr = NULL, 
+		 *tmp_ptr = NULL, 
+		 *zbuilder = NULL,
+		 *params = NULL;
+	zval closure;
+	zend_fcall_info       fci;
+	zend_fcall_info_cache fcc;
+	zend_uint             nparam = 0;
+	php_jit_function_t    *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	int result = FAILURE;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zbuilder, zend_ce_closure) != SUCCESS) {
+		return;
+	}
+	
+	if (pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED) {
+		/* throw already implemented */
+		return;
+	}
+	
+	/* bind builder function to current scope and object */
+	zend_create_closure(&closure, (zend_function*) zend_get_closure_method_def(zbuilder TSRMLS_CC), Z_OBJCE_P(this_ptr), this_ptr TSRMLS_CC);
+
+	if (zend_fcall_info_init(&closure, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
+		/* throw failed to initialize closure method */
+		zval_dtor(&closure);
+		return;
+	}
+	
+	MAKE_STD_ZVAL(params);
+	
+	/* build params for builder function */
+	array_init(params);
+	
+	fci.retval_ptr_ptr = &retval_ptr;
+	
+	while (nparam < pfunc->sig->nparams) {
+		zval *o;
+		php_jit_value_t *pval;
+		
+		MAKE_STD_ZVAL(o);
+
+		object_init_ex(o, jit_value_ce);
+
+		pval = PHP_JIT_FETCH_VALUE(o);
+
+		pval->func = pfunc;
+		zend_objects_store_add_ref_by_handle(pval->func->h TSRMLS_CC);
+
+		pval->type = pfunc->sig->params[nparam];
+		zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
+
+		pval->value = jit_value_get_param(pfunc->func, nparam);
+
+		add_next_index_zval(params, o);
+
+		nparam++;
+	}
+
+	/* call builder function */
+	zend_fcall_info_argn(&fci TSRMLS_CC, 1, &params);
+
+	result = zend_call_function(&fci, &fcc TSRMLS_CC);
+	
+	if (result == FAILURE) {
+		/* throw failed to call builder */
+		return;
+	}
+	
+	/* set implemented state */
+	pfunc->st |= PHP_JIT_FUNCTION_IMPLEMENTED;
+	
+	/* cleanup */
+	zend_fcall_info_args_clear(&fci, 1);
+	
+	if (retval_ptr) {
+		zval_ptr_dtor(&retval_ptr);
+	}
+
+	zval_ptr_dtor(&params);
+	zval_dtor(&closure);
 }
 
 PHP_METHOD(Func, compile) {
@@ -276,6 +296,12 @@ PHP_METHOD(Func, compile) {
 	}
 	
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	
+	if (!(pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED)) {
+		zend_throw_exception_ex(NULL, 0 TSRMLS_CC, 
+			"this function is not implemented");
+		return;
+	}
 	
 	if (pfunc->st & PHP_JIT_FUNCTION_COMPILED) {
 		zend_throw_exception_ex(NULL, 0 TSRMLS_CC, 
@@ -1828,13 +1854,15 @@ ZEND_BEGIN_ARG_INFO_EX( php_jit_function_get_param_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, parameter)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(php_jit_function_construct_arginfo, 0, 0, 3) 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_function_construct_arginfo, 0, 0, 2) 
 	ZEND_ARG_INFO(0, context)
 	ZEND_ARG_INFO(0, signature)
-	ZEND_ARG_INFO(0, builder)
 	ZEND_ARG_INFO(0, parent)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_function_implement_arginfo, 0, 0, 1) 
+	ZEND_ARG_INFO(0, builder)
+ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_function_ternary_arginfo, 0, 0, 3)
 	ZEND_ARG_INFO(0, op1) 
@@ -1962,6 +1990,8 @@ ZEND_END_ARG_INFO()
 
 zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, __construct,   php_jit_function_construct_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, implement,     php_jit_function_implement_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, isImplemented, php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, compile,       php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, isCompiled,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, isNested,      php_jit_no_arginfo, ZEND_ACC_PUBLIC)
