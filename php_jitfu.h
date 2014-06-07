@@ -53,6 +53,10 @@ ZEND_END_ARG_INFO()
 #define JG(v) (jitfu_globals.v)
 #endif
 
+extern zend_class_entry *jit_exception_ce;
+
+#define php_jit_exception(s, ...) zend_throw_exception_ex(jit_exception_ce, 0 TSRMLS_CC, s, ##__VA_ARGS__)
+
 #endif	/* PHP_JITFU_H */
 
 /*

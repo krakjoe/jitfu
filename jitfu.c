@@ -26,10 +26,10 @@
 #include "php_ini.h"
 #include "ext/standard/info.h"
 #include "zend_closures.h"
+#include "zend_exceptions.h"
 #include "php_jitfu.h"
-#ifdef HAVE_SPL
-#include "ext/spl/spl_exceptions.h"
-#endif
+
+zend_class_entry *jit_exception_ce;
 
 #include "bits/context.h"
 #include "bits/type.h"
@@ -66,12 +66,19 @@ ZEND_GET_MODULE(jitfu)
  */
 PHP_MINIT_FUNCTION(jitfu)
 {
+	zend_class_entry ce;
+	
+	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Exception", NULL);
+	
 	php_jit_minit_context(module_number TSRMLS_CC);
 	php_jit_minit_type(module_number TSRMLS_CC);
 	php_jit_minit_signature(module_number TSRMLS_CC);
 	php_jit_minit_function(module_number TSRMLS_CC);
 	php_jit_minit_value(module_number TSRMLS_CC);
 	php_jit_minit_label(module_number TSRMLS_CC);
+	
+	jit_exception_ce = zend_register_internal_class_ex
+		(&ce, zend_exception_get_default(TSRMLS_C), NULL TSRMLS_CC);
 	
 	return SUCCESS;
 }

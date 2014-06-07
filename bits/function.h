@@ -479,19 +479,16 @@ static inline void php_jit_invoke_stack_dtor(void *ptr) {
 
 PHP_METHOD(Func, __invoke) {
 	php_jit_function_t *pfunc;
-	
 	zend_uint nargs = ZEND_NUM_ARGS();
-	zval **args = nargs ?
-		(zval**) emalloc(sizeof(zval*) * nargs) : NULL;
-	void **jargs = nargs ?
-		(void**) emalloc(sizeof(void*) * nargs) : NULL;
-	void *result;
+	zval **args = NULL;
+	void **jargs = NULL;
+	void *result = NULL;
 	zend_llist stack;
-		
+	zend_uint narg = 0;
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
 	if (!(pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED)) {	
-		/* throw attempt to call function without implementation */
+		php_jit_exception("attempt to call function without implementation");
 		return;
 	}
 	
@@ -505,51 +502,49 @@ PHP_METHOD(Func, __invoke) {
 	}
 
 	if (nargs != pfunc->sig->nparams) {
-		/* throw, function signature does not match */
-		efree(jargs);
+		php_jit_exception("not enough parameters to call function, expected %d", pfunc->sig->nparams);
+		return;
+	}
+	
+	args = (zval**) emalloc(sizeof(zval*) * nargs);
+
+	if (zend_get_parameters_array(ht, nargs, args) != SUCCESS) {
+		/* throw failed to fetch arguments */
+		php_jit_exception("failed to fetch parameters from stack, expected %d", pfunc->sig->nparams);
 		efree(args);
 		return;
 	}
+	
+	jargs = (void**) emalloc(sizeof(void*) * nargs);
 
-	if (args) {
-		zend_uint narg = 0;
+	zend_llist_init(&stack, sizeof(void**), php_jit_invoke_stack_dtor, 0);
 
-		if (zend_get_parameters_array(ht, nargs, args) != SUCCESS) {
-			/* throw failed to fetch arguments */
-			efree(jargs);
-			efree(args);
-			return;
-		}
-
-		zend_llist_init(&stack, sizeof(void**), php_jit_invoke_stack_dtor, 0);
-
-		while (narg < nargs) {
-			if (Z_TYPE_P(args[narg]) == IS_ARRAY) {
-				if (!pfunc->sig->params[narg]->pt) {
-					/* throw, this is not a pointer type */
-					zend_llist_destroy(&stack);
-					efree(jargs);
-					efree(args);
-					return;
-				}
-
-				jargs[narg] = php_jit_array_args
-						(pfunc, &stack, args[narg], narg TSRMLS_CC);
-			} else switch (pfunc->sig->params[narg]->id) {
-				case PHP_JIT_TYPE_UINT:
-				case PHP_JIT_TYPE_INT:
-				case PHP_JIT_TYPE_ULONG:
-				case PHP_JIT_TYPE_LONG: {
-					jargs[narg] = &Z_LVAL_P(args[narg]);
-				} break;
-
-				case PHP_JIT_TYPE_DOUBLE:   jargs[narg] = &Z_LVAL_P(args[narg]);   break;
-				case PHP_JIT_TYPE_STRING:   jargs[narg] = &Z_STRVAL_P(args[narg]); break;
-				case PHP_JIT_TYPE_VOID_PTR: jargs[narg] = &args[narg]->value;      break;
+	while (narg < nargs) {
+		if (Z_TYPE_P(args[narg]) == IS_ARRAY) {
+			if (!pfunc->sig->params[narg]->pt) {
+				php_jit_exception("failed to pass parameter at %d, not expecting a pointer", narg);
+				zend_llist_destroy(&stack);
+				efree(jargs);
+				efree(args);
+				return;
 			}
 
-			narg++;
+			jargs[narg] = php_jit_array_args
+					(pfunc, &stack, args[narg], narg TSRMLS_CC);
+		} else switch (pfunc->sig->params[narg]->id) {
+			case PHP_JIT_TYPE_UINT:
+			case PHP_JIT_TYPE_INT:
+			case PHP_JIT_TYPE_ULONG:
+			case PHP_JIT_TYPE_LONG: {
+				jargs[narg] = &Z_LVAL_P(args[narg]);
+			} break;
+
+			case PHP_JIT_TYPE_DOUBLE:   jargs[narg] = &Z_LVAL_P(args[narg]);   break;
+			case PHP_JIT_TYPE_STRING:   jargs[narg] = &Z_STRVAL_P(args[narg]); break;
+			case PHP_JIT_TYPE_VOID_PTR: jargs[narg] = &args[narg]->value;      break;
 		}
+
+		narg++;
 	}
 	
 	jit_function_apply(pfunc->func, jargs, &result);
@@ -571,7 +566,7 @@ PHP_METHOD(Func, __invoke) {
 		case PHP_JIT_TYPE_VOID_PTR: ZVAL_LONG(return_value, (long) result); break;
 		
 		default: {
-			/* throw type unknown to zend */
+			php_jit_exception("failed to retrieve return value from call, return type unknown to Zend");
 		}
 	}
 
@@ -590,7 +585,8 @@ PHP_METHOD(Func, dump) {
 	}
 
 	if (!zname || Z_TYPE_P(zname) != IS_STRING) {
-		/* throw expected name string */
+		php_jit_exception("expected function name as string, got %s", 
+			zname ? zend_get_type_by_const(Z_TYPE_P(zname)) : "nothing");
 		return;
 	}
 
@@ -646,7 +642,7 @@ PHP_METHOD(Func, doWhile) {
 		result = zend_call_function(&fci, &fcc TSRMLS_CC);
 		
 		if (result == FAILURE) {
-			/* throw failed to call builder */
+			php_jit_exception("failed to call builder function");
 			return;
 		}
 		
@@ -685,7 +681,7 @@ PHP_METHOD(Func, doIf) {
 	result = zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
 	
 	if (result == FAILURE) {
-		/* throw failed to call builder function */
+		php_jit_exception("failed to call builder function");
 		return;
 	}
 	
@@ -703,7 +699,7 @@ PHP_METHOD(Func, doIf) {
 		result = zend_call_function(&znfci, &znfcc TSRMLS_CC);
 		
 		if (result == FAILURE) {
-			/* throw failed to call builder function */
+			php_jit_exception("failed to call builder function");
 			return;
 		}
 
@@ -835,7 +831,7 @@ PHP_METHOD(Func, doIfNot) {
 	result = zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
 	
 	if (result == FAILURE) {
-		/* throw failed to call builder */
+		php_jit_exception("failed to call builder function");
 		return;
 	}
 
@@ -853,7 +849,7 @@ PHP_METHOD(Func, doIfNot) {
 		result = zend_call_function(&znfci, &znfcc TSRMLS_CC);
 		
 		if (result == FAILURE) {
-			/* throw failed to call builder */
+			php_jit_exception("failed to call builder function");
 			return;
 		}
 
@@ -907,7 +903,7 @@ PHP_METHOD(Func, doJumpTable) {
 		jit_insn_label(pfunc->func, &labels[nlabel]);
 		
 		if (zend_fcall_info_init(*zmember, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
-			/* throw, not callable ? */
+			php_jit_exception("member at %d is not callable", nlabel);
 			nlabel++;
 			continue;
 		}
@@ -919,7 +915,7 @@ PHP_METHOD(Func, doJumpTable) {
 		result = zend_call_function(&fci, &fcc TSRMLS_CC);
 		
 		if (result == FAILURE) {
-			/* throw failed to call builder */
+			php_jit_exception("failed to call builder function");
 			return;
 		}
 		
@@ -1581,7 +1577,7 @@ PHP_METHOD(Func, doLoadElem) {
 	lval = PHP_JIT_FETCH_VALUE(zin[0]);
 	
 	if (!lval->type->pt) {
-		/* throw not a pointer type */
+		php_jit_exception("attempt to load from non-pointer");
 		return;
 	}
 	
@@ -1610,7 +1606,7 @@ PHP_METHOD(Func, doLoadElemAddress) {
 	lval = PHP_JIT_FETCH_VALUE(zin[0]);
 	
 	if (!lval->type->pt) {
-		/* throw not a pointer type */
+		php_jit_exception("attempt to load from non-pointer");
 		return;
 	}
 	
@@ -1640,7 +1636,7 @@ PHP_METHOD(Func, doLoadRelative) {
 	lval = PHP_JIT_FETCH_VALUE(zin);
 	
 	if (!lval->type->pt) {
-		/* throw not a pointer type */
+		php_jit_exception("attempt to load from non-pointer");
 		return;
 	}
 	
