@@ -109,13 +109,19 @@ PHP_METHOD(Value, __construct) {
 	php_jit_value_t *pval;
 	
 	switch (ZEND_NUM_ARGS()) {
-		case 3: if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OzO", &zfunction, jit_function_ce, &zvalue, &ztype, jit_type_ce) != SUCCESS) {
+		case 3: if (php_jit_parameters("OzO", &zfunction, jit_function_ce, &zvalue, &ztype, jit_type_ce) != SUCCESS) {
+			php_jit_exception("unexpected parameters, expected (Func function, mixed value, Type type)");
 			return;
 		} break;
 		
-		default: if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zfunction, jit_function_ce, &ztype, jit_type_ce) != SUCCESS) {
+		case 2: if (php_jit_parameters("OO", &zfunction, jit_function_ce, &ztype, jit_type_ce) != SUCCESS) {
+			php_jit_exception("unexpected parameters, expected (Func function, Type type)");
 			return;
-		}
+		} break;
+		
+		default:
+			php_jit_exception("unexpected parameters, expected (Func function, Type type) or (Func function, mixed value, Type type)");
+			return;
 	}
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
@@ -312,7 +318,8 @@ PHP_METHOD(Value, dump) {
 	php_jit_value_t *pval;
 	php_stream *pstream = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zz", &zoutput, &zprefix) != SUCCESS) {
+	if (php_jit_parameters("|rz", &zoutput, &zprefix) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected ([resource output = STDOUT, string prefix = NULL])");
 		return;
 	}
 

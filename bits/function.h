@@ -240,7 +240,8 @@ PHP_METHOD(Func, __construct) {
 	
 	php_jit_function_t *pfunc;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO|zO", &zcontext, jit_context_ce, &zsignature, jit_signature_ce, &zbuilder, zend_ce_closure, &zparent, jit_function_ce) != SUCCESS) {
+	if (php_jit_parameters("OO|zO", &zcontext, jit_context_ce, &zsignature, jit_signature_ce, &zbuilder, zend_ce_closure, &zparent, jit_function_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Context context, Signature signature [, Closure implementation = null [, Func parent = null]])");
 		return;
 	}
 	
@@ -297,30 +298,12 @@ PHP_METHOD(Func, isImplemented) {
 PHP_METHOD(Func, implement) {
 	zval *zbuilder = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zbuilder, zend_ce_closure) != SUCCESS) {
+	if (php_jit_parameters("z", &zbuilder, zend_ce_closure) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Closure implementation)");
 		return;
 	}
 	
 	php_jit_function_implement(getThis(), zbuilder TSRMLS_CC);
-}
-
-PHP_METHOD(Func, inject) {
-	zval *zname = NULL;
-	char *lcname = NULL;
-	zend_function *func;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zname) != SUCCESS) {
-		return;
-	}
-	
-	if (!zname || Z_TYPE_P(zname) != IS_STRING) {
-		php_jit_exception("expected function name to be a string");
-		return;
-	}
-	
-	lcname = zend_str_tolower_dup(Z_STRVAL_P(zname), Z_STRLEN_P(zname));
-	
-	
 }
 
 PHP_METHOD(Func, compile) {
@@ -617,13 +600,9 @@ PHP_METHOD(Func, dump) {
 	php_jit_function_t *pfunc;
 	php_stream *pstream = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &zname, &zoutput) != SUCCESS) {
-		return;
-	}
-
-	if (!zname || Z_TYPE_P(zname) != IS_STRING) {
-		php_jit_exception("expected function name as string, got %s", 
-			zname ? zend_get_type_by_const(Z_TYPE_P(zname)) : "nothing");
+	if (php_jit_parameters("z|r", &zname, &zoutput) != SUCCESS || 
+		(!zname || Z_TYPE_P(zname) != IS_STRING)) {
+		php_jit_exception("unexpected parameters, expected (string name [, resource output = STDOUT])");
 		return;
 	}
 
@@ -673,7 +652,8 @@ PHP_METHOD(Func, doWhile) {
 	zend_fcall_info_cache fcc;
 	int result = FAILURE;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Of", &op, jit_value_ce, &fci, &fcc) != SUCCESS) {
+	if (php_jit_parameters("Of", &op, jit_value_ce, &fci, &fcc) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value condition, callable builder)");
 		return;
 	}
 	
@@ -698,7 +678,7 @@ PHP_METHOD(Func, doWhile) {
 		result = zend_call_function(&fci, &fcc TSRMLS_CC);
 		
 		if (result == FAILURE) {
-			php_jit_exception("failed to call builder function");
+			php_jit_exception("failed to call builder");
 			return;
 		}
 		
@@ -722,7 +702,8 @@ PHP_METHOD(Func, doIf) {
 	zval *zretnull = NULL;
 	int result = FAILURE;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Of|f", &op, jit_value_ce, &zpfci, &zpfcc, &znfci, &znfcc) != SUCCESS) {
+	if (php_jit_parameters("Of|f", &op, jit_value_ce, &zpfci, &zpfcc, &znfci, &znfcc) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value condition, callable positive [, callable negative])");
 		return;
 	}
 	
@@ -770,7 +751,8 @@ PHP_METHOD(Func, doLabel) {
 	php_jit_label_t   *plabel = NULL;
 	zval *zlabel = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|O", &zlabel, jit_label_ce)) {
+	if (php_jit_parameters("|O", &zlabel, jit_label_ce)) {
+		php_jit_exception("unexpected parameters, expected ([Label label])");
 		return;
 	}
 	
@@ -791,7 +773,8 @@ PHP_METHOD(Func, doBranch) {
 	php_jit_label_t    *plabel = NULL;
 	zval               *zlabel = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|O", &zlabel, jit_label_ce) != SUCCESS) {
+	if (php_jit_parameters("|O", &zlabel, jit_label_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected ([Label label])");
 		return;
 	}
 	
@@ -818,7 +801,8 @@ PHP_METHOD(Func, doBranchIf) {
 	zval *zin = NULL, *zlabel = NULL;
 	php_jit_value_t   *pval   = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|O", &zin, jit_value_ce, &zlabel, jit_label_ce) != SUCCESS) {
+	if (php_jit_parameters("O|O", &zin, jit_value_ce, &zlabel, jit_label_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, (Value condition [, Label label])");
 		return;
 	}
 	
@@ -843,7 +827,8 @@ PHP_METHOD(Func, doBranchIfNot) {
 	zval *zin = NULL, *zlabel = NULL;
 	php_jit_value_t   *pval   = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|O", &zin, jit_value_ce, &zlabel, jit_label_ce) != SUCCESS) {
+	if (php_jit_parameters("O|O", &zin, jit_value_ce, &zlabel, jit_label_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, (Value condition [, Label label])");
 		return;
 	}
 	
@@ -872,7 +857,8 @@ PHP_METHOD(Func, doIfNot) {
 	zval *zretnull = NULL;
 	int result = FAILURE;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Of|f", &op, jit_value_ce, &zpfci, &zpfcc, &znfci, &znfcc) != SUCCESS) {
+	if (php_jit_parameters("Of|f", &op, jit_value_ce, &zpfci, &zpfcc, &znfci, &znfcc) != SUCCESS) {
+		php_jit_exception("unexpected parameters, (Value condition, callable positive [, callable negative])");
 		return;
 	}
 	
@@ -887,7 +873,7 @@ PHP_METHOD(Func, doIfNot) {
 	result = zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
 	
 	if (result == FAILURE) {
-		php_jit_exception("failed to call builder function");
+		php_jit_exception("failed to call positive builder function");
 		return;
 	}
 
@@ -905,7 +891,7 @@ PHP_METHOD(Func, doIfNot) {
 		result = zend_call_function(&znfci, &znfcc TSRMLS_CC);
 		
 		if (result == FAILURE) {
-			php_jit_exception("failed to call builder function");
+			php_jit_exception("failed to call negative builder function");
 			return;
 		}
 
@@ -925,7 +911,8 @@ PHP_METHOD(Func, doJumpTable) {
 	zend_uint nlabels = 0;
 	zend_uint nlabel = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OH", &zvalue, jit_value_ce, &table) != SUCCESS) {
+	if (php_jit_parameters("OH", &zvalue, jit_value_ce, &table) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op, array table)");
 		return;
 	}
 	
@@ -990,7 +977,8 @@ PHP_METHOD(Func, doJumpTable) {
 PHP_METHOD(Func, doEq) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1000,7 +988,8 @@ PHP_METHOD(Func, doEq) {
 PHP_METHOD(Func, doNe) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1010,7 +999,8 @@ PHP_METHOD(Func, doNe) {
 PHP_METHOD(Func, doLt) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1020,7 +1010,8 @@ PHP_METHOD(Func, doLt) {
 PHP_METHOD(Func, doLe) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1030,7 +1021,8 @@ PHP_METHOD(Func, doLe) {
 PHP_METHOD(Func, doGt) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1040,7 +1032,8 @@ PHP_METHOD(Func, doGt) {
 PHP_METHOD(Func, doGe) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1050,7 +1043,8 @@ PHP_METHOD(Func, doGe) {
 PHP_METHOD(Func, doCmpl) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1060,7 +1054,8 @@ PHP_METHOD(Func, doCmpl) {
 PHP_METHOD(Func, doCmpg) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1070,7 +1065,8 @@ PHP_METHOD(Func, doCmpg) {
 PHP_METHOD(Func, doMul) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1080,7 +1076,8 @@ PHP_METHOD(Func, doMul) {
 PHP_METHOD(Func, doMulOvf) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1090,7 +1087,8 @@ PHP_METHOD(Func, doMulOvf) {
 PHP_METHOD(Func, doAdd) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1100,7 +1098,8 @@ PHP_METHOD(Func, doAdd) {
 PHP_METHOD(Func, doAddOvf) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1110,7 +1109,8 @@ PHP_METHOD(Func, doAddOvf) {
 PHP_METHOD(Func, doSub) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1120,7 +1120,8 @@ PHP_METHOD(Func, doSub) {
 PHP_METHOD(Func, doSubOvf) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1130,19 +1131,19 @@ PHP_METHOD(Func, doSubOvf) {
 PHP_METHOD(Func, doDiv) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_div, this_func, zin, return_value TSRMLS_CC);
-	
-	
+	php_jit_do_binary_op(jit_insn_div, this_func, zin, return_value TSRMLS_CC);	
 }
 
 PHP_METHOD(Func, doPow) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1152,7 +1153,8 @@ PHP_METHOD(Func, doPow) {
 PHP_METHOD(Func, doRem) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1162,7 +1164,8 @@ PHP_METHOD(Func, doRem) {
 PHP_METHOD(Func, doRemIEEE) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1172,7 +1175,8 @@ PHP_METHOD(Func, doRemIEEE) {
 PHP_METHOD(Func, doNeg) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1182,7 +1186,8 @@ PHP_METHOD(Func, doNeg) {
 PHP_METHOD(Func, doAnd) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1192,7 +1197,8 @@ PHP_METHOD(Func, doAnd) {
 PHP_METHOD(Func, doOr) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1202,7 +1208,8 @@ PHP_METHOD(Func, doOr) {
 PHP_METHOD(Func, doXor) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1212,7 +1219,8 @@ PHP_METHOD(Func, doXor) {
 PHP_METHOD(Func, doShl) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1222,7 +1230,8 @@ PHP_METHOD(Func, doShl) {
 PHP_METHOD(Func, doShr) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1232,7 +1241,8 @@ PHP_METHOD(Func, doShr) {
 PHP_METHOD(Func, doUshr) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1242,7 +1252,8 @@ PHP_METHOD(Func, doUshr) {
 PHP_METHOD(Func, doSshr) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1252,7 +1263,8 @@ PHP_METHOD(Func, doSshr) {
 PHP_METHOD(Func, doToBool) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1262,7 +1274,8 @@ PHP_METHOD(Func, doToBool) {
 PHP_METHOD(Func, doToNotBool) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1272,7 +1285,8 @@ PHP_METHOD(Func, doToNotBool) {
 PHP_METHOD(Func, doAcos) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1282,7 +1296,8 @@ PHP_METHOD(Func, doAcos) {
 PHP_METHOD(Func, doAsin) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1292,7 +1307,8 @@ PHP_METHOD(Func, doAsin) {
 PHP_METHOD(Func, doAtan) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1302,7 +1318,8 @@ PHP_METHOD(Func, doAtan) {
 PHP_METHOD(Func, doAtan2) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1312,7 +1329,8 @@ PHP_METHOD(Func, doAtan2) {
 PHP_METHOD(Func, doMin) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1322,7 +1340,8 @@ PHP_METHOD(Func, doMin) {
 PHP_METHOD(Func, doMax) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1, Value op2)");
 		return;
 	}
 	
@@ -1332,7 +1351,8 @@ PHP_METHOD(Func, doMax) {
 PHP_METHOD(Func, doCeil) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1342,7 +1362,8 @@ PHP_METHOD(Func, doCeil) {
 PHP_METHOD(Func, doCos) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1352,7 +1373,8 @@ PHP_METHOD(Func, doCos) {
 PHP_METHOD(Func, doCosh) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1362,7 +1384,8 @@ PHP_METHOD(Func, doCosh) {
 PHP_METHOD(Func, doExp) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1372,7 +1395,8 @@ PHP_METHOD(Func, doExp) {
 PHP_METHOD(Func, doFloor) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 
@@ -1382,7 +1406,8 @@ PHP_METHOD(Func, doFloor) {
 PHP_METHOD(Func, doLog) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1392,7 +1417,8 @@ PHP_METHOD(Func, doLog) {
 PHP_METHOD(Func, doLog10) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1402,7 +1428,8 @@ PHP_METHOD(Func, doLog10) {
 PHP_METHOD(Func, doRint) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1412,7 +1439,8 @@ PHP_METHOD(Func, doRint) {
 PHP_METHOD(Func, doRound) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1422,7 +1450,8 @@ PHP_METHOD(Func, doRound) {
 PHP_METHOD(Func, doSin) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1432,7 +1461,8 @@ PHP_METHOD(Func, doSin) {
 PHP_METHOD(Func, doSinh) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1442,7 +1472,8 @@ PHP_METHOD(Func, doSinh) {
 PHP_METHOD(Func, doSqrt) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 
@@ -1452,7 +1483,8 @@ PHP_METHOD(Func, doSqrt) {
 PHP_METHOD(Func, doTan) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1462,7 +1494,8 @@ PHP_METHOD(Func, doTan) {
 PHP_METHOD(Func, doTanh) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1472,7 +1505,8 @@ PHP_METHOD(Func, doTanh) {
 PHP_METHOD(Func, doAbs) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1482,7 +1516,8 @@ PHP_METHOD(Func, doAbs) {
 PHP_METHOD(Func, doSign) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1493,7 +1528,8 @@ PHP_METHOD(Func, doSign) {
 PHP_METHOD(Func, doIsNAN) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1503,7 +1539,8 @@ PHP_METHOD(Func, doIsNAN) {
 PHP_METHOD(Func, doIsFinite) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1513,7 +1550,8 @@ PHP_METHOD(Func, doIsFinite) {
 PHP_METHOD(Func, doIsInf) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1523,7 +1561,8 @@ PHP_METHOD(Func, doIsInf) {
 PHP_METHOD(Func, doAlloca) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1533,7 +1572,8 @@ PHP_METHOD(Func, doAlloca) {
 PHP_METHOD(Func, doLoad) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1543,7 +1583,8 @@ PHP_METHOD(Func, doLoad) {
 PHP_METHOD(Func, doLoadSmall) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1553,7 +1594,8 @@ PHP_METHOD(Func, doLoadSmall) {
 PHP_METHOD(Func, doDup) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1563,7 +1605,8 @@ PHP_METHOD(Func, doDup) {
 PHP_METHOD(Func, doStore) {
 	zval *zin[2] = {NULL, NULL};
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value destination, Value value)");
 		return;
 	}
 	
@@ -1576,7 +1619,8 @@ PHP_METHOD(Func, doStore) {
 PHP_METHOD(Func, doAddressof) {
 	zval *zin = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1586,7 +1630,8 @@ PHP_METHOD(Func, doAddressof) {
 PHP_METHOD(Func, doCheckNull) {
 	zval *zin = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value op1)");
 		return;
 	}
 	
@@ -1596,7 +1641,8 @@ PHP_METHOD(Func, doCheckNull) {
 PHP_METHOD(Func, doMemcpy) {
 	zval *zin[3] = {NULL, NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value dest, Value src, Value size)");
 		return;
 	}
 	
@@ -1606,7 +1652,8 @@ PHP_METHOD(Func, doMemcpy) {
 PHP_METHOD(Func, doMemmove) {
 	zval *zin[3] = {NULL, NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value dest, Value src, Value size)");
 		return;
 	}
 	
@@ -1616,7 +1663,8 @@ PHP_METHOD(Func, doMemmove) {
 PHP_METHOD(Func, doMemset) {
 	zval *zin[3] = {NULL, NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value dest, Value value, Value size)");
 		return;
 	}
 	
@@ -1628,7 +1676,8 @@ PHP_METHOD(Func, doLoadElem) {
 	php_jit_function_t *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	php_jit_value_t *pval, *lval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value base, Value index)");
 		return;
 	}
 	
@@ -1657,7 +1706,8 @@ PHP_METHOD(Func, doLoadElemAddress) {
 	php_jit_function_t *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	php_jit_value_t *pval, *lval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value base, Value index)");
 		return;
 	}
 
@@ -1687,7 +1737,8 @@ PHP_METHOD(Func, doLoadRelative) {
 	long index = 0;
 	php_jit_value_t *pval, *lval;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Ol", &zin, jit_value_ce, &index) != SUCCESS) {
+	if (php_jit_parameters("Ol", &zin, jit_value_ce, &index) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value base, int index)");
 		return;
 	}
 	
@@ -1716,7 +1767,8 @@ PHP_METHOD(Func, doStoreRelative) {
 	php_jit_function_t *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	long index = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OlO", &zin[0], jit_value_ce, &index, &zin[1], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OlO", &zin[0], jit_value_ce, &index, &zin[1], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value dest, int index, Value type)");
 		return;
 	}
 	
@@ -1734,7 +1786,8 @@ PHP_METHOD(Func, doConvert) {
 	zend_bool overflow = 0;
 	long index = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO|b", &zin[0], jit_value_ce, &zin[1], jit_type_ce, &overflow) != SUCCESS) {
+	if (php_jit_parameters("OO|b", &zin[0], jit_value_ce, &zin[1], jit_type_ce, &overflow) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value value, Type type [, bool overflow = 0])");
 		return;
 	}
 	
@@ -1752,7 +1805,8 @@ PHP_METHOD(Func, doConvert) {
 PHP_METHOD(Func, doStoreElem) {
 	zval *zin[3] = {NULL, NULL, NULL};
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value base, Value index, Value value)");
 		return;
 	}
 	
@@ -1790,7 +1844,8 @@ PHP_METHOD(Func, doGetCallStack) {
 PHP_METHOD(Func, doReturn) {
 	zval *zin = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value value)");
 		return;
 	}
 	
@@ -1800,7 +1855,8 @@ PHP_METHOD(Func, doReturn) {
 PHP_METHOD(Func, doPush) {
 	zval *zin = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zin, jit_value_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value value)");
 		return;
 	}
 	
@@ -1811,7 +1867,8 @@ PHP_METHOD(Func, doPop) {
 	zval *zin = NULL;
 	long nitems = 1;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|l", &nitems) != SUCCESS) {
+	if (php_jit_parameters("|l", &nitems) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected ([int items = 1])");
 		return;
 	}
 	
@@ -1822,7 +1879,8 @@ PHP_METHOD(Func, doDeferPop) {
 	zval *zin = NULL;
 	long nitems = 1;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|l", &nitems) != SUCCESS) {
+	if (php_jit_parameters("|l", &nitems) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected ([int items = 1])");
 		return;
 	}
 	
@@ -1833,7 +1891,8 @@ PHP_METHOD(Func, doFlushDeferPop) {
 	zval *zin = NULL;
 	long nitems = 1;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|l", &nitems) != SUCCESS) {
+	if (php_jit_parameters("|l", &nitems) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected ([int items = 1])");
 		return;
 	}
 	
@@ -1843,7 +1902,8 @@ PHP_METHOD(Func, doFlushDeferPop) {
 PHP_METHOD(Func, doReturnPtr) {
 	zval *zin[2] = {NULL, NULL};
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_type_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_type_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value value, Type type)");
 		return;
 	}
 	
@@ -1854,7 +1914,8 @@ PHP_METHOD(Func, doReturnPtr) {
 PHP_METHOD(Func, doPushPtr) {
 	zval *zin[2] = {NULL, NULL};
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zin[0], jit_value_ce, &zin[1], jit_type_ce) != SUCCESS) {
+	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_type_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value value, Type type)");
 		return;
 	}
 	
@@ -1871,7 +1932,8 @@ PHP_METHOD(Func, doCall) {
 	zend_uint arg = 0;
 	long flags = 0;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OH|l", &zcall, jit_function_ce, &zparams, &flags) != SUCCESS) {
+	if (php_jit_parameters("OH|l", &zcall, jit_function_ce, &zparams, &flags) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Func function, array params [, int flags = 0])");
 		return;
 	}
 
@@ -1928,10 +1990,6 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_function_implement_arginfo, 0, 0, 1) 
 	ZEND_ARG_INFO(0, builder)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(php_jit_function_inject_arginfo, 0, 0, 1) 
-	ZEND_ARG_INFO(0, name)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_function_ternary_arginfo, 0, 0, 3)
@@ -2061,7 +2119,6 @@ ZEND_END_ARG_INFO()
 zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, __construct,   php_jit_function_construct_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, implement,     php_jit_function_implement_arginfo, ZEND_ACC_PUBLIC)
-	PHP_ME(Func, inject,        php_jit_function_inject_arginfo,    ZEND_ACC_PUBLIC)
 	PHP_ME(Func, isImplemented, php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, compile,       php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, isCompiled,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)

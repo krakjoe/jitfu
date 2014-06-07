@@ -98,7 +98,8 @@ PHP_METHOD(Label, __construct) {
 	php_jit_function_t *pfunc = NULL;
 	php_jit_label_t *plabel = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zfunction, jit_function_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zfunction, jit_function_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Func function)");
 		return;
 	}
 	
@@ -112,7 +113,8 @@ PHP_METHOD(Label, equal) {
 	php_jit_label_t *plabels[2];
 	zval *zlabel;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zlabel, jit_label_ce) != SUCCESS) {
+	if (php_jit_parameters("O", &zlabel, jit_label_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Label label)");
 		return;
 	}
 	
