@@ -298,6 +298,25 @@ PHP_METHOD(Func, implement) {
 	php_jit_function_implement(getThis(), zbuilder TSRMLS_CC);
 }
 
+PHP_METHOD(Func, inject) {
+	zval *zname = NULL;
+	char *lcname = NULL;
+	zend_function *func;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zname) != SUCCESS) {
+		return;
+	}
+	
+	if (!zname || Z_TYPE_P(zname) != IS_STRING) {
+		php_jit_exception("expected function name to be a string");
+		return;
+	}
+	
+	lcname = zend_str_tolower_dup(Z_STRVAL_P(zname), Z_STRLEN_P(zname));
+	
+	
+}
+
 PHP_METHOD(Func, compile) {
 	php_jit_function_t *pfunc;
 	
@@ -1884,6 +1903,10 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_function_implement_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, builder)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_function_inject_arginfo, 0, 0, 1) 
+	ZEND_ARG_INFO(0, name)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_function_ternary_arginfo, 0, 0, 3)
 	ZEND_ARG_INFO(0, op1) 
 	ZEND_ARG_INFO(0, op2) 
@@ -2011,6 +2034,7 @@ ZEND_END_ARG_INFO()
 zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, __construct,   php_jit_function_construct_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, implement,     php_jit_function_implement_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, inject,        php_jit_function_inject_arginfo,    ZEND_ACC_PUBLIC)
 	PHP_ME(Func, isImplemented, php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, compile,       php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, isCompiled,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
@@ -2104,6 +2128,7 @@ zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, doPop,             php_jit_function_doPop_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doDeferPop,        php_jit_function_doPop_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doFlushDeferPop,   php_jit_function_doPop_arginfo,           ZEND_ACC_PUBLIC)
+	PHP_ME(Func, doConvert,         php_jit_function_doConvert_arginfo,       ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doReturn,          php_jit_function_unary_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doReturnPtr,       php_jit_function_doReturnPtr_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doDefaultReturn,   php_jit_no_arginfo,                      ZEND_ACC_PUBLIC)
