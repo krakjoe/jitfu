@@ -123,7 +123,6 @@ PHP_METHOD(Signature, __construct) {
 	psig->returns = PHP_JIT_FETCH_TYPE(ztype);
 	zend_objects_store_add_ref_by_handle(psig->returns->h TSRMLS_CC);
 	
-	psig->nparams = zend_hash_num_elements(ztypes);
 	psig->params = (php_jit_type_t**)
 		ecalloc(psig->nparams, sizeof(php_jit_type_t));
 	
@@ -133,15 +132,22 @@ PHP_METHOD(Signature, __construct) {
 	for (zend_hash_internal_pointer_reset_ex(ztypes, &position);
 		zend_hash_get_current_data_ex(ztypes, (void**)&zztype, &position) == SUCCESS;
 		zend_hash_move_forward_ex(ztypes, &position)) {
-		if (instanceof_function(Z_OBJCE_PP(zztype), jit_type_ce TSRMLS_CC)) {
-			psig->params[param] = PHP_JIT_FETCH_TYPE(*zztype);
-			zend_objects_store_add_ref_by_handle
-				(psig->params[param]->h TSRMLS_CC);
-			params[param] = PHP_JIT_FETCH_TYPE_I(*zztype);
+		
+		if ((!zztype || Z_TYPE_PP(zztype) != IS_OBJECT) ||
+			!instanceof_function(Z_OBJCE_PP(zztype), jit_type_ce TSRMLS_CC)) {
+			php_jit_exception("unexpected type for parameter %d", param);
+			efree(params);
+			return;
 		}
+		
+		psig->params[param] = PHP_JIT_FETCH_TYPE(*zztype);
+		zend_objects_store_add_ref_by_handle
+			(psig->params[param]->h TSRMLS_CC);
+		params[param] = PHP_JIT_FETCH_TYPE_I(*zztype);
 		param++;
 	}
 	
+	psig->nparams = zend_hash_num_elements(ztypes);
 	psig->type = jit_type_create_signature(jit_abi_cdecl, psig->returns->type, params, param, 1);
 	efree(params);
 }
