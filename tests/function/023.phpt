@@ -30,11 +30,11 @@ label:
 }
 */
 
-$function = new Func($context, new Signature($long, [$long]), function(Value $n) {
+$function = new Func($context, new Signature($long, [$long]), function($args) {
 	$zero = new Value($this, 0, new Type(JIT_TYPE_LONG));
 	$one  = new Value($this, 1, new Type(JIT_TYPE_LONG));
 
-	$label = $this->doBranchIf($n);
+	$label = $this->doBranchIf($args[0]);
 	
 	$this->doReturn($one);
 	

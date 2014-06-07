@@ -23,11 +23,11 @@ long function (long **n, long f, long x) {
 }
 */
 
-$function = new Func($context, new Signature($long, [$llongs, $long, $long]), function(Value $n, Value $f, Value $x) {
+$function = new Func($context, new Signature($long, [$llongs, $long, $long]), function($args) {
 	$this->doReturn
 		($this->doLoadElem
 			($this->doLoadElem
-				($n, $f), $x));	
+				($args[0], $args[1]), $args[2]));	
 });
 
 $longs = [

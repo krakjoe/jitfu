@@ -30,11 +30,11 @@ false:
 }
 */
 
-$function = new Func($context, new Signature($long, [$long]), function(Value $n) {
+$function = new Func($context, new Signature($long, [$long]), function($args) {
 	$zero = new Value($this, 0, new Type(JIT_TYPE_LONG));
 	$one  = new Value($this, 1, new Type(JIT_TYPE_LONG));
 
-	$false = $this->doBranchIfNot($n);
+	$false = $this->doBranchIfNot($args[0]);
 	
 	$this->doReturn($one);
 	

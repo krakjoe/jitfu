@@ -17,8 +17,8 @@ $long      = new Type(JIT_TYPE_LONG);
 /* long function(long n); */
 $sig      = new Signature($long, [$long]);
 
-$function = new Func($context, $sig, function(Value $n){
-	$this->doReturn($n);
+$function = new Func($context, $sig, function($args){
+	$this->doReturn($args[0]);
 });
 
 var_dump(

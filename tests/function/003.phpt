@@ -15,10 +15,10 @@ $context = new Context();
 $int      = new Type(JIT_TYPE_LONG);
 
 /* int function(int x, int y); */
-$function = new Func($context, new Signature($int, [$int, $int]), function(Value $x, Value $y) {
+$function = new Func($context, new Signature($int, [$int, $int]), function($args) {
 	/* return x * y; */
 	$this->doReturn(
-		$this->doMul($x, $y));
+		$this->doMul($args[0], $args[1]));
 });
 
 var_dump(

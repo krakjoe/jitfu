@@ -21,9 +21,9 @@ string function (string *n, long f) {
 }
 */
 
-$function = new Func($context, new Signature($string, [$strings, $string]), function(Value $n, Value $f) {
+$function = new Func($context, new Signature($string, [$strings, $string]), function($args) {
 	$this->doReturn(
-		$this->doLoadElem($n, $f));
+		$this->doLoadElem($args[0], $args[1]));
 });
 
 $strings = [

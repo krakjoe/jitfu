@@ -103,7 +103,7 @@ static inline void php_jit_do_unary_op(php_jit_unary_func_t func, php_jit_functi
 static inline void php_jit_function_invoke_builder(zval *this_ptr, zval *zbuilder TSRMLS_DC) {
 	zval *retval_ptr = NULL, 
 		 *tmp_ptr = NULL, 
-		 params;
+		 *params = NULL;
 	zval closure;
 	zend_fcall_info       fci;
 	zend_fcall_info_cache fcc;
@@ -111,11 +111,6 @@ static inline void php_jit_function_invoke_builder(zval *this_ptr, zval *zbuilde
 	php_jit_function_t    *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	const zend_function   *function = zend_get_closure_method_def(zbuilder TSRMLS_CC);
 	int result = FAILURE;
-	
-	if (function->common.num_args != pfunc->sig->nparams) {
-		/* throw incorrect number of argument accepted by builder function */
-		return;
-	}
 	
 	/* bind builder function to current scope and object */
 	zend_create_closure(&closure, (zend_function*) function, Z_OBJCE_P(this_ptr), this_ptr TSRMLS_CC);
@@ -126,8 +121,10 @@ static inline void php_jit_function_invoke_builder(zval *this_ptr, zval *zbuilde
 		return;
 	}
 	
+	MAKE_STD_ZVAL(params);
+	
 	/* build params for builder function */
-	array_init(&params);
+	array_init(params);
 	
 	fci.retval_ptr_ptr = &retval_ptr;
 	
@@ -149,13 +146,13 @@ static inline void php_jit_function_invoke_builder(zval *this_ptr, zval *zbuilde
 
 		pval->value = jit_value_get_param(pfunc->func, nparam);
 
-		add_next_index_zval(&params, o);
+		add_next_index_zval(params, o);
 
 		nparam++;
 	}
 
 	/* call builder function */
-	zend_fcall_info_args(&fci, &params TSRMLS_CC);
+	zend_fcall_info_argn(&fci TSRMLS_CC, 1, &params);
 
 	result = zend_call_function(&fci, &fcc TSRMLS_CC);
 	
@@ -171,7 +168,7 @@ static inline void php_jit_function_invoke_builder(zval *this_ptr, zval *zbuilde
 		zval_ptr_dtor(&retval_ptr);
 	}
 
-	zval_dtor(&params);
+	zval_ptr_dtor(&params);
 	zval_dtor(&closure);
 } /* }} */
 

@@ -30,7 +30,7 @@ long function (long **n, long f, long x) {
 }
 */
 
-$function = new Func($context, new Signature($long, [$llongs, $long, $long]), function(Value $n, Value $f, Value $x) {
+$function = new Func($context, new Signature($long, [$llongs, $long, $long]), function($args) {
 	/* long zero = 0; */
 	$zero = new Value($this, 0, new Type(JIT_TYPE_LONG));
 	/* long one = 1; */
@@ -39,7 +39,7 @@ $function = new Func($context, new Signature($long, [$llongs, $long, $long]), fu
 	/* long r = n[f][x]; */
 	$r = $this->doLoadElem
 			($this->doLoadElem
-				($n, $f), $x);
+				($args[0], $args[1]), $args[2]);
 
 	/* while(r) { */
 	$this->doWhile($r, function() use($r, $zero, $one) {	

@@ -15,10 +15,10 @@ $context = new Context();
 $long = new Type(JIT_TYPE_LONG);
 
 /* long function(long x, long y); */
-$function = new Func($context, new Signature($long, [$long, $long]), function(Value $x, Value $y) {
+$function = new Func($context, new Signature($long, [$long, $long]), function($args) {
 	/* return $x >> $y; */
 	$this->doReturn(
-		$this->doShr($x, $y));
+		$this->doShr($args[0], $args[1]));
 });
 
 var_dump(
