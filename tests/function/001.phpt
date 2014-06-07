@@ -1,5 +1,5 @@
 --TEST--
-Test builder object basic
+Test return
 --SKIPIF--
 <?php if (!extension_loaded("jitfu")) die("skip JITFu not loaded"); ?>
 --FILE--

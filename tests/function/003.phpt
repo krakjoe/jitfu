@@ -1,5 +1,5 @@
 --TEST--
-Test builder mul
+Test mul
 --SKIPIF--
 <?php if (!extension_loaded("jitfu")) die("skip JITFu not loaded"); ?>
 --FILE--

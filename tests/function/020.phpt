@@ -1,5 +1,5 @@
 --TEST--
-Test builder load element from ptrptr
+Test load element from ptrptr
 --SKIPIF--
 <?php if (!extension_loaded("jitfu")) die("skip JITFu not loaded"); ?>
 --FILE--

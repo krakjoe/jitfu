@@ -1,5 +1,5 @@
 --TEST--
-Test builder load element longs
+Test load element longs
 --SKIPIF--
 <?php if (!extension_loaded("jitfu")) die("skip JITFu not loaded"); ?>
 --FILE--
