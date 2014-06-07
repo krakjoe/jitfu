@@ -66,6 +66,31 @@ ZEND_GET_MODULE(jitfu)
 
 static inline void php_jit_globals_ctor(zend_jitfu_globals *jg) {}
 
+static inline const char* php_jit_exception_type(int type) {
+	switch (type) {
+		case JIT_RESULT_OK:               return "none";
+		case JIT_RESULT_OVERFLOW:         return "overflow";
+		case JIT_RESULT_ARITHMETIC:       return "arithmetic";
+		case JIT_RESULT_DIVISION_BY_ZERO: return "division by zero";
+		case JIT_RESULT_COMPILE_ERROR:    return "compile error";
+		case JIT_RESULT_OUT_OF_MEMORY:    return "out of memory";
+		case JIT_RESULT_NULL_REFERENCE:   return "null reference";
+		case JIT_RESULT_NULL_FUNCTION:    return "null function";
+		case JIT_RESULT_CALLED_NESTED:    return "called nested";
+		case JIT_RESULT_OUT_OF_BOUNDS:    return "out of bounds";
+		case JIT_RESULT_UNDEFINED_LABEL:  return "undefined label";
+		case JIT_RESULT_MEMORY_FULL:      return "memory full";
+		default:                          return "unknown error";
+	}
+}
+
+static inline void* php_jit_exception_handler(int type) {
+	TSRMLS_FETCH();
+	
+	zend_throw_exception_ex
+		(jit_exception_ce, type TSRMLS_CC, php_jit_exception_type(type));
+}
+
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(jitfu)
@@ -73,6 +98,8 @@ PHP_MINIT_FUNCTION(jitfu)
 	zend_class_entry ce;
 	
 	ZEND_INIT_MODULE_GLOBALS(jitfu, php_jit_globals_ctor, NULL);
+	
+	jit_exception_set_handler(php_jit_exception_handler);
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Exception", NULL);
 	
