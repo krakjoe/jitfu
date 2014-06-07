@@ -12,7 +12,7 @@ use JITFu\Value;
 
 $context = new Context();
 
-$long      = new Type(JIT_TYPE_LONG);
+$long = Type::of(Type::long);
 
 /* long function(long n); */
 $function = new Func($context, new Signature($long, [$long]), function($args){

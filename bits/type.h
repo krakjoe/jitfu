@@ -110,6 +110,15 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 	jit_type_ce = zend_register_internal_class(&ce TSRMLS_CC);
 	jit_type_ce->create_object = php_jit_type_create;
 	
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("void"),    PHP_JIT_TYPE_VOID TSRMLS_CC);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("int"),     PHP_JIT_TYPE_INT TSRMLS_CC);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("uint"),    PHP_JIT_TYPE_UINT TSRMLS_CC);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("ulong"),   PHP_JIT_TYPE_ULONG TSRMLS_CC);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("long"),    PHP_JIT_TYPE_LONG TSRMLS_CC);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("double"),  PHP_JIT_TYPE_DOUBLE TSRMLS_CC);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("string"),  PHP_JIT_TYPE_STRING TSRMLS_CC);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("pvoid"),   PHP_JIT_TYPE_VOID_PTR TSRMLS_CC);
+	
 	memcpy(
 		&php_jit_type_handlers,
 		zend_get_std_object_handlers(), 
@@ -157,6 +166,44 @@ PHP_METHOD(Type, __construct) {
 			ptype->id = patype->id;
 			ptype->copied = 1;
 		} break;
+	}
+}
+
+PHP_METHOD(Type, of) {
+	zval *ztype = NULL,
+		 **zcache = NULL;
+	php_jit_type_t *ptype;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &ztype) != SUCCESS) {
+		return;
+	}
+	
+	if (!ztype) {
+		php_jit_exception("null type in constructor");
+		return;
+	}
+	
+	switch (Z_TYPE_P(ztype)) {
+		case IS_LONG: {
+			 if (zend_hash_index_find(&JG(types), Z_LVAL_P(ztype), (void**)&zcache) != SUCCESS) {
+			 	object_init_ex(return_value, jit_type_ce);
+			 	ptype = PHP_JIT_FETCH_TYPE(return_value);
+			 	ptype->id = Z_LVAL_P(ztype);
+			 	ptype->type = php_jit_type(Z_LVAL_P(ztype));
+			 	zend_hash_index_update(
+			 		&JG(types), Z_LVAL_P(ztype), (void**) &return_value, sizeof(zval*), NULL);
+			 	Z_ADDREF_P(return_value);
+			 } else ZVAL_ZVAL(return_value, *zcache, 1, 0);
+		} break;
+		
+		case IS_STRING: {
+			
+		} break;
+		
+		default: {
+			php_jit_exception("unexpected type in constructor, %s",
+				zend_get_type_by_const(Z_TYPE_P(ztype)));
+		}
 	}
 }
 
@@ -226,16 +273,21 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_type_construct_arginfo, 0, 0, 1)
 	ZEND_ARG_INFO(0, type)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_type_of_arginfo, 0, 0, 1) 
+	ZEND_ARG_INFO(0, type)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_type_dump_arginfo, 0, 0, 0) 
 	ZEND_ARG_INFO(0, output)
 ZEND_END_ARG_INFO()
 
 zend_function_entry php_jit_type_methods[] = {
 	PHP_ME(Type, __construct,     php_jit_type_construct_arginfo, ZEND_ACC_PUBLIC)
-	PHP_ME(Type, getIdentifier,   php_jit_no_arginfo, ZEND_ACC_PUBLIC)
-	PHP_ME(Type, getIndirection,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
-	PHP_ME(Type, isPointer,       php_jit_no_arginfo, ZEND_ACC_PUBLIC)
-	PHP_ME(Type, dump,            php_jit_type_dump_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Type, getIdentifier,   php_jit_no_arginfo,             ZEND_ACC_PUBLIC)
+	PHP_ME(Type, getIndirection,  php_jit_no_arginfo,             ZEND_ACC_PUBLIC)
+	PHP_ME(Type, isPointer,       php_jit_no_arginfo,             ZEND_ACC_PUBLIC)
+	PHP_ME(Type, dump,            php_jit_type_dump_arginfo,      ZEND_ACC_PUBLIC)
+	PHP_ME(Type, of,              php_jit_type_of_arginfo,        ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_FE_END
 };
 #endif

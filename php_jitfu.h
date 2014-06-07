@@ -40,12 +40,18 @@ extern zend_module_entry jitfu_module_entry;
 
 PHP_MINIT_FUNCTION(jitfu);
 PHP_MINFO_FUNCTION(jitfu);
+PHP_RINIT_FUNCTION(jitfu);
+PHP_RSHUTDOWN_FUNCTION(jitfu);
 
 #define PHP_JITFU_EXTNAME "JITFU"
-#define PHP_JITFU_VERSION "0.3"
+#define PHP_JITFU_VERSION "0.4"
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_no_arginfo, 0, 0, 0) 
 ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_MODULE_GLOBALS(jitfu)
+	HashTable types;
+ZEND_END_MODULE_GLOBALS(jitfu)
 
 #ifdef ZTS
 #define JG(v) TSRMG(jitfu_globals_id, zend_jitfu_globals *, v)

@@ -31,6 +31,8 @@
 
 zend_class_entry *jit_exception_ce;
 
+ZEND_DECLARE_MODULE_GLOBALS(jitfu);
+
 #include "bits/context.h"
 #include "bits/type.h"
 #include "bits/signature.h"
@@ -48,8 +50,8 @@ zend_module_entry jitfu_module_entry = {
 	NULL,
 	PHP_MINIT(jitfu),
 	NULL,
-	NULL,
-	NULL,
+	PHP_RINIT(jitfu),
+	PHP_RSHUTDOWN(jitfu),
 	PHP_MINFO(jitfu),
 #if ZEND_MODULE_API_NO >= 20010901
 	PHP_JITFU_VERSION,
@@ -62,11 +64,15 @@ zend_module_entry jitfu_module_entry = {
 ZEND_GET_MODULE(jitfu)
 #endif
 
+static inline void php_jit_globals_ctor(zend_jitfu_globals *jg) {}
+
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(jitfu)
 {
 	zend_class_entry ce;
+	
+	ZEND_INIT_MODULE_GLOBALS(jitfu, php_jit_globals_ctor, NULL);
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Exception", NULL);
 	
@@ -81,6 +87,22 @@ PHP_MINIT_FUNCTION(jitfu)
 		(&ce, zend_exception_get_default(TSRMLS_C), NULL TSRMLS_CC);
 	
 	return SUCCESS;
+}
+/* }}} */
+
+/* {{{ PHP_RINIT_FUNCTION
+ */
+PHP_RINIT_FUNCTION(jitfu)
+{
+	zend_hash_init(&JG(types), 8, NULL, ZVAL_PTR_DTOR, 0);
+}
+/* }}} */
+
+/* {{{ PHP_RSHUTDOWN_FUNCTION
+ */
+PHP_RSHUTDOWN_FUNCTION(jitfu)
+{
+	zend_hash_destroy(&JG(types));
 }
 /* }}} */
 

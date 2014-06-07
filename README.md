@@ -22,7 +22,7 @@ use JITFU\Value;
 
 $context = new Context();
 
-$integer   = new Type(JIT_TYPE_INT);
+$integer   = Type::of(Type::int);
 
 $function = new Func($context, new Signature($integer, [$integer]), function($args) use($integer) {
 	$zero     = new Value($this, 0, $integer);
