@@ -102,12 +102,35 @@ PHP_METHOD(Label, __construct) {
 	jit_insn_label(pfunc->func, &plabel->label);
 }
 
+PHP_METHOD(Label, equal) {
+	php_jit_label_t *plabels[2];
+	zval *zlabel;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zlabel, jit_label_ce) != SUCCESS) {
+		return;
+	}
+	
+	plabels[0] = PHP_JIT_FETCH_LABEL(getThis());
+	plabels[1] = PHP_JIT_FETCH_LABEL(zlabel);
+	
+	if (plabels[0]->func->func != plabels[1]->func->func) {
+		RETURN_FALSE;
+	}
+	
+	RETURN_BOOL(jit_function_labels_equal(plabels[0]->func->func, plabels[0]->label, plabels[1]->label));
+}
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_label_construct_arginfo, 0, 0, 1) 
 	ZEND_ARG_INFO(0, function)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_label_equal_arginfo, 0, 0, 1) 
+	ZEND_ARG_INFO(0, other)
+ZEND_END_ARG_INFO()
+
 zend_function_entry php_jit_label_methods[] = {
 	PHP_ME(Label, __construct,     php_jit_label_construct_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Label, equal,           php_jit_label_equal_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 #endif

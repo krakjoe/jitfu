@@ -638,6 +638,25 @@ PHP_METHOD(Func, dump) {
 	}
 }
 
+PHP_METHOD(Func, reserveLabel) {
+	php_jit_label_t *plabel;
+	php_jit_function_t *pfunc;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	
+	object_init_ex(return_value, jit_label_ce);
+	
+	plabel = PHP_JIT_FETCH_LABEL(return_value);
+	plabel->func = pfunc;
+	zend_objects_store_add_ref_by_handle(plabel->func->h TSRMLS_CC);
+	
+	plabel->label = jit_function_reserve_label(pfunc->func);
+}
+
 PHP_METHOD(Func, doWhile) {
 	zval *op = NULL;
 	php_jit_function_t *pfunc;
@@ -2043,6 +2062,7 @@ zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, getContext,    php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, getSignature,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, dump,          php_jit_no_arginfo, ZEND_ACC_PUBLIC)
+	PHP_ME(Func, reserveLabel,  php_jit_no_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, __invoke,      NULL,    ZEND_ACC_PUBLIC)
 	
 	/* */
