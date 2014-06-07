@@ -266,7 +266,7 @@ PHP_METHOD(Value, getType) {
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (pval) {
+	if (pval && pval->type) {
 		zend_object_value value;
 		
 		value.handle = pval->type->h;
