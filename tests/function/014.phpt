@@ -15,8 +15,7 @@ $context = new Context();
 $long = new Type(JIT_TYPE_LONG);
 
 /* long function(long x, long y); */
-$function = new Func($context, new Signature($long, [$long, $long]));
-$function->implement(function($args) {
+$function = new Func($context, new Signature($long, [$long, $long]), function($args) {
 	/* return $x < $y; */
 	$this->doReturn(
 		$this->doLt($args[0], $args[1]));

@@ -15,12 +15,12 @@ $context = new Context();
 $long = new Type(JIT_TYPE_LONG);
 
 /* long function(long x, long y); */
-$function = new Func($context, new Signature($long, [$long, $long]));
-$function->implement(function($args) {
+$function = new Func($context, new Signature($long, [$long, $long]), function($args) {
 	/* return $x == $y; */
 	$this->doReturn(
 		$this->doEq($args[0], $args[1]));
 });
+
 var_dump(
 	(bool) $function(1, 1),
 	(bool) $function(1, 2));

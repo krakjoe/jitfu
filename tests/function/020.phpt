@@ -23,8 +23,7 @@ long function (long **n, long f, long x) {
 }
 */
 
-$function = new Func($context, new Signature($long, [$llongs, $long, $long]));
-$function->implement(function($args) {
+$function = new Func($context, new Signature($long, [$llongs, $long, $long]), function($args) {
 	$this->doReturn
 		($this->doLoadElem
 			($this->doLoadElem

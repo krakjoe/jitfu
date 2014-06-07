@@ -15,8 +15,7 @@ $context = new Context();
 $double   = new Type(JIT_TYPE_DOUBLE);
 
 /* double function(double x, double y); */
-$function = new Func($context, new Signature($double, [$double, $double]));
-$function->implement(function($args) {
+$function = new Func($context, new Signature($double, [$double, $double]), function($args) {
 	/* return x / y; */
 	$this->doReturn(
 		$this->doDiv($args[0], $args[1]));

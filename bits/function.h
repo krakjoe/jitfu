@@ -147,67 +147,9 @@ void php_jit_minit_function(int module_number TSRMLS_DC) {
 		sizeof(php_jit_function_handlers));
 }
 
-PHP_METHOD(Func, __construct) {
-	zval *zcontext = NULL,
-		 *zsignature = NULL,
-		 *zparent = NULL;
-	
-	php_jit_function_t *pfunc;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO|zO", &zcontext, jit_context_ce, &zsignature, jit_signature_ce, zend_ce_closure, &zparent, jit_function_ce) != SUCCESS) {
-		return;
-	}
-	
-	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
-	
-	pfunc->ctx = PHP_JIT_FETCH_CONTEXT(zcontext);
-	zend_objects_store_add_ref_by_handle
-		(pfunc->ctx->h TSRMLS_CC);
-	
-	if (!(pfunc->ctx->st & PHP_JIT_CONTEXT_STARTED)) {
-		
-		jit_context_build_start(pfunc->ctx->ctx);
-		
-		pfunc->ctx->st |= PHP_JIT_CONTEXT_STARTED;
-	}
-	
-	pfunc->sig = PHP_JIT_FETCH_SIGNATURE(zsignature);
-	zend_objects_store_add_ref_by_handle
-		(pfunc->sig->h TSRMLS_CC);
-	
-	if (zparent) {
-		pfunc->parent = PHP_JIT_FETCH_FUNCTION(zparent);
-		zend_objects_store_add_ref_by_handle
-			(pfunc->parent->h TSRMLS_CC);
-	}
-	
-	if (!zparent) {
-		pfunc->func = jit_function_create
-			(pfunc->ctx->ctx, pfunc->sig->type);
-	} else {
-		pfunc->func = jit_function_create_nested
-			(pfunc->ctx->ctx, pfunc->sig->type, pfunc->parent->func);
-	}
-
-	pfunc->st |= PHP_JIT_FUNCTION_CREATED;
-}
-
-PHP_METHOD(Func, isImplemented) {
-	php_jit_function_t *pfunc = NULL;
-	
-	if (zend_parse_parameters_none() != SUCCESS) {
-		return;
-	}
-	
-	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
-	
-	RETURN_BOOL((pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED) == PHP_JIT_FUNCTION_IMPLEMENTED);
-}
-
-PHP_METHOD(Func, implement) {
+static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSRMLS_DC) {
 	zval *retval_ptr = NULL, 
-		 *tmp_ptr = NULL, 
-		 *zbuilder = NULL,
+		 *tmp_ptr = NULL,
 		 *params = NULL;
 	zval closure;
 	zend_fcall_info       fci;
@@ -215,11 +157,7 @@ PHP_METHOD(Func, implement) {
 	zend_uint             nparam = 0;
 	php_jit_function_t    *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	int result = FAILURE;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zbuilder, zend_ce_closure) != SUCCESS) {
-		return;
-	}
-	
+
 	if (pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED) {
 		/* throw already implemented */
 		return;
@@ -286,6 +224,78 @@ PHP_METHOD(Func, implement) {
 
 	zval_ptr_dtor(&params);
 	zval_dtor(&closure);
+}
+
+PHP_METHOD(Func, __construct) {
+	zval *zcontext = NULL,
+		 *zsignature = NULL,
+		 *zbuilder = NULL,
+		 *zparent = NULL;
+	
+	php_jit_function_t *pfunc;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO|zO", &zcontext, jit_context_ce, &zsignature, jit_signature_ce, &zbuilder, zend_ce_closure, &zparent, jit_function_ce) != SUCCESS) {
+		return;
+	}
+	
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	
+	pfunc->ctx = PHP_JIT_FETCH_CONTEXT(zcontext);
+	zend_objects_store_add_ref_by_handle
+		(pfunc->ctx->h TSRMLS_CC);
+	
+	if (!(pfunc->ctx->st & PHP_JIT_CONTEXT_STARTED)) {
+		
+		jit_context_build_start(pfunc->ctx->ctx);
+		
+		pfunc->ctx->st |= PHP_JIT_CONTEXT_STARTED;
+	}
+	
+	pfunc->sig = PHP_JIT_FETCH_SIGNATURE(zsignature);
+	zend_objects_store_add_ref_by_handle
+		(pfunc->sig->h TSRMLS_CC);
+	
+	if (zparent) {
+		pfunc->parent = PHP_JIT_FETCH_FUNCTION(zparent);
+		zend_objects_store_add_ref_by_handle
+			(pfunc->parent->h TSRMLS_CC);
+	}
+	
+	if (!zparent) {
+		pfunc->func = jit_function_create
+			(pfunc->ctx->ctx, pfunc->sig->type);
+	} else {
+		pfunc->func = jit_function_create_nested
+			(pfunc->ctx->ctx, pfunc->sig->type, pfunc->parent->func);
+	}
+
+	pfunc->st |= PHP_JIT_FUNCTION_CREATED;
+	
+	if (zbuilder) {
+		php_jit_function_implement(getThis(), zbuilder TSRMLS_CC);
+	}
+}
+
+PHP_METHOD(Func, isImplemented) {
+	php_jit_function_t *pfunc = NULL;
+	
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+	
+	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	
+	RETURN_BOOL((pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED) == PHP_JIT_FUNCTION_IMPLEMENTED);
+}
+
+PHP_METHOD(Func, implement) {
+	zval *zbuilder = NULL;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zbuilder, zend_ce_closure) != SUCCESS) {
+		return;
+	}
+	
+	php_jit_function_implement(getThis(), zbuilder TSRMLS_CC);
 }
 
 PHP_METHOD(Func, compile) {
@@ -1856,6 +1866,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(php_jit_function_construct_arginfo, 0, 0, 2) 
 	ZEND_ARG_INFO(0, context)
 	ZEND_ARG_INFO(0, signature)
+	ZEND_ARG_INFO(0, builder)
 	ZEND_ARG_INFO(0, parent)
 ZEND_END_ARG_INFO()
 

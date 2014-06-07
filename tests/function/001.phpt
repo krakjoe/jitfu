@@ -15,9 +15,7 @@ $context = new Context();
 $long      = new Type(JIT_TYPE_LONG);
 
 /* long function(long n); */
-$function = new Func($context, new Signature($long, [$long]));
-
-$function->implement(function($args){
+$function = new Func($context, new Signature($long, [$long]), function($args){
 	$this->doReturn($args[0]);
 });
 

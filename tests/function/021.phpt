@@ -30,8 +30,7 @@ long function (long **n, long f, long x) {
 }
 */
 
-$function = new Func($context, new Signature($long, [$llongs, $long, $long]));
-$function->implement(function($args) {
+$function = new Func($context, new Signature($long, [$llongs, $long, $long]), function($args) {
 	/* long zero = 0; */
 	$zero = new Value($this, 0, new Type(JIT_TYPE_LONG));
 	/* long one = 1; */
