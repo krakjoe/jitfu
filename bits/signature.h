@@ -71,7 +71,10 @@ static inline void php_jit_signature_free(void *zobject TSRMLS_DC) {
 	
 	jit_type_free(psig->type);
 	
-	efree(psig->params);
+	if (psig->params) {
+		efree(psig->params);	
+	}
+	
 	efree(psig);
 }
 
@@ -123,11 +126,12 @@ PHP_METHOD(Signature, __construct) {
 	psig->returns = PHP_JIT_FETCH_TYPE(ztype);
 	zend_objects_store_add_ref_by_handle(psig->returns->h TSRMLS_CC);
 	
+	psig->nparams = zend_hash_num_elements(ztypes);	
 	psig->params = (php_jit_type_t**)
 		ecalloc(psig->nparams, sizeof(php_jit_type_t));
 	
 	params = (jit_type_t*)
-		ecalloc(zend_hash_num_elements(ztypes), sizeof(jit_type_t));
+		ecalloc(psig->nparams, sizeof(jit_type_t));
 	
 	for (zend_hash_internal_pointer_reset_ex(ztypes, &position);
 		zend_hash_get_current_data_ex(ztypes, (void**)&zztype, &position) == SUCCESS;
@@ -147,7 +151,6 @@ PHP_METHOD(Signature, __construct) {
 		param++;
 	}
 	
-	psig->nparams = zend_hash_num_elements(ztypes);
 	psig->type = jit_type_create_signature(jit_abi_cdecl, psig->returns->type, params, param, 1);
 	efree(params);
 }
