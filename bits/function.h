@@ -104,20 +104,22 @@ static inline void php_jit_function_destroy(void *zobject, zend_object_handle ha
 	php_jit_function_t *pfunc = 
 		(php_jit_function_t *) zobject;
 
-	zend_object_std_dtor(&pfunc->std TSRMLS_CC);
-
 	zend_objects_store_del_ref_by_handle(pfunc->ctx->h TSRMLS_CC);
 	zend_objects_store_del_ref_by_handle(pfunc->sig->h TSRMLS_CC);
 	
 	if (pfunc->parent) {
 		zend_objects_store_del_ref_by_handle(pfunc->parent->h TSRMLS_CC);
 	}
+	
+	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
 }
 
 static inline void php_jit_function_free(void *zobject TSRMLS_DC) {
 	php_jit_function_t *pfunc = 
 		(php_jit_function_t *) zobject;
-		
+
+	zend_object_std_dtor(&pfunc->std TSRMLS_CC);
+
 	efree(pfunc);
 }
 

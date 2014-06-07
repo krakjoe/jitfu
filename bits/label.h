@@ -46,16 +46,18 @@ static inline void php_jit_label_destroy(void *zobject, zend_object_handle handl
 	php_jit_label_t *plabel = 
 		(php_jit_label_t *) zobject;
 
-	zend_object_std_dtor(&plabel->std TSRMLS_CC);
-	
 	if (plabel->func) {
 		zend_objects_store_del_ref_by_handle(plabel->func->h TSRMLS_CC);
 	}
+	
+	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
 }
 
 static inline void php_jit_label_free(void *zobject TSRMLS_DC) {
 	php_jit_label_t *plabel = 
 		(php_jit_label_t *) zobject;
+
+	zend_object_std_dtor(&plabel->std TSRMLS_CC);
 
 	efree(plabel);
 }

@@ -73,16 +73,15 @@ jit_type_t php_jit_type(short type) {
 }
 
 static inline void php_jit_type_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
-	php_jit_type_t *ptype = 
-		(php_jit_type_t *) zobject;
-
-	zend_object_std_dtor(&ptype->std TSRMLS_CC);
+	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
 }
 
 static inline void php_jit_type_free(void *zobject TSRMLS_DC) {
 	php_jit_type_t *ptype = 
 		(php_jit_type_t *) zobject;
-		
+
+	zend_object_std_dtor(&ptype->std TSRMLS_CC);
+	
 	if (ptype->copied) {
 		jit_type_free(ptype->type);
 	}

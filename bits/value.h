@@ -48,8 +48,6 @@ static inline void php_jit_value_destroy(void *zobject, zend_object_handle handl
 	php_jit_value_t *pval = 
 		(php_jit_value_t *) zobject;
 
-	zend_object_std_dtor(&pval->std TSRMLS_CC);
-
 	if (pval->func) {
 		zend_objects_store_del_ref_by_handle(pval->func->h TSRMLS_CC);
 	}
@@ -57,12 +55,16 @@ static inline void php_jit_value_destroy(void *zobject, zend_object_handle handl
 	if (pval->type) {
 		zend_objects_store_del_ref_by_handle(pval->type->h TSRMLS_CC);
 	}
+	
+	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
 }
 
 static inline void php_jit_value_free(void *zobject TSRMLS_DC) {
 	php_jit_value_t *pval = 
 		(php_jit_value_t *) zobject;
-		
+
+	zend_object_std_dtor(&pval->std TSRMLS_CC);
+
 	if (pval->dup) {
 		efree(pval->dup);
 	}

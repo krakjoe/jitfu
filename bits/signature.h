@@ -49,8 +49,6 @@ static inline void php_jit_signature_destroy(void *zobject, zend_object_handle h
 	php_jit_signature_t *psig = 
 		(php_jit_signature_t *) zobject;
 	zend_uint param = 0;
-
-	zend_object_std_dtor(&psig->std TSRMLS_CC);
 	
 	while (param < psig->nparams) {
 		if (psig->params[param]) {
@@ -63,11 +61,15 @@ static inline void php_jit_signature_destroy(void *zobject, zend_object_handle h
 	if (psig->returns) {
 		zend_objects_store_del_ref_by_handle(psig->returns->h TSRMLS_CC);
 	}
+	
+	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
 }
 
 static inline void php_jit_signature_free(void *zobject TSRMLS_DC) {
 	php_jit_signature_t *psig = 
 		(php_jit_signature_t *) zobject;
+	
+	zend_object_std_dtor(&psig->std TSRMLS_CC);
 	
 	jit_type_free(psig->type);
 	

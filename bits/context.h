@@ -45,18 +45,17 @@ extern zend_object_handlers php_jit_context_handlers;
 zend_object_handlers php_jit_context_handlers;
 
 static inline void php_jit_context_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
-	php_jit_context_t *pcontext = 
-		(php_jit_context_t *) zobject;
-
-	zend_object_std_dtor(&pcontext->std TSRMLS_CC);
+	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
 }
 
 static inline void php_jit_context_free(void *zobject TSRMLS_DC) {
 	php_jit_context_t *pcontext = 
 		(php_jit_context_t *) zobject;
-		
+
+	zend_object_std_dtor(&pcontext->std TSRMLS_CC);
+
 	jit_context_destroy(pcontext->ctx);
-	
+
 	efree(pcontext);
 }
 
