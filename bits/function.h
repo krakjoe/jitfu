@@ -711,16 +711,27 @@ PHP_METHOD(Func, doLabel) {
 PHP_METHOD(Func, doBranch) {
 	php_jit_function_t *pfunc  = NULL;
 	php_jit_label_t    *plabel = NULL;
-	zval *zlabel;
+	zval               *zlabel = NULL;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &zlabel, jit_label_ce) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|O", &zlabel, jit_label_ce) != SUCCESS) {
 		return;
 	}
 	
 	pfunc  = PHP_JIT_FETCH_FUNCTION(getThis());
-	plabel = PHP_JIT_FETCH_LABEL(zlabel);
 	
-	RETURN_LONG(jit_insn_branch(pfunc->func, &plabel->label));
+	if (zlabel) {
+		plabel = PHP_JIT_FETCH_LABEL(zlabel);
+
+		RETURN_LONG(jit_insn_branch(pfunc->func, &plabel->label));
+	} else {
+		object_init_ex(return_value, jit_label_ce);
+
+		plabel = PHP_JIT_FETCH_LABEL(return_value);
+		plabel->func = pfunc;
+		zend_objects_store_add_ref_by_handle(plabel->func->h TSRMLS_CC);
+
+		jit_insn_branch(pfunc->func, &plabel->label);
+	}
 }
 
 PHP_METHOD(Func, doBranchIf) {
