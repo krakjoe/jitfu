@@ -107,7 +107,8 @@ void php_jit_minit_value(int module_number TSRMLS_DC) {
 PHP_METHOD(Value, __construct) {
 	zval *zfunction = NULL, 
 		 *zvalue = NULL,
-		 *ztype = NULL;
+		 *ztype = NULL,
+		 ztemp;
 	php_jit_value_t *pval;
 	
 	switch (ZEND_NUM_ARGS()) {
@@ -136,19 +137,62 @@ PHP_METHOD(Value, __construct) {
 		(pval->type->h TSRMLS_CC);
 	
 	if (zvalue) {
-		switch (Z_TYPE_P(zvalue)) {
-			case IS_LONG:
-				if (pval->type) {
-					pval->value = jit_value_create_long_constant(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));	
-				} else pval->value = jit_value_create_long_constant(pval->func->func, jit_type_sys_long, Z_LVAL_P(zvalue));
+		switch (pval->type->id) {
+			case PHP_JIT_TYPE_UINT:
+				if (Z_TYPE_P(zvalue) != IS_LONG) {
+					ztemp = *zvalue;
+					convert_to_long(&ztemp);
+					pval->value = jit_value_create_nint_constant
+						(pval->func->func, pval->type->type, Z_LVAL(ztemp));
+					zval_dtor(&ztemp);
+				} else pval->value = jit_value_create_nint_constant
+						(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));
 			break;
-		
-			case IS_DOUBLE:
-				if (pval->type) {
-					pval->value = jit_value_create_nfloat_constant(pval->func->func, pval->type->type, Z_DVAL_P(zvalue));
-				} else pval->value = jit_value_create_nfloat_constant(pval->func->func, jit_type_sys_double, Z_DVAL_P(zvalue));
+			
+			case PHP_JIT_TYPE_INT:
+				if (Z_TYPE_P(zvalue) != IS_LONG) {
+					ztemp = *zvalue;
+					convert_to_long(&ztemp);
+					pval->value = jit_value_create_nint_constant
+						(pval->func->func, pval->type->type, Z_LVAL(ztemp));
+					zval_dtor(&ztemp);
+				} else pval->value = jit_value_create_nint_constant
+						(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));
 			break;
-		
+			
+			case PHP_JIT_TYPE_LONG:
+				if (Z_TYPE_P(zvalue) != IS_LONG) {
+					ztemp = *zvalue;
+					convert_to_long(&ztemp);
+					pval->value = jit_value_create_long_constant
+						(pval->func->func, pval->type->type, Z_LVAL(ztemp));
+					zval_dtor(&ztemp);
+				} else pval->value = jit_value_create_long_constant
+						(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));
+			break;
+			
+			case PHP_JIT_TYPE_ULONG:
+				if (Z_TYPE_P(zvalue) != IS_LONG) {
+					ztemp = *zvalue;
+					convert_to_long(&ztemp);
+					pval->value = jit_value_create_long_constant
+						(pval->func->func, pval->type->type, Z_LVAL(ztemp));
+					zval_dtor(&ztemp);
+				} else pval->value = jit_value_create_long_constant
+						(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));
+			break;
+			
+			case PHP_JIT_TYPE_DOUBLE:
+				if (Z_TYPE_P(zvalue) != IS_DOUBLE) {
+					ztemp = *zvalue;
+					convert_to_double(&ztemp);
+					pval->value = jit_value_create_float64_constant
+						(pval->func->func, pval->type->type, Z_DVAL(ztemp));
+					zval_dtor(&ztemp);
+				} else pval->value = jit_value_create_float64_constant
+					(pval->func->func, pval->type->type, Z_DVAL_P(zvalue));
+			break;
+			
 			default: {
 				jit_constant_t con;
 
@@ -156,7 +200,7 @@ PHP_METHOD(Value, __construct) {
 				con.type         = pval->type->type;
 
 				pval->value = jit_value_create_constant(pval->func->func, &con);
-			} break;
+			}
 		}
 	} else {
 		pval->value = jit_value_create(pval->func->func, pval->type->type);

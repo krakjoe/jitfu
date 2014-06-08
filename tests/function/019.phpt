@@ -14,7 +14,7 @@ $context = new Context();
 
 $string  = Type::of(Type::string);
 $strings = new Type($string, true);
-$long    = Type::of(Type::long);
+$long    = Type::of(Type::int);
 
 /*
 string function (string *n, long f) {

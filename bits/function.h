@@ -475,7 +475,6 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 			
 			((void**)uargs)[nuarg] = * php_jit_array_args
 				(pfunc, stack, *zmember, narg TSRMLS_CC);
-			
 		} else switch (pfunc->sig->params[narg]->id) {
 			case PHP_JIT_TYPE_LONG:   ((long*)uargs)[nuarg]   = Z_LVAL_PP(zmember);           break;
 			case PHP_JIT_TYPE_ULONG:  ((ulong*)uargs)[nuarg]  = (ulong) Z_LVAL_PP(zmember);   break;
@@ -487,8 +486,8 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 				
 				sized.data   = Z_STRVAL_PP(zmember);
 				sized.length = Z_STRLEN_PP(zmember);
-				
-				memcpy(&uargs[nuarg], &sized, sizeof(php_jit_sized_t));
+
+				((php_jit_sized_t*)uargs)[nuarg] = sized;
 			} break;
 			case PHP_JIT_TYPE_VOID_PTR: ((void**)uargs)[nuarg] = &(*zmember)->value;          break;
 		}
@@ -509,7 +508,7 @@ PHP_METHOD(Func, __invoke) {
 	zend_uint nargs = ZEND_NUM_ARGS();
 	zval **args = NULL;
 	void **jargs = NULL;
-	void *result = NULL;
+	void *result;
 	zend_llist stack;
 	zend_uint narg = 0;
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
@@ -565,10 +564,21 @@ PHP_METHOD(Func, __invoke) {
 			case PHP_JIT_TYPE_INT:
 			case PHP_JIT_TYPE_ULONG:
 			case PHP_JIT_TYPE_LONG: {
+				if (Z_TYPE_P(args[narg]) != IS_LONG) {
+					convert_to_long(args[narg]);
+				}
+				
 				jargs[narg] = &Z_LVAL_P(args[narg]);
 			} break;
 
-			case PHP_JIT_TYPE_DOUBLE:   jargs[narg] = &Z_DVAL_P(args[narg]);   break;
+			case PHP_JIT_TYPE_DOUBLE:
+				if (Z_TYPE_P(args[narg]) != IS_DOUBLE) {
+					convert_to_double(args[narg]);
+				}
+				
+				jargs[narg] = &Z_DVAL_P(args[narg]);
+			break;
+			
 			case PHP_JIT_TYPE_STRING: {
 				php_jit_sized_t *sized =
 					(php_jit_sized_t*) ecalloc(1, sizeof(php_jit_sized_t));
@@ -599,7 +609,7 @@ PHP_METHOD(Func, __invoke) {
 		case PHP_JIT_TYPE_UINT:
 		case PHP_JIT_TYPE_ULONG:
 		case PHP_JIT_TYPE_LONG:   ZVAL_LONG(return_value, (long) result); break;
-	
+
 		case PHP_JIT_TYPE_DOUBLE: {
 			double doubled =
 				*(double *) &result;
