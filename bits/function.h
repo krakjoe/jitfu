@@ -482,7 +482,17 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 			case PHP_JIT_TYPE_INT:    ((int*)uargs)[nuarg]    = (int) Z_LVAL_PP(zmember);     break;
 			case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint) Z_LVAL_PP(zmember);    break;
 			case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = Z_DVAL_PP(zmember);           break;
-			case PHP_JIT_TYPE_STRING: ((char**)uargs)[nuarg]  = Z_STRVAL_PP(zmember);         break;
+			case PHP_JIT_TYPE_STRING: {
+				php_jit_sized_t *sized =
+					(php_jit_sized_t*) ecalloc(1, sizeof(php_jit_sized_t));
+				
+				sized->data   = Z_STRVAL_PP(zmember);
+				sized->length = Z_STRLEN_PP(zmember);
+				
+				zend_llist_add_element(stack, &sized);
+				
+				((void**)uargs)[nuarg] = sized;
+			} break;
 			case PHP_JIT_TYPE_VOID_PTR: ((void**)uargs)[nuarg] = &(*zmember)->value;          break;
 		}
 		
@@ -561,8 +571,18 @@ PHP_METHOD(Func, __invoke) {
 				jargs[narg] = &Z_LVAL_P(args[narg]);
 			} break;
 
-			case PHP_JIT_TYPE_DOUBLE:   jargs[narg] = &Z_LVAL_P(args[narg]);   break;
-			case PHP_JIT_TYPE_STRING:   jargs[narg] = &Z_STRVAL_P(args[narg]); break;
+			case PHP_JIT_TYPE_DOUBLE:   jargs[narg] = &Z_DVAL_P(args[narg]);   break;
+			case PHP_JIT_TYPE_STRING: {
+				php_jit_sized_t *sized =
+					(php_jit_sized_t*) ecalloc(1, sizeof(php_jit_sized_t));
+				
+				sized->data   = Z_STRVAL_P(args[narg]);
+				sized->length = Z_STRLEN_P(args[narg]);
+
+				zend_llist_add_element(&stack, &sized);
+				
+				jargs[narg] = &sized;
+			} break;
 			case PHP_JIT_TYPE_VOID_PTR: jargs[narg] = &args[narg]->value;      break;
 		}
 
@@ -570,15 +590,19 @@ PHP_METHOD(Func, __invoke) {
 	}
 	
 	jit_function_apply(pfunc->func, jargs, &result);
-
+	
 	switch (pfunc->sig->returns->id) {
-		case PHP_JIT_TYPE_STRING: ZVAL_STRING(return_value, (char*) result, 1); break;
-		
+		case PHP_JIT_TYPE_STRING: {
+			if (result) {
+				ZVAL_STRING(return_value, (char*) result, 1);
+			}
+		} break;
+	
 		case PHP_JIT_TYPE_INT:
 		case PHP_JIT_TYPE_UINT:
 		case PHP_JIT_TYPE_ULONG:
 		case PHP_JIT_TYPE_LONG:   ZVAL_LONG(return_value, (long) result); break;
-		
+	
 		case PHP_JIT_TYPE_DOUBLE: {
 			double doubled =
 				*(double *) &result;
@@ -586,7 +610,7 @@ PHP_METHOD(Func, __invoke) {
 		} break;
 
 		case PHP_JIT_TYPE_VOID_PTR: ZVAL_LONG(return_value, (long) result); break;
-		
+	
 		default: {
 			php_jit_exception("failed to retrieve return value from call, return type unknown to Zend");
 		}
@@ -1854,6 +1878,24 @@ PHP_METHOD(Func, doReturn) {
 	RETURN_BOOL(jit_insn_return(this_func_j, PHP_JIT_FETCH_VALUE_I(zin)));
 }
 
+PHP_METHOD(Func, doSize) {
+	zval *zin = NULL;
+	php_jit_value_t *pval;
+	php_jit_function_t *pfunc;
+	jit_value_t value;
+	jit_value_t index = jit_value_create_nint_constant(this_func_j, jit_type_sys_int, 1);
+	
+	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
+		php_jit_exception("unexpected parameters, expected (Value value)");
+		return;
+	}
+	
+	object_init_ex(return_value, jit_value_ce);
+	pval = PHP_JIT_FETCH_VALUE(return_value);
+	pval->value = jit_insn_load_elem
+		(this_func_j, PHP_JIT_FETCH_VALUE_I(zin), index, jit_type_sized);
+}
+
 PHP_METHOD(Func, doPush) {
 	zval *zin = NULL;
 	
@@ -2104,6 +2146,10 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_function_doConvert_arginfo, 0, 0, 2)
 	ZEND_ARG_INFO(0, overflow)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_function_doSize_arginfo, 0, 0, 1) 
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(php_jit_function_doReturnPtr_arginfo, 0, 0, 2) 
 	ZEND_ARG_INFO(0, value)
 	ZEND_ARG_INFO(0, type)
@@ -2216,6 +2262,7 @@ zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, doDeferPop,        php_jit_function_doPop_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doFlushDeferPop,   php_jit_function_doPop_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doConvert,         php_jit_function_doConvert_arginfo,       ZEND_ACC_PUBLIC)
+	PHP_ME(Func, doSize,            php_jit_function_doSize_arginfo,          ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doReturn,          php_jit_function_unary_arginfo,           ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doReturnPtr,       php_jit_function_doReturnPtr_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doDefaultReturn,   php_jit_no_arginfo,                      ZEND_ACC_PUBLIC)

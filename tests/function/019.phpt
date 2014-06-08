@@ -12,8 +12,9 @@ use JITFu\Value;
 
 $context = new Context();
 
-$string  = new Type(JIT_TYPE_STRING);
+$string  = Type::of(Type::string);
 $strings = new Type($string, true);
+$long    = Type::of(Type::long);
 
 /*
 string function (string *n, long f) {
@@ -21,7 +22,7 @@ string function (string *n, long f) {
 }
 */
 
-$function = new Func($context, new Signature($string, [$strings, $string]), function($args) {
+$function = new Func($context, new Signature($string, [$strings, $long]), function($args) {
 	$this->doReturn(
 		$this->doLoadElem($args[0], $args[1]));
 });

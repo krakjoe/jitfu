@@ -12,10 +12,9 @@ use JITFU\Value;
 
 $context = new Context();
 
-$long  = new Type(JIT_TYPE_LONG);
+$long  = Type::of(Type::long);
 $longs = new Type($long, true);
 $llongs = new Type($longs, true);
-
 
 /*
 long function (long **n, long f, long x) {
