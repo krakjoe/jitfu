@@ -12,7 +12,11 @@ use JITFU\Value;
 
 $context = new Context();
 
-$function = new Func($context, new Signature(Type::of(Type::long), [Type::of(Type::string)]), function($args) {
+$string  = Type::of(Type::string);
+$strings = new Type($string, true);
+$long    = Type::of(Type::long);
+
+$function = new Func($context, new Signature($long, [$string]), function($args) {
 	$this->doReturn(
 		$this->doSize($args[0]));
 });
@@ -20,8 +24,7 @@ $function = new Func($context, new Signature(Type::of(Type::long), [Type::of(Typ
 var_dump(
 	$function("hello world"));
 
-$strings = new Type(Type::of(Type::string), true);
-$function = new Func($context, new Signature(Type::of(Type::long), [$strings]), function($args) {
+$function = new Func($context, new Signature($long, [$strings]), function($args) {
 	$zero = new Value($this, 0, Type::of(Type::int));
 	$first = $this
 		->doLoadElem($args[0], $zero);
