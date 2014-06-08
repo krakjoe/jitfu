@@ -440,13 +440,13 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 } while (0)
 
 	switch (pfunc->sig->params[narg]->id) {
-		case PHP_JIT_TYPE_INT:    PHP_JIT_INIT_ARGS(int);     break;
-		case PHP_JIT_TYPE_UINT:   PHP_JIT_INIT_ARGS(uint);    break;
-		case PHP_JIT_TYPE_LONG:   PHP_JIT_INIT_ARGS(long);    break;
-		case PHP_JIT_TYPE_ULONG:  PHP_JIT_INIT_ARGS(ulong);   break;
-		case PHP_JIT_TYPE_DOUBLE: PHP_JIT_INIT_ARGS(double);  break;
-		case PHP_JIT_TYPE_STRING: PHP_JIT_INIT_ARGS(char*);   break;
-		case PHP_JIT_TYPE_VOID_PTR: PHP_JIT_INIT_ARGS(void*); break;
+		case PHP_JIT_TYPE_INT:      PHP_JIT_INIT_ARGS(int);                break;
+		case PHP_JIT_TYPE_UINT:     PHP_JIT_INIT_ARGS(uint);               break;
+		case PHP_JIT_TYPE_LONG:     PHP_JIT_INIT_ARGS(long);               break;
+		case PHP_JIT_TYPE_ULONG:    PHP_JIT_INIT_ARGS(ulong);              break;
+		case PHP_JIT_TYPE_DOUBLE:   PHP_JIT_INIT_ARGS(double);             break;
+		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(php_jit_sized_t);    break;
+		case PHP_JIT_TYPE_VOID_PTR: PHP_JIT_INIT_ARGS(void*);              break;
 		
 		default: {
 			/* throw cannot manage arguments */
@@ -483,15 +483,12 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 			case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint) Z_LVAL_PP(zmember);    break;
 			case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = Z_DVAL_PP(zmember);           break;
 			case PHP_JIT_TYPE_STRING: {
-				php_jit_sized_t *sized =
-					(php_jit_sized_t*) ecalloc(1, sizeof(php_jit_sized_t));
+				php_jit_sized_t sized;
 				
-				sized->data   = Z_STRVAL_PP(zmember);
-				sized->length = Z_STRLEN_PP(zmember);
+				sized.data   = Z_STRVAL_PP(zmember);
+				sized.length = Z_STRLEN_PP(zmember);
 				
-				zend_llist_add_element(stack, &sized);
-				
-				((void**)uargs)[nuarg] = sized;
+				memcpy(&uargs[nuarg], &sized, sizeof(php_jit_sized_t));
 			} break;
 			case PHP_JIT_TYPE_VOID_PTR: ((void**)uargs)[nuarg] = &(*zmember)->value;          break;
 		}
@@ -581,7 +578,7 @@ PHP_METHOD(Func, __invoke) {
 
 				zend_llist_add_element(&stack, &sized);
 				
-				jargs[narg] = &sized;
+				jargs[narg] = sized;
 			} break;
 			case PHP_JIT_TYPE_VOID_PTR: jargs[narg] = &args[narg]->value;      break;
 		}
