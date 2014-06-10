@@ -14,7 +14,7 @@ $context = new Context();
 
 $string  = Type::of(Type::string);
 $strings = new Type($string, true);
-$long    = Type::of(Type::long);
+$long    = Type::of(Type::int);
 
 /*
 string function (string *n, long f) {
@@ -27,7 +27,7 @@ $function = new Func($context, new Signature($string, [$strings, $long]), functi
 		$this->doLoadElem($args[0], $args[1]));
 });
 
-$strings = [
+$data = [
 	"Hello",
 	"World",
 	"PHP",
@@ -35,10 +35,10 @@ $strings = [
 ];
 
 var_dump(
-	$function($strings, 0),
-	$function($strings, 1),
-	$function($strings, 2),
-	$function($strings, 3));
+	$function($data, 0),
+	$function($data, 1),
+	$function($data, 2),
+	$function($data, 3));
 ?>
 --EXPECT--
 string(5) "Hello"

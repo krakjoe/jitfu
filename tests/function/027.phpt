@@ -21,8 +21,6 @@ $function = new Func($context, new Signature($int, [$string]), function($args) {
 		$this->doSize($args[0]));
 });
 
-$function->dump("params");
-
 var_dump(
 	$function("hello world"));
 
@@ -32,8 +30,6 @@ $function = new Func($context, new Signature($int, [$strings]), function($args) 
 		->doLoadElem($args[0], $zero);
 	$this->doReturn($this->doSize($first));
 });
-
-$function->dump("arrays");
 
 var_dump(
 	$function(["hello world"]));

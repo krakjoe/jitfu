@@ -482,7 +482,10 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 			case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint) Z_LVAL_PP(zmember);    break;
 			case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = Z_DVAL_PP(zmember);           break;
 			case PHP_JIT_TYPE_STRING: {
-				memcpy(&uargs[nuarg], &(*zmember)->value.str, sizeof((*zmember)->value.str));
+				php_jit_sized_t *s = (php_jit_sized_t*) emalloc(sizeof(php_jit_sized_t));
+				memcpy(s, &(*zmember)->value.str, sizeof(php_jit_sized_t));
+				uargs[nuarg] = s;
+				zend_llist_add_element(stack, &s);
 			} break;
 			case PHP_JIT_TYPE_VOID_PTR: ((void**)uargs)[nuarg] = &(*zmember)->value;          break;
 		}
@@ -574,11 +577,16 @@ PHP_METHOD(Func, __invoke) {
 			break;
 			
 			case PHP_JIT_TYPE_STRING: {
+				php_jit_sized_t *s;
+				
 				if (Z_TYPE_P(args[narg]) != IS_STRING) {
 					convert_to_string(args[narg]);
 				}
 
-				jargs[narg] = &args[narg]->value.str;
+				s = (php_jit_sized_t*) emalloc(sizeof(php_jit_sized_t));
+				memcpy(s, &args[narg]->value.str, sizeof(php_jit_sized_t));
+				jargs[narg] = &s;
+				zend_llist_add_element(&stack, &s);
 			} break;
 			
 			case PHP_JIT_TYPE_VOID_PTR: jargs[narg] = &args[narg]->value; break;
@@ -592,7 +600,10 @@ PHP_METHOD(Func, __invoke) {
 	switch (pfunc->sig->returns->id) {
 		case PHP_JIT_TYPE_STRING: {
 			if (result) {
-				ZVAL_STRING(return_value, (char*) result, 1);
+				php_jit_sized_t *s = 
+					(php_jit_sized_t*) result;
+				
+				ZVAL_STRING(return_value, (char*) s->data, 1);
 			}
 		} break;
 	
@@ -1878,23 +1889,20 @@ PHP_METHOD(Func, doReturn) {
 
 PHP_METHOD(Func, doSize) {
 	zval *zin = NULL;
-	php_jit_value_t *ival, *pval;
+	php_jit_value_t *pval;
 	php_jit_function_t *pfunc;
 	jit_value_t value;
-	jit_value_t index = jit_value_create_nint_constant(this_func_j, jit_type_sys_int, 1);
 	
 	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
 		php_jit_exception("unexpected parameters, expected (Value value)");
 		return;
 	}
 	
-	ival = PHP_JIT_FETCH_VALUE(zin);
-	
 	object_init_ex(return_value, jit_value_ce);
+
 	pval = PHP_JIT_FETCH_VALUE(return_value);
-	
 	pval->value = jit_insn_load_relative
-		(this_func_j, ival->value,
+		(this_func_j, PHP_JIT_FETCH_VALUE_I(zin),
 		jit_type_get_offset (jit_type_sizable, 1),
 		jit_type_sized);
 }
