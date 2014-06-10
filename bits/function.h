@@ -1897,12 +1897,10 @@ PHP_METHOD(Func, doSize) {
 	object_init_ex(return_value, jit_value_ce);
 
 	pval = PHP_JIT_FETCH_VALUE(return_value);
-	pval->value = jit_insn_convert(
-		this_func_j, jit_insn_load_relative(
-			this_func_j, PHP_JIT_FETCH_VALUE_I(zin), 
-			jit_type_get_offset (jit_type_sizable, 1), 
-			jit_type_sized),
-		jit_type_sys_int, 0);
+	pval->value = jit_insn_load_relative
+		(this_func_j, PHP_JIT_FETCH_VALUE_I(zin),
+		jit_type_get_offset (jit_type_sizable, 1),
+		jit_type_sized);
 }
 
 PHP_METHOD(Func, doPush) {
