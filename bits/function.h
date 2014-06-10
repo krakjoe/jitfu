@@ -482,10 +482,8 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 			case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint) Z_LVAL_PP(zmember);    break;
 			case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = Z_DVAL_PP(zmember);           break;
 			case PHP_JIT_TYPE_STRING: {
-				php_jit_sized_t *s = (php_jit_sized_t*) emalloc(sizeof(php_jit_sized_t));
-				memcpy(s, &(*zmember)->value.str, sizeof(php_jit_sized_t));
+				php_jit_sized_t *s = (php_jit_sized_t*) &(*zmember)->value.str;
 				uargs[nuarg] = s;
-				zend_llist_add_element(stack, &s);
 			} break;
 			case PHP_JIT_TYPE_VOID_PTR: ((void**)uargs)[nuarg] = &(*zmember)->value;          break;
 		}
@@ -583,10 +581,8 @@ PHP_METHOD(Func, __invoke) {
 					convert_to_string(args[narg]);
 				}
 
-				s = (php_jit_sized_t*) emalloc(sizeof(php_jit_sized_t));
-				memcpy(s, &args[narg]->value.str, sizeof(php_jit_sized_t));
+				s = (php_jit_sized_t*) &args[narg]->value.str;
 				jargs[narg] = &s;
-				zend_llist_add_element(&stack, &s);
 			} break;
 			
 			case PHP_JIT_TYPE_VOID_PTR: jargs[narg] = &args[narg]->value; break;
