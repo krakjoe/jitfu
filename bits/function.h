@@ -1894,8 +1894,9 @@ PHP_METHOD(Func, doSize) {
 	
 	object_init_ex(return_value, jit_value_ce);
 	pval = PHP_JIT_FETCH_VALUE(return_value);
+	/* this has to be wrong */
 	pval->value = jit_insn_load_elem
-		(this_func_j, PHP_JIT_FETCH_VALUE_I(zin), index, jit_type_sizable);
+		(this_func_j, PHP_JIT_FETCH_VALUE_I(zin), index, jit_type_sized);
 }
 
 PHP_METHOD(Func, doPush) {
