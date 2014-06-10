@@ -445,7 +445,7 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 		case PHP_JIT_TYPE_LONG:     PHP_JIT_INIT_ARGS(long);               break;
 		case PHP_JIT_TYPE_ULONG:    PHP_JIT_INIT_ARGS(ulong);              break;
 		case PHP_JIT_TYPE_DOUBLE:   PHP_JIT_INIT_ARGS(double);             break;
-		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(php_jit_sized_t);    break;
+		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(php_jit_sized_t*);    break;
 		case PHP_JIT_TYPE_VOID_PTR: PHP_JIT_INIT_ARGS(void*);              break;
 		
 		default: {
