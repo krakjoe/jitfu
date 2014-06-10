@@ -31,7 +31,7 @@ zend_class_entry *jit_type_ce;
 
 typedef struct _php_jit_sized_t {
 	void   *data;
-	uint    length;
+	int   length;
 } php_jit_sized_t;
 
 jit_type_t jit_type_sizable;
@@ -151,7 +151,7 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 	{
 		jit_type_t sFields[] = {
 			jit_type_string,
-			jit_type_sys_ulong
+			jit_type_sys_int
 		};
 		
 		jit_type_sizable = jit_type_create_struct(sFields, sizeof(sFields)/sizeof(jit_type_t), 0);
