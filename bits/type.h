@@ -49,7 +49,6 @@ jit_type_t jit_type_sized;
 #define PHP_JIT_TYPE_LONG		5
 #define PHP_JIT_TYPE_DOUBLE		6
 #define PHP_JIT_TYPE_STRING		7
-#define PHP_JIT_TYPE_ARRAY      8
 #define PHP_JIT_TYPE_VOID_PTR	9
 
 jit_type_t php_jit_type(short type);
@@ -132,7 +131,6 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("long"),    PHP_JIT_TYPE_LONG TSRMLS_CC);
 	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("double"),  PHP_JIT_TYPE_DOUBLE TSRMLS_CC);
 	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("string"),  PHP_JIT_TYPE_STRING TSRMLS_CC);
-	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("array"),   PHP_JIT_TYPE_ARRAY TSRMLS_CC);
 	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("pvoid"),   PHP_JIT_TYPE_VOID_PTR TSRMLS_CC);
 	
 	memcpy(
@@ -147,7 +145,6 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 	REGISTER_LONG_CONSTANT("JIT_TYPE_ULONG",     PHP_JIT_TYPE_ULONG,       CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_DOUBLE",    PHP_JIT_TYPE_DOUBLE,      CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_STRING",    PHP_JIT_TYPE_STRING,      CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_ARRAY",     PHP_JIT_TYPE_ARRAY,      CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_VOID_PTR",  PHP_JIT_TYPE_VOID_PTR,    CONST_CS|CONST_PERSISTENT);
 
 	jit_type_string = jit_type_create_pointer(jit_type_sys_char, 0);

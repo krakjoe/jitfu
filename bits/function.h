@@ -445,7 +445,7 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 		case PHP_JIT_TYPE_LONG:     PHP_JIT_INIT_ARGS(long);               break;
 		case PHP_JIT_TYPE_ULONG:    PHP_JIT_INIT_ARGS(ulong);              break;
 		case PHP_JIT_TYPE_DOUBLE:   PHP_JIT_INIT_ARGS(double);             break;
-		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(void*);              break;
+		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(php_jit_sized_t);    break;
 		case PHP_JIT_TYPE_VOID_PTR: PHP_JIT_INIT_ARGS(void*);              break;
 		
 		default: {
@@ -482,15 +482,7 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 			case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint) Z_LVAL_PP(zmember);    break;
 			case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = Z_DVAL_PP(zmember);           break;
 			case PHP_JIT_TYPE_STRING: {
-				php_jit_sized_t *sized = 
-					(php_jit_sized_t*) ecalloc(1, sizeof(php_jit_sized_t));
-				
-				sized->data   = Z_STRVAL_PP(zmember);
-				sized->length = Z_STRLEN_PP(zmember);
-				
-				uargs[nuarg] = sized;
-				
-				zend_llist_add_element(stack, &sized);
+				memcpy(&uargs[nuarg], &(*zmember)->value.str, sizeof(php_jit_sized_t));
 			} break;
 			case PHP_JIT_TYPE_VOID_PTR: ((void**)uargs)[nuarg] = &(*zmember)->value;          break;
 		}

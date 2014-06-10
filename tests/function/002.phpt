@@ -12,7 +12,7 @@ use JITFu\Value;
 
 $context = new Context();
 
-$int      = Type::of(Type::int);
+$int      = Type::of(Type::long);
 
 /* int function(int x, int y); */
 $function = new Func($context, new Signature($int, [$int, $int]), function($args) {
