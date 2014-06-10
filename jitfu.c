@@ -35,6 +35,7 @@ ZEND_DECLARE_MODULE_GLOBALS(jitfu);
 
 #include "bits/context.h"
 #include "bits/type.h"
+#include "bits/struct.h"
 #include "bits/signature.h"
 #include "bits/function.h"
 #include "bits/label.h"
@@ -106,6 +107,7 @@ PHP_MINIT_FUNCTION(jitfu)
 	
 	php_jit_minit_context(module_number TSRMLS_CC);
 	php_jit_minit_type(module_number TSRMLS_CC);
+	php_jit_minit_struct(module_number TSRMLS_CC);
 	php_jit_minit_signature(module_number TSRMLS_CC);
 	php_jit_minit_function(module_number TSRMLS_CC);
 	php_jit_minit_value(module_number TSRMLS_CC);
@@ -147,6 +149,7 @@ PHP_MINFO_FUNCTION(jitfu)
 
 #include "bits/context.h"
 #include "bits/type.h"
+#include "bits/struct.h"
 #include "bits/signature.h"
 #include "bits/function.h"
 #include "bits/value.h"

@@ -22,6 +22,7 @@ typedef struct _php_jit_type_t {
 	zend_object         std;
 	zend_object_handle  h;
 	jit_type_t          type;
+	/* must be first three members */
 	zend_ulong          id;
 	zend_ulong          pt;
 	zend_bool           copied;
