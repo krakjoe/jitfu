@@ -14,6 +14,7 @@ $context = new Context();
 
 $string  = Type::of(Type::string);
 $strings = new Type($string, true);
+$sstrings = new Type($strings, true);
 $int    = Type::of(Type::int);
 
 $function = new Func($context, new Signature($int, [$string]), function($args) {
@@ -33,8 +34,21 @@ $function = new Func($context, new Signature($int, [$strings]), function($args) 
 
 var_dump(
 	$function(["hello world"]));
+	
+$function = new Func($context, new Signature($int, [$sstrings]), function($args) {
+	$zero = new Value($this, 0, Type::of(Type::int));
+	$first = $this
+		->doLoadElem($args[0], $zero);
+	
+	$this->doReturn(
+		$this->doSize(
+			$this->doLoadElem($first, $zero)));
+});
+
+var_dump(
+	$function([["hello world"]]));
 ?>
 --EXPECT--
 int(11)
 int(11)
-
+int(11)
