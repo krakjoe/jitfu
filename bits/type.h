@@ -73,7 +73,7 @@ jit_type_t php_jit_type(short type) {
 		case PHP_JIT_TYPE_ULONG:    return jit_type_sys_ulong;
 		case PHP_JIT_TYPE_LONG:		return jit_type_sys_long;
 		case PHP_JIT_TYPE_DOUBLE:	return jit_type_sys_double;
-		case PHP_JIT_TYPE_STRING:   return jit_type_sizable;
+		case PHP_JIT_TYPE_STRING:   return jit_type_sized;
 		case PHP_JIT_TYPE_VOID_PTR:	return jit_type_void_ptr;
 	}
 
@@ -153,8 +153,8 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 			jit_type_string,
 			jit_type_sys_int
 		};
-		
-		jit_type_sizable = jit_type_create_struct(sFields, sizeof(sFields)/sizeof(jit_type_t), 0);
+
+		jit_type_sizable = jit_type_create_struct(sFields, sizeof(sFields)/sizeof(jit_type_t), 1);
 		jit_type_sized   = jit_type_create_pointer(jit_type_sizable, 1);
 	}
 }

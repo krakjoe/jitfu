@@ -551,7 +551,6 @@ PHP_METHOD(Func, __invoke) {
 				efree(args);
 				return;
 			}
-
 			jargs[narg] = php_jit_array_args
 					(pfunc, &stack, args[narg], narg TSRMLS_CC);
 		} else switch (pfunc->sig->params[narg]->id) {
@@ -578,7 +577,7 @@ PHP_METHOD(Func, __invoke) {
 				if (Z_TYPE_P(args[narg]) != IS_STRING) {
 					convert_to_string(args[narg]);
 				}
-				
+
 				jargs[narg] = &args[narg]->value.str;
 			} break;
 			
@@ -1879,7 +1878,7 @@ PHP_METHOD(Func, doReturn) {
 
 PHP_METHOD(Func, doSize) {
 	zval *zin = NULL;
-	php_jit_value_t *pval;
+	php_jit_value_t *ival, *pval;
 	php_jit_function_t *pfunc;
 	jit_value_t value;
 	jit_value_t index = jit_value_create_nint_constant(this_func_j, jit_type_sys_int, 1);
@@ -1889,11 +1888,15 @@ PHP_METHOD(Func, doSize) {
 		return;
 	}
 	
+	ival = PHP_JIT_FETCH_VALUE(zin);
+	
 	object_init_ex(return_value, jit_value_ce);
 	pval = PHP_JIT_FETCH_VALUE(return_value);
-	/* this has to be wrong */
-	pval->value = jit_insn_load_elem
-		(this_func_j, PHP_JIT_FETCH_VALUE_I(zin), index, jit_type_sized);
+	
+	pval->value = jit_insn_load_relative
+		(this_func_j, ival->value,
+		jit_type_get_offset (jit_type_sizable, 1),
+		jit_type_sized);
 }
 
 PHP_METHOD(Func, doPush) {
