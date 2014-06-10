@@ -167,7 +167,7 @@ static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSR
 	int result = FAILURE;
 
 	if (pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED) {
-		/* throw already implemented */
+		php_jit_exception("function already implemented");
 		return;
 	}
 	
@@ -175,7 +175,7 @@ static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSR
 	zend_create_closure(&closure, (zend_function*) zend_get_closure_method_def(zbuilder TSRMLS_CC), Z_OBJCE_P(this_ptr), this_ptr TSRMLS_CC);
 
 	if (zend_fcall_info_init(&closure, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
-		/* throw failed to initialize closure method */
+		php_jit_exception("failed to initialzied builder function call");
 		zval_dtor(&closure);
 		return;
 	}
@@ -216,7 +216,7 @@ static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSR
 	result = zend_call_function(&fci, &fcc TSRMLS_CC);
 	
 	if (result == FAILURE) {
-		/* throw failed to call builder */
+		php_jit_exception("failed to call builder function");
 		return;
 	}
 	
@@ -449,7 +449,9 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 		case PHP_JIT_TYPE_VOID_PTR: PHP_JIT_INIT_ARGS(void*);              break;
 		
 		default: {
-			/* throw cannot manage arguments */
+			php_jit_exception(
+				"cannot manage arguments of type %d", 
+				pfunc->sig->params[narg]->id);
 			efree(uargs);
 			efree(pargs);
 			return;
@@ -533,7 +535,6 @@ PHP_METHOD(Func, __invoke) {
 	args = (zval**) emalloc(sizeof(zval*) * nargs);
 
 	if (zend_get_parameters_array(ht, nargs, args) != SUCCESS) {
-		/* throw failed to fetch arguments */
 		php_jit_exception("failed to fetch parameters from stack, expected %d", pfunc->sig->nparams);
 		efree(args);
 		return;
@@ -1897,10 +1898,11 @@ PHP_METHOD(Func, doSize) {
 	object_init_ex(return_value, jit_value_ce);
 
 	pval = PHP_JIT_FETCH_VALUE(return_value);
-	pval->value = jit_insn_load_relative
+	pval->value = jit_insn_convert(
+		this_func_j, jit_insn_load_relative
 		(this_func_j, PHP_JIT_FETCH_VALUE_I(zin),
 		jit_type_get_offset (jit_type_sizable, 1),
-		jit_type_sized);
+		jit_type_sized), jit_type_sys_int, 0);
 }
 
 PHP_METHOD(Func, doPush) {
