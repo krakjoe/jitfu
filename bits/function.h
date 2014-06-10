@@ -1901,8 +1901,8 @@ PHP_METHOD(Func, doSize) {
 		this_func_j, jit_insn_load_relative(
 			this_func_j, PHP_JIT_FETCH_VALUE_I(zin), 
 			jit_type_get_offset (jit_type_sizable, 1), 
-			jit_type_sized), 
-		jit_type_sys_long, 1);
+			jit_type_sized),
+		jit_type_sys_int, 0);
 }
 
 PHP_METHOD(Func, doPush) {
