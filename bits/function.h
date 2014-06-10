@@ -465,12 +465,11 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 		zend_hash_get_current_data_ex(uht, (void**) &zmember, &pos) == SUCCESS;
 		zend_hash_move_forward_ex(uht, &pos)) {
 		
-		if (Z_TYPE_PP(zmember) == IS_ARRAY) {
+		if (Z_TYPE_PP(zmember) == IS_ARRAY) {		
 			if (!pfunc->sig->params[narg]->pt) {
-				/* throw, this is not a pointer type */
-				efree(pargs);
-				efree(uargs);
-				return NULL;
+				php_jit_exception(
+					"the argument at %d was not expected to be an array", narg);
+				break;
 			}
 
 			((void**)uargs)[nuarg] = * php_jit_array_args
@@ -1898,10 +1897,12 @@ PHP_METHOD(Func, doSize) {
 	object_init_ex(return_value, jit_value_ce);
 
 	pval = PHP_JIT_FETCH_VALUE(return_value);
-	pval->value = jit_insn_load_relative
-		(this_func_j, PHP_JIT_FETCH_VALUE_I(zin),
-		jit_type_get_offset (jit_type_sizable, 1),
-		jit_type_sized);
+	pval->value = jit_insn_convert(
+		this_func_j, jit_insn_load_relative(
+			this_func_j, PHP_JIT_FETCH_VALUE_I(zin), 
+			jit_type_get_offset (jit_type_sizable, 1), 
+			jit_type_sized), 
+		jit_type_sys_long, 1);
 }
 
 PHP_METHOD(Func, doPush) {
