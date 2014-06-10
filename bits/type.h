@@ -73,7 +73,7 @@ jit_type_t php_jit_type(short type) {
 		case PHP_JIT_TYPE_ULONG:    return jit_type_sys_ulong;
 		case PHP_JIT_TYPE_LONG:		return jit_type_sys_long;
 		case PHP_JIT_TYPE_DOUBLE:	return jit_type_sys_double;
-		case PHP_JIT_TYPE_STRING:   return jit_type_sized;
+		case PHP_JIT_TYPE_STRING:   return jit_type_sizable;
 		case PHP_JIT_TYPE_VOID_PTR:	return jit_type_void_ptr;
 	}
 

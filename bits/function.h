@@ -472,7 +472,7 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 				efree(uargs);
 				return NULL;
 			}
-			
+
 			((void**)uargs)[nuarg] = * php_jit_array_args
 				(pfunc, stack, *zmember, narg TSRMLS_CC);
 		} else switch (pfunc->sig->params[narg]->id) {
