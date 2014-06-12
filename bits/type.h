@@ -37,6 +37,10 @@ typedef struct _php_jit_sized_t {
 
 jit_type_t jit_type_sizable;
 jit_type_t jit_type_sized;
+jit_type_t jit_type_zobject;
+jit_type_t jit_type_zvalue;
+jit_type_t jit_type_zval;
+jit_type_t jit_type_pzval;
 
 #define PHP_JIT_FETCH_TYPE(from) \
 	(php_jit_type_t*) zend_object_store_get_object((from) TSRMLS_CC)
@@ -50,7 +54,7 @@ jit_type_t jit_type_sized;
 #define PHP_JIT_TYPE_LONG		5
 #define PHP_JIT_TYPE_DOUBLE		6
 #define PHP_JIT_TYPE_STRING		7
-#define PHP_JIT_TYPE_VOID_PTR	9
+#define PHP_JIT_TYPE_ZVAL	    8
 
 jit_type_t php_jit_type(short type);
 void php_jit_minit_type(int module_number TSRMLS_DC);
@@ -75,7 +79,7 @@ jit_type_t php_jit_type(short type) {
 		case PHP_JIT_TYPE_LONG:		return jit_type_sys_long;
 		case PHP_JIT_TYPE_DOUBLE:	return jit_type_sys_double;
 		case PHP_JIT_TYPE_STRING:   return jit_type_sized;
-		case PHP_JIT_TYPE_VOID_PTR:	return jit_type_void_ptr;
+		case PHP_JIT_TYPE_ZVAL:	    return jit_type_pzval;
 	}
 
 	return jit_type_void;
@@ -120,7 +124,6 @@ static inline zend_object_value php_jit_type_create(zend_class_entry *ce TSRMLS_
 void php_jit_minit_type(int module_number TSRMLS_DC) {
 	zend_class_entry ce;
 	
-	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Type", php_jit_type_methods);
 	jit_type_ce = zend_register_internal_class(&ce TSRMLS_CC);
 	jit_type_ce->create_object = php_jit_type_create;
@@ -132,7 +135,7 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("long"),    PHP_JIT_TYPE_LONG TSRMLS_CC);
 	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("double"),  PHP_JIT_TYPE_DOUBLE TSRMLS_CC);
 	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("string"),  PHP_JIT_TYPE_STRING TSRMLS_CC);
-	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("pvoid"),   PHP_JIT_TYPE_VOID_PTR TSRMLS_CC);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("zval"),    PHP_JIT_TYPE_ZVAL TSRMLS_CC);
 	
 	memcpy(
 		&php_jit_type_handlers,
@@ -146,7 +149,7 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 	REGISTER_LONG_CONSTANT("JIT_TYPE_ULONG",     PHP_JIT_TYPE_ULONG,       CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_DOUBLE",    PHP_JIT_TYPE_DOUBLE,      CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_STRING",    PHP_JIT_TYPE_STRING,      CONST_CS|CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("JIT_TYPE_VOID_PTR",  PHP_JIT_TYPE_VOID_PTR,    CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("JIT_TYPE_ZVAL",      PHP_JIT_TYPE_ZVAL,        CONST_CS|CONST_PERSISTENT);
 
 	jit_type_string = jit_type_create_pointer(jit_type_sys_char, 0);
 	{
@@ -154,9 +157,39 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 			jit_type_string,
 			jit_type_sys_int
 		};
-
+		
 		jit_type_sizable = jit_type_create_struct(sFields, sizeof(sFields)/sizeof(jit_type_t), 1);
 		jit_type_sized   = jit_type_create_pointer(jit_type_sizable, 1);
+		{
+			jit_type_t oFields[] = {
+				jit_type_sys_uint,
+				jit_type_void_ptr
+			};
+			
+			jit_type_zobject = jit_type_create_struct(oFields, sizeof(oFields)/sizeof(jit_type_t), 1);
+			{
+				jit_type_t vFields[] = {
+					jit_type_sys_long,
+					jit_type_sys_double,
+					jit_type_sized,
+					jit_type_void_ptr,
+					jit_type_zobject,
+					jit_type_void_ptr
+				};
+
+				jit_type_zvalue = jit_type_create_union(vFields, sizeof(vFields)/sizeof(jit_type_t), 1);
+				{
+					jit_type_t zFields[] = {
+						jit_type_zvalue,
+						jit_type_sys_uint,
+						jit_type_sys_uchar,
+						jit_type_sys_uchar
+					};
+					jit_type_zval = jit_type_create_struct(zFields, sizeof(zFields)/sizeof(jit_type_t), 1);
+					jit_type_pzval = jit_type_create_pointer(jit_type_zval, 1);
+				}
+			}
+		}
 	}
 }
 

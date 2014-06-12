@@ -30,7 +30,7 @@ var_dump(
 	JIT_TYPE_INT == Type::int,
 	JIT_TYPE_UINT == Type::uint,
 	JIT_TYPE_STRING == Type::string,
-	JIT_TYPE_VOID_PTR == Type::pvoid,
+	JIT_TYPE_ZVAL == Type::zval,
 	JIT_TYPE_VOID == Type::void,
 	JIT_TYPE_DOUBLE == Type::double);
 

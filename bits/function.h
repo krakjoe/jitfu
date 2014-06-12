@@ -445,8 +445,8 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 		case PHP_JIT_TYPE_LONG:     PHP_JIT_INIT_ARGS(long);               break;
 		case PHP_JIT_TYPE_ULONG:    PHP_JIT_INIT_ARGS(ulong);              break;
 		case PHP_JIT_TYPE_DOUBLE:   PHP_JIT_INIT_ARGS(double);             break;
-		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(php_jit_sized_t*);    break;
-		case PHP_JIT_TYPE_VOID_PTR: PHP_JIT_INIT_ARGS(void*);              break;
+		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(php_jit_sized_t*);   break;
+		case PHP_JIT_TYPE_ZVAL:     PHP_JIT_INIT_ARGS(zval*);              break;
 		
 		default: {
 			php_jit_exception(
@@ -487,7 +487,7 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 					(php_jit_sized_t*) &(*zmember)->value.str;
 				uargs[nuarg] = s;
 			} break;
-			case PHP_JIT_TYPE_VOID_PTR: ((void**)uargs)[nuarg] = &(*zmember)->value;          break;
+			case PHP_JIT_TYPE_ZVAL: ((void**)uargs)[nuarg] = zmember;                         break;
 		}
 		
 		pargs[nuarg] = &uargs[nuarg];
@@ -586,7 +586,7 @@ PHP_METHOD(Func, __invoke) {
 				jargs[narg] = &s;
 			} break;
 			
-			case PHP_JIT_TYPE_VOID_PTR: jargs[narg] = &args[narg]->value; break;
+			case PHP_JIT_TYPE_ZVAL: jargs[narg] = &args[narg]; break;
 		}
 
 		narg++;
@@ -615,8 +615,12 @@ PHP_METHOD(Func, __invoke) {
 			ZVAL_DOUBLE(return_value, doubled);
 		} break;
 
-		case PHP_JIT_TYPE_VOID_PTR: ZVAL_LONG(return_value, (long) result); break;
+		case PHP_JIT_TYPE_ZVAL: ZVAL_ZVAL(return_value, (zval*) result, 1, 0); break;
 	
+		case PHP_JIT_TYPE_VOID:
+			/* do nothing */
+			break;
+
 		default: {
 			php_jit_exception("failed to retrieve return value from call, return type unknown to Zend");
 		}
