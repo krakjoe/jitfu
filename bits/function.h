@@ -2034,6 +2034,31 @@ PHP_METHOD(Func, doCall) {
 	efree(args);
 }
 
+PHP_METHOD(Func, doEcho) {
+	zval *zmessage;
+	jit_type_t signature;
+	jit_type_t fields[1];
+	jit_value_t args[1];
+	
+	if (php_jit_parameters("O", &zmessage, jit_value_ce) != SUCCESS || !zmessage) {
+		php_jit_exception("unexpected parameters, expected (Value value)");
+		return;
+	}
+	
+	if (PHP_JIT_FETCH_VALUE(zmessage)->type->id != PHP_JIT_TYPE_STRING) {
+		php_jit_exception("unexpected Value, must be a string");
+		return;
+	}
+	
+	args[0] = jit_insn_load_relative
+		(this_func_j, PHP_JIT_FETCH_VALUE_I(zmessage), 0, jit_type_sized);
+	fields[0] = jit_type_create_pointer(jit_type_sys_char, 1);
+	signature = jit_type_create_signature
+		(jit_abi_cdecl, jit_type_sys_int, fields, sizeof(fields)/sizeof(jit_type_t), 0);
+	jit_insn_call_native(this_func_j, NULL, (void*) puts, signature, args, 1, 0);
+	jit_type_free(signature);
+}
+
 ZEND_BEGIN_ARG_INFO_EX( php_jit_function_get_param_arginfo, 0, 0, 2) 
 	ZEND_ARG_INFO(0, parameter)
 ZEND_END_ARG_INFO()
@@ -2177,6 +2202,10 @@ ZEND_BEGIN_ARG_INFO_EX(php_jit_function_doPop_arginfo, 0, 0, 0)
 	ZEND_ARG_INFO(0, items)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_jit_function_doEcho_arginfo, 0, 0, 0) 
+	ZEND_ARG_INFO(0, string)
+ZEND_END_ARG_INFO()
+
 zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, __construct,   php_jit_function_construct_arginfo, ZEND_ACC_PUBLIC)
 	PHP_ME(Func, implement,     php_jit_function_implement_arginfo, ZEND_ACC_PUBLIC)
@@ -2280,6 +2309,7 @@ zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, doReturnPtr,       php_jit_function_doReturnPtr_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doDefaultReturn,   php_jit_no_arginfo,                      ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doGetCallStack,    php_jit_no_arginfo,                      ZEND_ACC_PUBLIC)
+	PHP_ME(Func, doEcho,    php_jit_function_doEcho_arginfo,                      ZEND_ACC_PUBLIC)
 	/* */
 	PHP_FE_END
 };
