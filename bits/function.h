@@ -432,14 +432,19 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 	void **uargs = NULL;
 	void **pargs = NULL;
 	zval **zmember;
-
+	php_jit_sized_t *array;
+	
 #define PHP_JIT_INIT_ARGS(type) do { \
 	\
-	uargs = emalloc(sizeof(type) * nuargs); \
-	pargs = emalloc(sizeof(type*) * nuargs); \
+	array         = emalloc(sizeof(php_jit_sized_t)); \
+	array->length = nuargs;\
+	array->data   = emalloc(sizeof(type*) * nuargs); \
+	uargs         = emalloc(sizeof(type) * nuargs); \
 } while (0)
 
-	switch (pfunc->sig->params[narg]->id) {
+	if (pfunc->sig->params[narg]->pt) {
+		PHP_JIT_INIT_ARGS(php_jit_sized_t*);
+	} else switch (pfunc->sig->params[narg]->id) {
 		case PHP_JIT_TYPE_INT:      PHP_JIT_INIT_ARGS(int);                break;
 		case PHP_JIT_TYPE_UINT:     PHP_JIT_INIT_ARGS(uint);               break;
 		case PHP_JIT_TYPE_LONG:     PHP_JIT_INIT_ARGS(long);               break;
@@ -452,8 +457,9 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 			php_jit_exception(
 				"cannot manage arguments of type %d", 
 				pfunc->sig->params[narg]->id);
+			efree(array);
+			efree(array->data);
 			efree(uargs);
-			efree(pargs);
 			return;
 		}
 	}
@@ -461,40 +467,44 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 #undef PHP_JIT_INIT_ARGS
 
 	zend_llist_add_element(stack, &uargs);
-	zend_llist_add_element(stack, &pargs);
+	zend_llist_add_element(stack, &array);
+	zend_llist_add_element(stack, &array->data);
 
 	for (zend_hash_internal_pointer_reset_ex(uht, &pos);
 		zend_hash_get_current_data_ex(uht, (void**) &zmember, &pos) == SUCCESS;
 		zend_hash_move_forward_ex(uht, &pos)) {
 		
-		if (Z_TYPE_PP(zmember) == IS_ARRAY) {		
+		if (Z_TYPE_PP(zmember) == IS_ARRAY) {
+		    php_jit_sized_t *inner;
+		    
 			if (!pfunc->sig->params[narg]->pt) {
 				php_jit_exception(
 					"the argument at %d was not expected to be an array", narg);
 				break;
 			}
-
-			((void**)uargs)[nuarg] = * php_jit_array_args
-				(pfunc, stack, *zmember, narg TSRMLS_CC);
-		} else switch (pfunc->sig->params[narg]->id) {
-			case PHP_JIT_TYPE_LONG:   ((long*)uargs)[nuarg]   = Z_LVAL_PP(zmember);           break;
-			case PHP_JIT_TYPE_ULONG:  ((ulong*)uargs)[nuarg]  = (ulong) Z_LVAL_PP(zmember);   break;
-			case PHP_JIT_TYPE_INT:    ((int*)uargs)[nuarg]    = (int) Z_LVAL_PP(zmember);     break;
-			case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint) Z_LVAL_PP(zmember);    break;
-			case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = Z_DVAL_PP(zmember);           break;
-			case PHP_JIT_TYPE_STRING: {
-				php_jit_sized_t *s =
-					(php_jit_sized_t*) &(*zmember)->value.str;
-				uargs[nuarg] = s;
-			} break;
-			case PHP_JIT_TYPE_ZVAL: ((void**)uargs)[nuarg] = zmember;                         break;
+			
+			((void**)array->data)[nuarg] = (php_jit_sized_t*) 
+			    php_jit_array_args(pfunc, stack, *zmember, narg TSRMLS_CC);
+		} else {
+		    switch (pfunc->sig->params[narg]->id) {
+			    case PHP_JIT_TYPE_LONG:   ((long*)uargs)[nuarg]   = Z_LVAL_PP(zmember);           break;
+			    case PHP_JIT_TYPE_ULONG:  ((ulong*)uargs)[nuarg]  = (ulong) Z_LVAL_PP(zmember);   break;
+			    case PHP_JIT_TYPE_INT:    ((int*)uargs)[nuarg]    = (int) Z_LVAL_PP(zmember);     break;
+			    case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint) Z_LVAL_PP(zmember);    break;
+			    case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = Z_DVAL_PP(zmember);           break;
+			    case PHP_JIT_TYPE_STRING: {
+				    php_jit_sized_t *s =
+					    (php_jit_sized_t*) &(*zmember)->value.str;
+				    uargs[nuarg] = s;
+			    } break;
+			    case PHP_JIT_TYPE_ZVAL: ((void**)uargs)[nuarg] = zmember;                         break;
+		    }
+		    ((void**)array->data)[nuarg] = &uargs[nuarg];
 		}
-		
-		pargs[nuarg] = &uargs[nuarg];
 		nuarg++;
 	}
 	
-	return pargs;
+	return array;
 }
 
 static inline void php_jit_invoke_stack_dtor(void *ptr) {
@@ -546,6 +556,8 @@ PHP_METHOD(Func, __invoke) {
 
 	while (narg < nargs) {
 		if (Z_TYPE_P(args[narg]) == IS_ARRAY) {
+		    php_jit_sized_t *array;
+		    
 			if (!pfunc->sig->params[narg]->pt) {
 				php_jit_exception("failed to pass parameter at %d, not expecting a pointer", narg);
 				zend_llist_destroy(&stack);
@@ -553,8 +565,11 @@ PHP_METHOD(Func, __invoke) {
 				efree(args);
 				return;
 			}
-			jargs[narg] = php_jit_array_args
-					(pfunc, &stack, args[narg], narg TSRMLS_CC);
+            
+            array = (php_jit_sized_t*) php_jit_array_args
+			    (pfunc, &stack, args[narg], narg TSRMLS_CC);
+            
+			jargs[narg] = &array;
 		} else switch (pfunc->sig->params[narg]->id) {
 			case PHP_JIT_TYPE_UINT:
 			case PHP_JIT_TYPE_INT:
@@ -599,7 +614,7 @@ PHP_METHOD(Func, __invoke) {
 			if (result) {
 				php_jit_sized_t *s = 
 					(php_jit_sized_t*) result;
-				
+
 				ZVAL_STRINGL(return_value, (char*) s->data, s->length, 1);
 			}
 		} break;
@@ -1728,7 +1743,8 @@ PHP_METHOD(Func, doLoadElem) {
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_load_elem(
 		pfunc->func,
-		lval->value, 
+		jit_insn_load_relative
+			(pfunc->func, lval->value, 0, jit_type_sized), 
 		PHP_JIT_FETCH_VALUE_I(zin[1]),
 		lval->type->type);
 	pval->type = lval->type;
@@ -1758,7 +1774,8 @@ PHP_METHOD(Func, doLoadElemAddress) {
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_load_elem_address(
 		pfunc->func,
-		lval->value, 
+		jit_insn_load_relative
+			(this_func_j, lval->value, 0, jit_type_sized), 
 		PHP_JIT_FETCH_VALUE_I(zin[1]), 
 		lval->type->type);
 	pval->type = lval->type;
@@ -1789,7 +1806,8 @@ PHP_METHOD(Func, doLoadRelative) {
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_load_relative(
 		pfunc->func,
-		lval->value,
+		jit_insn_load_relative
+			(this_func_j, lval->value, 0, jit_type_sized),
 		index,
 		lval->type->type);
 	pval->type = lval->type;
@@ -1810,7 +1828,9 @@ PHP_METHOD(Func, doStoreRelative) {
 	
 	RETURN_LONG(jit_insn_store_relative(
 		pfunc->func,
-		PHP_JIT_FETCH_VALUE_I(zin[0]),
+		jit_insn_load_relative
+			(this_func_j, 
+				PHP_JIT_FETCH_VALUE_I(zin[0]), 0, jit_type_sized),
 		(jit_nint) index, 
 		PHP_JIT_FETCH_VALUE_I(zin[1])));
 }
@@ -1840,15 +1860,24 @@ PHP_METHOD(Func, doConvert) {
 
 PHP_METHOD(Func, doStoreElem) {
 	zval *zin[3] = {NULL, NULL, NULL};
+	php_jit_value_t *lval;
 	
 	if (php_jit_parameters("OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
 		php_jit_exception("unexpected parameters, expected (Value base, Value index, Value value)");
 		return;
 	}
 	
+	lval = PHP_JIT_FETCH_VALUE(zin[0]);
+	
+	if (!lval->type->pt) {
+		php_jit_exception("attempt to store  non-pointer");
+		return;
+	}
+	
 	RETURN_BOOL(jit_insn_store_elem(
 		this_func_j,
-		PHP_JIT_FETCH_VALUE_I(zin[0]),
+		jit_insn_load_relative
+			(this_func_j, lval->value, 0, jit_type_sized),
 		PHP_JIT_FETCH_VALUE_I(zin[1]), 
 		PHP_JIT_FETCH_VALUE_I(zin[2])));
 }
@@ -1890,23 +1919,27 @@ PHP_METHOD(Func, doReturn) {
 
 PHP_METHOD(Func, doSize) {
 	zval *zin = NULL;
-	php_jit_value_t *pval;
-	php_jit_function_t *pfunc;
-	jit_value_t value;
+	php_jit_value_t *pval, *lval;
+	jit_nint off = jit_type_get_offset(jit_type_sizable, 1);
 	
 	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
 		php_jit_exception("unexpected parameters, expected (Value value)");
 		return;
 	}
 	
+	lval = PHP_JIT_FETCH_VALUE(zin);
+	
+	if (!lval->type->pt) {
+		if (lval->type->id != PHP_JIT_TYPE_STRING) {
+			php_jit_exception("unexpected Value, can only return size of pointers or strings");
+			return;	
+		}
+	}
+	
 	object_init_ex(return_value, jit_value_ce);
-
 	pval = PHP_JIT_FETCH_VALUE(return_value);
-	pval->value = jit_insn_convert(
-		this_func_j, jit_insn_load_relative
-		(this_func_j, PHP_JIT_FETCH_VALUE_I(zin),
-		jit_type_get_offset (jit_type_sizable, 1),
-		jit_type_sized), jit_type_sys_int, 0);
+	pval->value = jit_insn_load_relative
+		(this_func_j, lval->value, off, jit_type_sized);
 }
 
 PHP_METHOD(Func, doPush) {
