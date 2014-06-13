@@ -424,7 +424,7 @@ PHP_METHOD(Func, getSignature) {
 	}
 }
 
-static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *stack, zval *member, zend_uint narg TSRMLS_DC) {
+static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zend_llist *stack, zval *member, zend_uint narg TSRMLS_DC) {
 	HashTable *uht = Z_ARRVAL_P(member);
 	HashPosition pos;
 	zend_uint nuargs = zend_hash_num_elements(uht), 
@@ -445,7 +445,7 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 	if (pfunc->sig->params[narg]->pt) {
 		PHP_JIT_INIT_ARGS(php_jit_sized_t*);
 	} else switch (pfunc->sig->params[narg]->id) {
-		case PHP_JIT_TYPE_INT:      PHP_JIT_INIT_ARGS(int);                break;
+		case PHP_JIT_TYPE_INT:      PHP_JIT_INIT_ARGS(int);               break;
 		case PHP_JIT_TYPE_UINT:     PHP_JIT_INIT_ARGS(uint);               break;
 		case PHP_JIT_TYPE_LONG:     PHP_JIT_INIT_ARGS(long);               break;
 		case PHP_JIT_TYPE_ULONG:    PHP_JIT_INIT_ARGS(ulong);              break;
@@ -483,15 +483,16 @@ static inline void** php_jit_array_args(php_jit_function_t *pfunc, zend_llist *s
 				break;
 			}
 			
-			((void**)array->data)[nuarg] = (php_jit_sized_t*) 
-			    php_jit_array_args(pfunc, stack, *zmember, narg TSRMLS_CC);
+			inner = php_jit_array_args
+			    (pfunc, stack, *zmember, narg TSRMLS_CC);
+			((void**)array->data)[nuarg] = inner;
 		} else {
 		    switch (pfunc->sig->params[narg]->id) {
-			    case PHP_JIT_TYPE_LONG:   ((long*)uargs)[nuarg]   = Z_LVAL_PP(zmember);           break;
-			    case PHP_JIT_TYPE_ULONG:  ((ulong*)uargs)[nuarg]  = (ulong) Z_LVAL_PP(zmember);   break;
-			    case PHP_JIT_TYPE_INT:    ((int*)uargs)[nuarg]    = (int) Z_LVAL_PP(zmember);     break;
-			    case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint) Z_LVAL_PP(zmember);    break;
-			    case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = Z_DVAL_PP(zmember);           break;
+			    case PHP_JIT_TYPE_LONG:   ((long*)uargs)[nuarg]   = (long)   Z_LVAL_PP(zmember); break;
+			    case PHP_JIT_TYPE_ULONG:  ((ulong*)uargs)[nuarg]  = (ulong)  Z_LVAL_PP(zmember); break;
+			    case PHP_JIT_TYPE_INT:    ((int*)uargs)[nuarg]    = (int)    Z_LVAL_PP(zmember); break;
+			    case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint)   Z_LVAL_PP(zmember); break;
+			    case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = (double) Z_DVAL_PP(zmember); break;
 			    case PHP_JIT_TYPE_STRING: {
 				    php_jit_sized_t *s =
 					    (php_jit_sized_t*) &(*zmember)->value.str;
@@ -612,7 +613,7 @@ PHP_METHOD(Func, __invoke) {
 	switch (pfunc->sig->returns->id) {
 		case PHP_JIT_TYPE_STRING: {
 			if (result) {
-				php_jit_sized_t **s = 
+				php_jit_sized_t **s =
 					(php_jit_sized_t**) result;
 
 				ZVAL_STRINGL(return_value, (char*) (*s)->data, (*s)->length, 1);
@@ -622,7 +623,9 @@ PHP_METHOD(Func, __invoke) {
 		case PHP_JIT_TYPE_INT:
 		case PHP_JIT_TYPE_UINT:
 		case PHP_JIT_TYPE_ULONG:
-		case PHP_JIT_TYPE_LONG:   ZVAL_LONG(return_value, (long) result); break;
+		case PHP_JIT_TYPE_LONG:   
+		    ZVAL_LONG(return_value, (long) result); 
+		break;
 
 		case PHP_JIT_TYPE_DOUBLE: {
 			double doubled =
