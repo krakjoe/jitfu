@@ -612,10 +612,10 @@ PHP_METHOD(Func, __invoke) {
 	switch (pfunc->sig->returns->id) {
 		case PHP_JIT_TYPE_STRING: {
 			if (result) {
-				php_jit_sized_t *s = 
-					(php_jit_sized_t*) result;
+				php_jit_sized_t **s = 
+					(php_jit_sized_t**) result;
 
-				ZVAL_STRINGL(return_value, (char*) s->data, s->length, 1);
+				ZVAL_STRINGL(return_value, (char*) (*s)->data, (*s)->length, 1);
 			}
 		} break;
 	
