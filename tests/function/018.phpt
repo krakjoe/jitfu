@@ -14,8 +14,9 @@ $context = new Context();
 
 $long  = new type(JIT_TYPE_LONG);
 $longs = new Type($long, true);
+$int   = new Type(JIT_TYPE_INT);
 
-$function = new Func($context, new Signature($long, [$longs, $long]), function($args) {
+$function = new Func($context, new Signature($long, [$longs, $int]), function($args) {
 	$this->doReturn(
 		$this->doMul(
 			$this->doLoadElem($args[0], $args[1]), $args[1]));	
