@@ -106,6 +106,39 @@ On *my machine*, this is ~60 times faster than PHP.
 
 **This library is not useful for compiling Zend opcodes**
 
+Installation
+============
+
+Installing a yacc implementation. This is for ubuntu but other distros should have `bison` available through their package manager.
+
+```bash
+sudo apt-get install bison
+```
+
+Installing `libjit`
+
+```bash
+cd /tmp
+git clone git://git.savannah.gnu.org/libjit.git
+cd libjit
+./auto_gen.sh
+./configure
+make
+sudo make install
+```
+
+Installing `jitfu`
+
+```bash
+cd /tmp
+git clone https://github.com/krakjoe/jitfu.git
+cd jitfu/
+phpize
+./configure
+make
+sudo make install
+```
+
 TODO
 ====
 
