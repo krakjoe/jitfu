@@ -24,7 +24,7 @@ typedef struct _php_jit_value_t {
 	php_jit_function_t *func;
 	php_jit_type_t     *type;
 	jit_value_t         value;
-	void               *dup;
+	zval               *zv;
 } php_jit_value_t;
 
 zend_class_entry *jit_value_ce;
@@ -65,8 +65,8 @@ static inline void php_jit_value_free(void *zobject TSRMLS_DC) {
 
 	zend_object_std_dtor(&pval->std TSRMLS_CC);
 
-	if (pval->dup) {
-		efree(pval->dup);
+	if (pval->zv) {
+		zval_ptr_dtor(&pval->zv);
 	}
 	
 	efree(pval);
@@ -107,12 +107,11 @@ void php_jit_minit_value(int module_number TSRMLS_DC) {
 PHP_METHOD(Value, __construct) {
 	zval *zfunction = NULL, 
 		 *zvalue = NULL,
-		 *ztype = NULL,
-		 ztemp;
+		 *ztype = NULL;
 	php_jit_value_t *pval;
 	
 	switch (ZEND_NUM_ARGS()) {
-		case 3: if (php_jit_parameters("OzO", &zfunction, jit_function_ce, &zvalue, &ztype, jit_type_ce) != SUCCESS) {
+		case 3: if (php_jit_parameters("O/zO", &zfunction, jit_function_ce, &zvalue, &ztype, jit_type_ce) != SUCCESS) {
 			php_jit_exception("unexpected parameters, expected (Func function, mixed value, Type type)");
 			return;
 		} break;
@@ -135,68 +134,36 @@ PHP_METHOD(Value, __construct) {
 	pval->type = PHP_JIT_FETCH_TYPE(ztype);
 	zend_objects_store_add_ref_by_handle
 		(pval->type->h TSRMLS_CC);
-	
-	if (zvalue) {
+
+    pval->zv = zvalue;
+
+	if (pval->zv) {
 		switch (pval->type->id) {
 			case PHP_JIT_TYPE_UINT:
-				if (Z_TYPE_P(zvalue) != IS_LONG) {
-					ztemp = *zvalue;
-					convert_to_long(&ztemp);
-					pval->value = jit_value_create_nint_constant
-						(pval->func->func, pval->type->type, Z_LVAL(ztemp));
-					zval_dtor(&ztemp);
-				} else pval->value = jit_value_create_nint_constant
-						(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));
-			break;
-			
 			case PHP_JIT_TYPE_INT:
-				if (Z_TYPE_P(zvalue) != IS_LONG) {
-					ztemp = *zvalue;
-					convert_to_long(&ztemp);
-					pval->value = jit_value_create_nint_constant
-						(pval->func->func, pval->type->type, Z_LVAL(ztemp));
-					zval_dtor(&ztemp);
-				} else pval->value = jit_value_create_nint_constant
-						(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));
-			break;
-			
 			case PHP_JIT_TYPE_LONG:
-				if (Z_TYPE_P(zvalue) != IS_LONG) {
-					ztemp = *zvalue;
-					convert_to_long(&ztemp);
-					pval->value = jit_value_create_long_constant
-						(pval->func->func, pval->type->type, Z_LVAL(ztemp));
-					zval_dtor(&ztemp);
-				} else pval->value = jit_value_create_long_constant
-						(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));
-			break;
-			
 			case PHP_JIT_TYPE_ULONG:
-				if (Z_TYPE_P(zvalue) != IS_LONG) {
-					ztemp = *zvalue;
-					convert_to_long(&ztemp);
-					pval->value = jit_value_create_long_constant
-						(pval->func->func, pval->type->type, Z_LVAL(ztemp));
-					zval_dtor(&ztemp);
-				} else pval->value = jit_value_create_long_constant
-						(pval->func->func, pval->type->type, Z_LVAL_P(zvalue));
+				if (Z_TYPE_P(pval->zv) != IS_LONG) {
+					convert_to_long(pval->zv);
+				}
+				
+				pval->value = jit_value_create_nint_constant
+					(pval->func->func, pval->type->type, Z_LVAL_P(pval->zv));
 			break;
 			
 			case PHP_JIT_TYPE_DOUBLE:
 				if (Z_TYPE_P(zvalue) != IS_DOUBLE) {
-					ztemp = *zvalue;
-					convert_to_double(&ztemp);
-					pval->value = jit_value_create_float64_constant
-						(pval->func->func, pval->type->type, Z_DVAL(ztemp));
-					zval_dtor(&ztemp);
-				} else pval->value = jit_value_create_float64_constant
-					(pval->func->func, pval->type->type, Z_DVAL_P(zvalue));
+					convert_to_double(pval->zv);
+				}
+				
+				pval->value = jit_value_create_float64_constant
+					(pval->func->func, pval->type->type, Z_DVAL_P(pval->zv));
 			break;
 			
 			default: {
 				jit_constant_t con;
 
-				con.un.ptr_value = &zvalue->value;
+				con.un.ptr_value = &pval->zv->value;
 				con.type         = pval->type->type;
 
 				pval->value = jit_value_create_constant(pval->func->func, &con);
