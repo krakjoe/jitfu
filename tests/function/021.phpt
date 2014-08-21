@@ -30,11 +30,11 @@ long function (long **n, long f, long x) {
 }
 */
 
-$function = new Func($context, new Signature($long, [$llongs, $long, $long]), function($args) {
+$function = new Func($context, new Signature($long, [$llongs, Type::of(Type::int), Type::of(Type::int)]), function($args) {
 	/* long zero = 0; */
-	$zero = new Value($this, 0, new Type(JIT_TYPE_LONG));
+	$zero = new Value($this, 0, new Type(JIT_TYPE_INT));
 	/* long one = 1; */
-	$one  = new Value($this, 1, new Type(JIT_TYPE_LONG));
+	$one  = new Value($this, 1, new Type(JIT_TYPE_INT));
 
 	/* long r = n[f][x]; */
 	$r = $this->doLoadElem
@@ -46,7 +46,7 @@ $function = new Func($context, new Signature($long, [$llongs, $long, $long]), fu
 		/* r = (r - one); */
 		$this->doStore(
 			$r, $this->doSub($r, $one));
-	}); 
+	});
 	/* } */
 
 	/* return r; */
