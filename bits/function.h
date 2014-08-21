@@ -443,14 +443,14 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 } while (0)
 
 	if (pfunc->sig->params[narg]->pt) {
-		PHP_JIT_INIT_ARGS(php_jit_sized_t*);
+		PHP_JIT_INIT_ARGS(php_jit_sized_t);
 	} else switch (pfunc->sig->params[narg]->id) {
 		case PHP_JIT_TYPE_INT:      PHP_JIT_INIT_ARGS(int);               break;
 		case PHP_JIT_TYPE_UINT:     PHP_JIT_INIT_ARGS(uint);               break;
 		case PHP_JIT_TYPE_LONG:     PHP_JIT_INIT_ARGS(long);               break;
 		case PHP_JIT_TYPE_ULONG:    PHP_JIT_INIT_ARGS(ulong);              break;
 		case PHP_JIT_TYPE_DOUBLE:   PHP_JIT_INIT_ARGS(double);             break;
-		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(php_jit_sized_t*);   break;
+		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(php_jit_sized_t);   break;
 		case PHP_JIT_TYPE_ZVAL:     PHP_JIT_INIT_ARGS(zval*);              break;
 		
 		default: {
@@ -485,7 +485,8 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 			
 			inner = php_jit_array_args
 			    (pfunc, stack, *zmember, narg TSRMLS_CC);
-			((void**)array->data)[nuarg] = inner;
+            memcpy(&uargs[nuarg], inner, sizeof(php_jit_sized_t));
+		
 		} else {
 		    switch (pfunc->sig->params[narg]->id) {
 			    case PHP_JIT_TYPE_LONG:   ((long*)uargs)[nuarg]   = (long)   Z_LVAL_PP(zmember); break;
@@ -497,11 +498,13 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 				    php_jit_sized_t *s =
 					    (php_jit_sized_t*) &(*zmember)->value.str;
 				    uargs[nuarg] = s;
+				    
 			    } break;
 			    case PHP_JIT_TYPE_ZVAL: ((void**)uargs)[nuarg] = zmember;                         break;
 		    }
-		    ((void**)array->data)[nuarg] = &uargs[nuarg];
 		}
+		
+		((void**)array->data)[nuarg] = &uargs[nuarg];
 		nuarg++;
 	}
 	
