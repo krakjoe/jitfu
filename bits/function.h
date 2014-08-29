@@ -636,7 +636,11 @@ PHP_METHOD(Func, __invoke) {
 			ZVAL_DOUBLE(return_value, doubled);
 		} break;
 
-		case PHP_JIT_TYPE_ZVAL: ZVAL_ZVAL(return_value, (zval*) result, 1, 0); break;
+		case PHP_JIT_TYPE_ZVAL: {
+		    zval *retval = (zval*) result;
+
+		    ZVAL_ZVAL(return_value, retval, 1, 0);
+		} break;
 	
 		case PHP_JIT_TYPE_VOID:
 			/* do nothing */
