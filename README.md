@@ -121,7 +121,7 @@ This extension is being developed against the latest *libjit* sources, it is adv
     git clone https://github.com/krakjoe/jitfu
     cd jitfu
     phpize
-    ./configure --prefix=/opt
+    ./configure --with-jitfu=/opt
     make
     sudo make install
     
