@@ -12,6 +12,7 @@ use JITFU\Value;
 
 $context = new Context();
 
+$int = Type::of(Type::int);
 $long  = new Type(JIT_TYPE_LONG);
 $longs = new Type($long, true);
 $llongs = new Type($longs, true);
@@ -30,19 +31,16 @@ long function (long **n, long f, long x) {
 }
 */
 
-$function = new Func($context, new Signature($long, [$llongs, Type::of(Type::int), Type::of(Type::int)]), function($args) {
-	/* long zero = 0; */
-	$zero = new Value($this, 0, new Type(JIT_TYPE_INT));
-	/* long one = 1; */
-	$one  = new Value($this, 1, new Type(JIT_TYPE_INT));
-
+$function = new Func($context, new Signature($long, [$llongs, $int, $int]), function($args) {
 	/* long r = n[f][x]; */
 	$r = $this->doLoadElem
 			($this->doLoadElem
 				($args[0], $args[1]), $args[2]);
 
 	/* while(r) { */
-	$this->doWhile($r, function() use($r, $zero, $one) {	
+	$this->doWhile($r, function() use($r) {
+	    $one = new Value($this, 1, new Type(JIT_TYPE_INT));
+	    	
 		/* r = (r - one); */
 		$this->doStore(
 			$r, $this->doSub($r, $one));
