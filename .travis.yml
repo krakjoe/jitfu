@@ -1,0 +1,13 @@
+language: c
+
+before_install:
+    - sudo apt-get update -qq
+
+before_script:
+    - ./travis/compile-php.sh
+    - ./travis/compile-libjit.sh
+    - ./travis/compile-ext.sh
+
+script:
+    - ./travis/run-tests.sh
+

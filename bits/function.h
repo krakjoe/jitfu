@@ -1943,7 +1943,7 @@ PHP_METHOD(Func, doSize) {
 			return;	
 		}
 	}
-	
+
 	object_init_ex(return_value, jit_value_ce);
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_load_relative
