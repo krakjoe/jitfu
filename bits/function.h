@@ -427,9 +427,8 @@ PHP_METHOD(Func, getSignature) {
 static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zend_llist *stack, zval *member, zend_uint narg TSRMLS_DC) {
 	HashTable *uht = Z_ARRVAL_P(member);
 	HashPosition pos;
-	zend_uint nuargs = zend_hash_num_elements(uht), 
-			  nuarg = 0;
-	void **uargs = NULL;
+	zend_ulong nuargs = zend_hash_num_elements(uht), 
+			   nuarg = 0;
 	void **pargs = NULL;
 	zval **zmember;
 	php_jit_sized_t *array;
@@ -438,8 +437,7 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 	\
 	array         = emalloc(sizeof(php_jit_sized_t)); \
 	array->length = nuargs;\
-	array->data   = emalloc(sizeof(type*) * nuargs); \
-	uargs         = emalloc(sizeof(type) * nuargs); \
+	array->data   = emalloc(sizeof(type) * nuargs); \
 } while (0)
 
 	if (pfunc->sig->params[narg]->pt) {
@@ -457,16 +455,12 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 			php_jit_exception(
 				"cannot manage arguments of type %d", 
 				pfunc->sig->params[narg]->id);
-			efree(array);
-			efree(array->data);
-			efree(uargs);
-			return;
+			return NULL;
 		}
 	}
 
 #undef PHP_JIT_INIT_ARGS
 
-	zend_llist_add_element(stack, &uargs);
 	zend_llist_add_element(stack, &array);
 	zend_llist_add_element(stack, &array->data);
 
@@ -485,24 +479,30 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 			
 			inner = php_jit_array_args
 			    (pfunc, stack, *zmember, narg TSRMLS_CC);
-            memcpy(&uargs[nuarg], inner, sizeof(php_jit_sized_t));
+			array->data[nuarg] = inner;
 		} else {
 		    switch (pfunc->sig->params[narg]->id) {
-			    case PHP_JIT_TYPE_LONG:   ((long*)uargs)[nuarg]   = (long)   Z_LVAL_PP(zmember); break;
-			    case PHP_JIT_TYPE_ULONG:  ((ulong*)uargs)[nuarg]  = (ulong)  Z_LVAL_PP(zmember); break;
-			    case PHP_JIT_TYPE_INT:    ((int*)uargs)[nuarg]    = (int)    Z_LVAL_PP(zmember); break;
-			    case PHP_JIT_TYPE_UINT:   ((uint*)uargs)[nuarg]   = (uint)   Z_LVAL_PP(zmember); break;
-			    case PHP_JIT_TYPE_DOUBLE: ((double*)uargs)[nuarg] = (double) Z_DVAL_PP(zmember); break;
+		        case PHP_JIT_TYPE_DOUBLE: {
+		            memcpy(&array->data[nuarg], &Z_LVAL_PP(zmember), sizeof(double));
+		        } break;
+		        
+		        case PHP_JIT_TYPE_UINT:
+		        case PHP_JIT_TYPE_INT:
+		        case PHP_JIT_TYPE_ULONG:
+			    case PHP_JIT_TYPE_LONG: {
+			        memcpy(&array->data[nuarg], &Z_LVAL_PP(zmember), sizeof(long));
+			    } break;
+			    
 			    case PHP_JIT_TYPE_STRING: {
 				    php_jit_sized_t *s =
 					    (php_jit_sized_t*) &(*zmember)->value.str;
-				    uargs[nuarg] = s;
+				    array->data[nuarg] = s;
 			    } break;
-			    case PHP_JIT_TYPE_ZVAL: ((void**)uargs)[nuarg] = zmember;                         break;
+			    
+			    case PHP_JIT_TYPE_ZVAL: memcpy(&array->data[nuarg], zmember, sizeof(zval)); break;
 		    }
 		}
-		
-		((void**)array->data)[nuarg] = &uargs[nuarg];
+
 		nuarg++;
 	}
 	
@@ -571,7 +571,7 @@ PHP_METHOD(Func, __invoke) {
             array = (php_jit_sized_t*) php_jit_array_args
 			    (pfunc, &stack, args[narg], narg TSRMLS_CC);
             
-			jargs[narg] = array;
+			jargs[narg] = &array;
 		} else switch (pfunc->sig->params[narg]->id) {
 			case PHP_JIT_TYPE_UINT:
 			case PHP_JIT_TYPE_INT:
@@ -621,9 +621,18 @@ PHP_METHOD(Func, __invoke) {
 			}
 		} break;
 	
-		case PHP_JIT_TYPE_INT:
-		case PHP_JIT_TYPE_UINT:
-		case PHP_JIT_TYPE_ULONG:
+		case PHP_JIT_TYPE_INT: {
+		    ZVAL_LONG(return_value, (int) result);
+		} break;
+		
+		case PHP_JIT_TYPE_UINT: {
+		    ZVAL_LONG(return_value, (uint) result);
+		} break;
+		
+		case PHP_JIT_TYPE_ULONG: {
+		    ZVAL_LONG(return_value, (ulong) result);
+		} break;
+		
 		case PHP_JIT_TYPE_LONG:   
 		    ZVAL_LONG(return_value, (long) result); 
 		break;
@@ -1734,6 +1743,7 @@ PHP_METHOD(Func, doLoadElem) {
 	zval *zin[2] = {NULL, NULL};
 	php_jit_function_t *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	php_jit_value_t *pval, *lval;
+	jit_value_t v;
 	
 	if (php_jit_parameters("OO", &zin[0], jit_value_ce, &zin[1], jit_value_ce) != SUCCESS) {
 		php_jit_exception("unexpected parameters, expected (Value base, Value index)");
@@ -1749,12 +1759,12 @@ PHP_METHOD(Func, doLoadElem) {
 	
 	object_init_ex(return_value, jit_value_ce);
 	pval = PHP_JIT_FETCH_VALUE(return_value);
+	
+	v = jit_insn_load_relative(pfunc->func, lval->value, 0, jit_type_sized);
+	
 	pval->value = jit_insn_load_elem(
-		pfunc->func,
-		jit_insn_load_relative
-			(pfunc->func, lval->value, 0, jit_type_sized), 
-		PHP_JIT_FETCH_VALUE_I(zin[1]),
-		lval->type->type);
+		pfunc->func, v, PHP_JIT_FETCH_VALUE_I(zin[1]), lval->type->type);
+		
 	pval->type = lval->type;
 	zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
 	pval->func = pfunc;
@@ -1869,6 +1879,7 @@ PHP_METHOD(Func, doConvert) {
 PHP_METHOD(Func, doStoreElem) {
 	zval *zin[3] = {NULL, NULL, NULL};
 	php_jit_value_t *lval;
+	jit_value_t v;
 	
 	if (php_jit_parameters("OOO", &zin[0], jit_value_ce, &zin[1], jit_value_ce, &zin[2], jit_value_ce) != SUCCESS) {
 		php_jit_exception("unexpected parameters, expected (Value base, Value index, Value value)");
@@ -1882,10 +1893,12 @@ PHP_METHOD(Func, doStoreElem) {
 		return;
 	}
 	
+	v = jit_insn_load_relative
+			(this_func_j, lval->value, 0, jit_type_sized);
+	
 	RETURN_BOOL(jit_insn_store_elem(
 		this_func_j,
-		jit_insn_load_relative
-			(this_func_j, lval->value, 0, jit_type_sized),
+		v,
 		PHP_JIT_FETCH_VALUE_I(zin[1]), 
 		PHP_JIT_FETCH_VALUE_I(zin[2])));
 }
