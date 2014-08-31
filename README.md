@@ -1,5 +1,8 @@
 JIT-Fu
 ======
+
+[![Build Status](https://travis-ci.org/krakjoe/jitfu.svg?branch=master)](https://travis-ci.org/krakjoe/jitfu)
+
 *A lesson in the art of JoeJITFu!*
 
 JIT-Fu is a PHP extension that exposes an OO API for the creation of native instructions to PHP userland, using ```libjit```.
