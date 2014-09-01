@@ -134,7 +134,6 @@ TODO
 ====
 
   * integration tests for as much as possible
-  * expose ELF read/write api, somehow
   * bother with windows ... anyone ?
   * other cool things, probably
   * pecl & phpdoc
