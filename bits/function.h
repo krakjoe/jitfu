@@ -622,11 +622,11 @@ PHP_METHOD(Func, __invoke) {
 		} break;
 
 		case PHP_JIT_TYPE_INT: {
-		    ZVAL_LONG(return_value, (int) result);
+		    ZVAL_LONG(return_value, (int) (long) result);
 		} break;
 		
 		case PHP_JIT_TYPE_UINT: {
-		    ZVAL_LONG(return_value, (uint) result);
+		    ZVAL_LONG(return_value, (uint) (long) result);
 		} break;
 		
 		case PHP_JIT_TYPE_ULONG: {
