@@ -608,9 +608,9 @@ PHP_METHOD(Func, __invoke) {
 
 		narg++;
 	}
-	
+
 	jit_function_apply(pfunc->func, jargs, &result);
-	
+
 	switch (pfunc->sig->returns->id) {
 		case PHP_JIT_TYPE_STRING: {
 			if (result) {
@@ -620,7 +620,7 @@ PHP_METHOD(Func, __invoke) {
 				ZVAL_STRINGL(return_value, (char*) (s)->data, (s)->length, 1);
 			}
 		} break;
-	
+
 		case PHP_JIT_TYPE_INT: {
 		    ZVAL_LONG(return_value, (int) result);
 		} break;
@@ -1960,7 +1960,7 @@ PHP_METHOD(Func, doSize) {
 	object_init_ex(return_value, jit_value_ce);
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_load_relative
-		(this_func_j, lval->value, off, jit_type_sized);
+		(this_func_j, lval->value, off, php_jit_type(PHP_JIT_TYPE_INT));
 }
 
 PHP_METHOD(Func, doPush) {

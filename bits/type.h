@@ -32,7 +32,7 @@ zend_class_entry *jit_type_ce;
 
 typedef struct _php_jit_sized_t {
 	void       **data;
-	zend_ulong  length;
+	int        length;
 } php_jit_sized_t;
 
 jit_type_t jit_type_sizable;

@@ -11,11 +11,11 @@ use JITFU\Func;
 
 $context = new Context();
 
-$uint = new Type(JIT_TYPE_UINT);
+$int = new Type(JIT_TYPE_INT);
 $long = new Type(JIT_TYPE_LONG);
 $longs = new Type($long, true);
 
-$signature = new Signature($uint, [$longs]);
+$signature = new Signature($int, [$longs]);
 
 $function = new Func($context, $signature, function($args) {
 	$this->doReturn(

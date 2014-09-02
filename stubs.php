@@ -76,8 +76,8 @@ foreach ($extension->getClasses() as $class) {
         fprintf(
             $handle,
             "\t\t%s function %s (%s) {}\n", 
-            modifiersOf($method), 
-            nameOf($method), 
+            modifiersOf($method),
+            nameOf($method),
             argumentsOf($method));
     }
     fprintf($handle, "\t}\n");
