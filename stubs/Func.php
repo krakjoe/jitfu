@@ -3,7 +3,6 @@ namespace JITFU {
 	class Func {
 		public function __construct ($context, $signature, $builder, $parent) {}
 		public function implement ($builder) {}
-		public function setAsync ($async) {}
 		public function isImplemented () {}
 		public function compile () {}
 		public function isCompiled () {}
