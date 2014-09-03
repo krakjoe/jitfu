@@ -22,10 +22,9 @@ zend_class_entry *jit_signature_ce;
 
 typedef struct _php_jit_signature_t {
 	zend_object std;
-	zend_object_handle h;
 	jit_type_t       type;
-	php_jit_type_t *returns;
-	php_jit_type_t **params;
+	zval             *zreturns;
+	zval             **zparams;
 	zend_uint        nparams;
 } php_jit_signature_t;
 
@@ -51,15 +50,14 @@ static inline void php_jit_signature_destroy(void *zobject, zend_object_handle h
 	zend_uint param = 0;
 	
 	while (param < psig->nparams) {
-		if (psig->params[param]) {
-			zend_objects_store_del_ref_by_handle
-				(psig->params[param]->h TSRMLS_CC);
+		if (psig->zparams[param]) {
+			zval_ptr_dtor(&psig->zparams[param]);
 			param++;
 		}
 	}
 	
-	if (psig->returns) {
-		zend_objects_store_del_ref_by_handle(psig->returns->h TSRMLS_CC);
+	if (psig->zreturns) {
+		zval_ptr_dtor(&psig->zreturns);
 	}
 	
 	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
@@ -73,8 +71,8 @@ static inline void php_jit_signature_free(void *zobject TSRMLS_DC) {
 	
 	jit_type_free(psig->type);
 	
-	if (psig->params) {
-		efree(psig->params);	
+	if (psig->zparams) {
+		efree(psig->zparams);	
 	}
 	
 	efree(psig);
@@ -87,13 +85,11 @@ static inline zend_object_value php_jit_signature_create(zend_class_entry *ce TS
 	
 	zend_object_std_init(&psig->std, ce TSRMLS_CC);
 	object_properties_init(&psig->std, ce);
-	
-	psig->h = zend_objects_store_put(
+
+	intern.handle   = zend_objects_store_put(
 		psig,
 		php_jit_signature_destroy, 
 		php_jit_signature_free, NULL TSRMLS_CC);
-
-	intern.handle   = psig->h;
 	intern.handlers = &php_jit_signature_handlers;
 	
 	return intern;
@@ -115,6 +111,7 @@ void php_jit_minit_signature(int module_number TSRMLS_DC) {
 PHP_METHOD(Signature, __construct) {
 	zval *ztype, **zztype;
 	php_jit_signature_t *psig;
+	php_jit_type_t      *preturns;
 	HashTable *ztypes;
 	HashPosition position;
 	jit_type_t *params;
@@ -126,12 +123,14 @@ PHP_METHOD(Signature, __construct) {
 	}
 	
 	psig = PHP_JIT_FETCH_SIGNATURE(getThis());
-	psig->returns = PHP_JIT_FETCH_TYPE(ztype);
-	zend_objects_store_add_ref_by_handle(psig->returns->h TSRMLS_CC);
-	
+	psig->zreturns = ztype;
+	Z_ADDREF_P(psig->zreturns);
+	preturns =
+	    PHP_JIT_FETCH_TYPE(psig->zreturns);
+	    
 	psig->nparams = zend_hash_num_elements(ztypes);	
-	psig->params = (php_jit_type_t**)
-		ecalloc(psig->nparams, sizeof(php_jit_type_t));
+	psig->zparams = (zval**)
+		ecalloc(psig->nparams, sizeof(zval*));
 	
 	params = (jit_type_t*)
 		ecalloc(psig->nparams, sizeof(jit_type_t));
@@ -147,14 +146,15 @@ PHP_METHOD(Signature, __construct) {
 			return;
 		}
 		
-		psig->params[param] = PHP_JIT_FETCH_TYPE(*zztype);
-		zend_objects_store_add_ref_by_handle
-			(psig->params[param]->h TSRMLS_CC);
-		params[param] = PHP_JIT_FETCH_TYPE_I(*zztype);
+		psig->zparams[param] = *zztype;
+		Z_ADDREF_P(psig->zparams[param]);
+		
+		params[param] = 
+		    PHP_JIT_FETCH_TYPE_I(psig->zparams[param]);
 		param++;
 	}
 	
-	psig->type = jit_type_create_signature(jit_abi_cdecl, psig->returns->type, params, param, 1);
+	psig->type = jit_type_create_signature(jit_abi_cdecl, preturns->type, params, param, 1);
 	efree(params);
 }
 
@@ -168,15 +168,7 @@ PHP_METHOD(Signature, getReturnType) {
 	psig = PHP_JIT_FETCH_SIGNATURE(getThis());
 	
 	if (psig) {
-		zend_object_value value;
-		
-		value.handle = psig->returns->h;
-		value.handlers = &php_jit_type_handlers;
-
-		Z_TYPE_P(return_value) = IS_OBJECT;		
-		Z_OBJVAL_P(return_value) = value;
-		
-		zend_objects_store_add_ref_by_handle(psig->returns->h TSRMLS_CC);
+		ZVAL_ZVAL(return_value, psig->zreturns, 1, 0);
 	}
 }
 
@@ -192,16 +184,7 @@ PHP_METHOD(Signature, getParamType) {
 	psig = PHP_JIT_FETCH_SIGNATURE(getThis());
 	
 	if (psig && param < psig->nparams) {
-		zend_object_value value;
-		
-		value.handle = psig->params[param]->h;
-		value.handlers = &php_jit_type_handlers;
-
-		Z_TYPE_P(return_value) = IS_OBJECT;		
-		Z_OBJVAL_P(return_value) = value;
-		
-		zend_objects_store_add_ref_by_handle
-			(psig->params[param]->h TSRMLS_CC);
+	    ZVAL_ZVAL(return_value, psig->zparams[param], 1, 0);
 	}
 }
 

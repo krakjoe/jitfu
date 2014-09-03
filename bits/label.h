@@ -20,8 +20,7 @@
 
 typedef struct _php_jit_label_t {
 	zend_object         std;
-	zend_object_handle  h;
-	php_jit_function_t  *func;
+	zval                *zfunc;
 	jit_label_t         label;
 } php_jit_label_t;
 
@@ -46,8 +45,8 @@ static inline void php_jit_label_destroy(void *zobject, zend_object_handle handl
 	php_jit_label_t *plabel = 
 		(php_jit_label_t *) zobject;
 
-	if (plabel->func) {
-		zend_objects_store_del_ref_by_handle(plabel->func->h TSRMLS_CC);
+	if (plabel->zfunc) {
+		zval_ptr_dtor(&plabel->zfunc);
 	}
 	
 	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
@@ -69,14 +68,13 @@ static inline zend_object_value php_jit_label_create(zend_class_entry *ce TSRMLS
 	
 	zend_object_std_init(&plabel->std, ce TSRMLS_CC);
 	object_properties_init(&plabel->std, ce);
-	
-	plabel->h = zend_objects_store_put(
+
+	plabel->label = jit_label_undefined;
+		
+	intern.handle = zend_objects_store_put(
 		plabel, 
 		php_jit_label_destroy, 
 		php_jit_label_free, NULL TSRMLS_CC);
-	plabel->label = jit_label_undefined;
-		
-	intern.handle   = plabel->h;
 	intern.handlers = &php_jit_label_handlers;
 	
 	return intern;
@@ -106,13 +104,18 @@ PHP_METHOD(Label, __construct) {
 	}
 	
 	plabel = PHP_JIT_FETCH_LABEL(getThis());
-	pfunc = PHP_JIT_FETCH_FUNCTION(zfunction);
+	plabel->zfunc = zfunction;
+	Z_ADDREF_P(plabel->zfunc);
+	pfunc = 
+	    PHP_JIT_FETCH_FUNCTION(plabel->zfunc);
 	
 	jit_insn_label(pfunc->func, &plabel->label);
 }
 
 PHP_METHOD(Label, equal) {
 	php_jit_label_t *plabels[2];
+	php_jit_function_t *pfuncs[2];
+	
 	zval *zlabel;
 	
 	if (php_jit_parameters("O", &zlabel, jit_label_ce) != SUCCESS) {
@@ -123,11 +126,14 @@ PHP_METHOD(Label, equal) {
 	plabels[0] = PHP_JIT_FETCH_LABEL(getThis());
 	plabels[1] = PHP_JIT_FETCH_LABEL(zlabel);
 	
-	if (plabels[0]->func->func != plabels[1]->func->func) {
+	pfuncs[0]  = PHP_JIT_FETCH_FUNCTION(plabels[0]->zfunc);
+	pfuncs[1]  = PHP_JIT_FETCH_FUNCTION(plabels[1]->zfunc);
+	
+	if (pfuncs[0]->func != pfuncs[1]->func) {
 		RETURN_FALSE;
 	}
 	
-	RETURN_BOOL(jit_function_labels_equal(plabels[0]->func->func, plabels[0]->label, plabels[1]->label));
+	RETURN_BOOL(jit_function_labels_equal(pfuncs[0]->func, plabels[0]->label, plabels[1]->label));
 }
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_label_construct_arginfo, 0, 0, 1) 

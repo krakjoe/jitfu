@@ -40,7 +40,6 @@ ZEND_DECLARE_MODULE_GLOBALS(jitfu);
 #include "bits/function.h"
 #include "bits/label.h"
 #include "bits/value.h"
-#include "bits/elf.h"
 
 /* {{{ jit_module_entry
  */
@@ -112,7 +111,6 @@ PHP_MINIT_FUNCTION(jitfu)
 	php_jit_minit_function(module_number TSRMLS_CC);
 	php_jit_minit_value(module_number TSRMLS_CC);
 	php_jit_minit_label(module_number TSRMLS_CC);
-	php_jit_minit_elf(module_number TSRMLS_CC);	
 
 	jit_exception_ce = zend_register_internal_class_ex
 		(&ce, zend_exception_get_default(TSRMLS_C), NULL TSRMLS_CC);
@@ -154,7 +152,6 @@ PHP_MINFO_FUNCTION(jitfu)
 #include "bits/function.h"
 #include "bits/value.h"
 #include "bits/label.h"
-#include "bits/elf.h"
 
 /*
  * Local variables:

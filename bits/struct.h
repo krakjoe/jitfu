@@ -20,10 +20,8 @@
 
 typedef struct _php_jit_struct_t {
 	zend_object         std;
-	zend_object_handle  h;
 	jit_type_t          type;
-	/* must be first three members */
-	php_jit_type_t      **fields;
+	zval                **zfields;
 	char                **names;
 	zend_uint             nfields;
 } php_jit_struct_t;
@@ -50,8 +48,7 @@ static inline void php_jit_struct_destroy(void *zobject, zend_object_handle hand
 	zend_uint nfield = 0;
 		
 	while (nfield < pstruct->nfields) {
-		zend_objects_store_del_ref_by_handle
-			(pstruct->fields[nfield]->h TSRMLS_CC);
+		zval_ptr_dtor(&pstruct->zfields[nfield]);
 		nfield++;
 	}
 	
@@ -66,8 +63,8 @@ static inline void php_jit_struct_free(void *zobject TSRMLS_DC) {
 	
 	jit_type_free(pstruct->type);
 	
-	if (pstruct->fields) {
-		efree(pstruct->fields);
+	if (pstruct->zfields) {
+		efree(pstruct->zfields);
 	}
 	
 	if (pstruct->names) {
@@ -93,12 +90,10 @@ static inline zend_object_value php_jit_struct_create(zend_class_entry *ce TSRML
 	zend_object_std_init(&pstruct->std, ce TSRMLS_CC);
 	object_properties_init(&pstruct->std, ce);
 	
-	pstruct->h = zend_objects_store_put(
+	intern.handle   = zend_objects_store_put(
 		pstruct, 
 		php_jit_struct_destroy, 
 		php_jit_struct_free, NULL TSRMLS_CC);
-	
-	intern.handle   = pstruct->h;
 	intern.handlers = &php_jit_struct_handlers;
 	
 	return intern;
@@ -134,8 +129,8 @@ PHP_METHOD(Struct, __construct) {
 	pstruct = PHP_JIT_FETCH_STRUCT(getThis());
 	
 	pstruct->nfields = zend_hash_num_elements(zfields);
-	pstruct->fields  = 
-		(php_jit_type_t**) ecalloc(pstruct->nfields, sizeof(php_jit_struct_t*));
+	pstruct->zfields  = 
+		(zval**) ecalloc(pstruct->nfields, sizeof(zval*));
 	jfields = 
 		(jit_type_t*) ecalloc(pstruct->nfields, sizeof(jit_type_t));
 	
@@ -145,6 +140,7 @@ PHP_METHOD(Struct, __construct) {
 		zend_ulong znidx = 0L;
 		char *zname = NULL;
 		int   znlength = 0;
+		php_jit_type_t *ptype;
 		
 		if (!zmember || 
 			Z_TYPE_PP(zmember) != IS_OBJECT || 
@@ -152,10 +148,12 @@ PHP_METHOD(Struct, __construct) {
 			php_jit_exception("non type found in fields list at %d", nfield);
 			return;
 		}
+		pstruct->zfields[nfield] = *zmember;
+		Z_ADDREF_P(pstruct->zfields[nfield]);
 		
-		pstruct->fields[nfield] = PHP_JIT_FETCH_TYPE(*zmember);
-		zend_objects_store_add_ref_by_handle(pstruct->fields[nfield]->h TSRMLS_CC);
-		jfields[nfield] = jit_type_copy(pstruct->fields[nfield]->type);
+		ptype = PHP_JIT_FETCH_TYPE(pstruct->zfields[nfield]);
+		
+		jfields[nfield] = jit_type_copy(ptype->type);
 		
 		if (zend_hash_get_current_key_ex(zfields, &zname, &znlength, &znidx, 0, &zposition) == HASH_KEY_IS_STRING) {
 			if (!zname || !znlength) {
@@ -271,11 +269,7 @@ PHP_METHOD(Struct, getFieldType) {
 	}
 	
 	if (of < pstruct->nfields) {
-		Z_OBJ_HANDLE_P(return_value) = pstruct->fields[of]->h;
-		Z_OBJ_HT_P(return_value)     = &php_jit_type_handlers;
-		Z_TYPE_P(return_value)       = IS_OBJECT;
-	
-		zend_objects_store_add_ref_by_handle(pstruct->fields[of]->h TSRMLS_CC);
+	    ZVAL_ZVAL(return_value, pstruct->zfields[of], 1, 0);
 		return;
 	}
 	

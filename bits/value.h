@@ -20,9 +20,8 @@
 
 typedef struct _php_jit_value_t {
 	zend_object std;
-	zend_object_handle h;
-	php_jit_function_t *func;
-	php_jit_type_t     *type;
+	zval               *zfunc;
+	zval               *ztype;
 	jit_value_t         value;
 	zval               *zv;
 } php_jit_value_t;
@@ -48,12 +47,12 @@ static inline void php_jit_value_destroy(void *zobject, zend_object_handle handl
 	php_jit_value_t *pval = 
 		(php_jit_value_t *) zobject;
 
-	if (pval->func) {
-		zend_objects_store_del_ref_by_handle(pval->func->h TSRMLS_CC);
+	if (pval->zfunc) {
+		zval_ptr_dtor(&pval->zfunc);
 	}
 	
-	if (pval->type) {
-		zend_objects_store_del_ref_by_handle(pval->type->h TSRMLS_CC);
+	if (pval->ztype) {
+		zval_ptr_dtor(&pval->ztype);
 	}
 	
 	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
@@ -80,12 +79,10 @@ static inline zend_object_value php_jit_value_create(zend_class_entry *ce TSRMLS
 	zend_object_std_init(&pval->std, ce TSRMLS_CC);
 	object_properties_init(&pval->std, ce);
 	
-	pval->h = zend_objects_store_put(
+	value.handle   = zend_objects_store_put(
 		pval, 
 		php_jit_value_destroy, 
 		php_jit_value_free, NULL TSRMLS_CC);
-
-	value.handle   = pval->h;
 	value.handlers = &php_jit_value_handlers;
 	
 	return value;
@@ -109,6 +106,8 @@ PHP_METHOD(Value, __construct) {
 		 *zvalue = NULL,
 		 *ztype = NULL;
 	php_jit_value_t *pval;
+	php_jit_function_t *pfunc;
+	php_jit_type_t  *ptype;
 	
 	switch (ZEND_NUM_ARGS()) {
 		case 3: if (php_jit_parameters("O/zO", &zfunction, jit_function_ce, &zvalue, &ztype, jit_type_ce) != SUCCESS) {
@@ -127,18 +126,22 @@ PHP_METHOD(Value, __construct) {
 	}
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
-	pval->func = PHP_JIT_FETCH_FUNCTION(zfunction);
-	zend_objects_store_add_ref_by_handle
-		(pval->func->h TSRMLS_CC);
-	
-	pval->type = PHP_JIT_FETCH_TYPE(ztype);
-	zend_objects_store_add_ref_by_handle
-		(pval->type->h TSRMLS_CC);
+	pval->zfunc = zfunction;
+	Z_ADDREF_P(pval->zfunc);
+	pfunc = 
+	    PHP_JIT_FETCH_FUNCTION(pval->zfunc);
+	    
+	pval->ztype = ztype;
+	Z_ADDREF_P(pval->ztype);
+    ptype =
+        PHP_JIT_FETCH_TYPE(pval->ztype);
 
     pval->zv = zvalue;
-
+    
 	if (pval->zv) {
-		switch (pval->type->id) {
+	    Z_ADDREF_P(pval->zv);
+	    
+		switch (ptype->id) {
 			case PHP_JIT_TYPE_UINT:
 			case PHP_JIT_TYPE_INT:
 			case PHP_JIT_TYPE_LONG:
@@ -148,7 +151,7 @@ PHP_METHOD(Value, __construct) {
 				}
 				
 				pval->value = jit_value_create_nint_constant
-					(pval->func->func, pval->type->type, Z_LVAL_P(pval->zv));
+					(pfunc->func, ptype->type, Z_LVAL_P(pval->zv));
 			break;
 			
 			case PHP_JIT_TYPE_DOUBLE:
@@ -157,20 +160,20 @@ PHP_METHOD(Value, __construct) {
 				}
 				
 				pval->value = jit_value_create_float64_constant
-					(pval->func->func, pval->type->type, Z_DVAL_P(pval->zv));
+					(pfunc->func, ptype->type, Z_DVAL_P(pval->zv));
 			break;
 			
 			default: {
 				jit_constant_t con;
 
 				con.un.ptr_value = &pval->zv->value;
-				con.type         = pval->type->type;
+				con.type         = ptype->type;
 
-				pval->value = jit_value_create_constant(pval->func->func, &con);
+				pval->value = jit_value_create_constant(pfunc->func, &con);
 			}
 		}
 	} else {
-		pval->value = jit_value_create(pval->func->func, pval->type->type);
+		pval->value = jit_value_create(pfunc->func, ptype->type);
 	}
 }
 
@@ -291,16 +294,8 @@ PHP_METHOD(Value, getType) {
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (pval && pval->type) {
-		zend_object_value value;
-		
-		value.handle = pval->type->h;
-		value.handlers = &php_jit_type_handlers;
-		
-		Z_TYPE_P(return_value)   = IS_OBJECT;
-		Z_OBJVAL_P(return_value) = value;
-		
-		zend_objects_store_add_ref_by_handle(pval->type->h TSRMLS_CC);
+	if (pval && pval->ztype) {
+		ZVAL_ZVAL(return_value, pval->ztype, 1, 0);
 	}
 }
 
@@ -313,16 +308,8 @@ PHP_METHOD(Value, getFunction) {
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (pval && pval->func) {
-		zend_object_value value;
-		
-		value.handle = pval->func->h;
-		value.handlers = &php_jit_function_handlers;
-		
-		Z_TYPE_P(return_value)   = IS_OBJECT;
-		Z_OBJVAL_P(return_value) = value;
-		
-		zend_objects_store_add_ref_by_handle(pval->func->h TSRMLS_CC);
+	if (pval && pval->zfunc) {
+		ZVAL_ZVAL(return_value, pval->zfunc, 1, 0);
 	}
 }
 

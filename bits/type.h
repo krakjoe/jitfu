@@ -20,7 +20,6 @@
 
 typedef struct _php_jit_type_t {
 	zend_object         std;
-	zend_object_handle  h;
 	jit_type_t          type;
 	/* must be first three members */
 	zend_ulong          id;
@@ -110,12 +109,10 @@ static inline zend_object_value php_jit_type_create(zend_class_entry *ce TSRMLS_
 	zend_object_std_init(&ptype->std, ce TSRMLS_CC);
 	object_properties_init(&ptype->std, ce);
 	
-	ptype->h = zend_objects_store_put(
+	intern.handle   = zend_objects_store_put(
 		ptype, 
 		php_jit_type_destroy, 
 		php_jit_type_free, NULL TSRMLS_CC);
-	
-	intern.handle   = ptype->h;
 	intern.handlers = &php_jit_type_handlers;
 	
 	return intern;

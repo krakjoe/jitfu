@@ -20,7 +20,6 @@
 
 typedef struct _php_jit_context_t {
 	zend_object         std;
-	zend_object_handle  h;
 	jit_context_t       ctx;
 	zend_ulong          st;
 } php_jit_context_t;
@@ -69,13 +68,11 @@ static inline zend_object_value php_jit_context_create(zend_class_entry *ce TSRM
 	object_properties_init(&pcontext->std, ce);
 	
 	pcontext->ctx = jit_context_create();
-	
-	pcontext->h = zend_objects_store_put(
+		
+	value.handle   = zend_objects_store_put(
 		pcontext,
 		php_jit_context_destroy, 
 		php_jit_context_free, NULL TSRMLS_CC);
-		
-	value.handle   = pcontext->h;
 	value.handlers = &php_jit_context_handlers;
 	
 	return value;
