@@ -1,0 +1,22 @@
+{
+    "type": "project",
+    "name": "krakjoe/jitfu",
+    "description": "Stubs and sources for JITFu",
+    "license": "PHP License",
+    "keywords": ["jit"],
+    "homepage": "https://github.com/krakjoe/jitfu",
+    "support": {
+        "irc": "http://github.com/krakjoe/jitfu"
+    },
+    "authors": [{
+            "name": "Joe Watkins",
+            "email": "krakjoe@php.net",
+            "role": "Developer"
+    }],
+    "autoload": {
+        "psr-4": {
+            "ReckiCT\\": "lib/ReckiCT/"
+        }
+    },
+}
+
