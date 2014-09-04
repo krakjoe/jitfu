@@ -1,7 +1,7 @@
 <?php
 namespace JITFU {
 	class Func {
-		public function __construct ($context, $signature, $builder, $parent) {}
+		public function __construct ($context, $signature, $builder = null, $parent = null) {}
 		public function implement ($builder) {}
 		public function isImplemented () {}
 		public function compile () {}
@@ -13,10 +13,10 @@ namespace JITFU {
 		public function dump () {}
 		public function reserveLabel () {}
 		public function __invoke () {}
-		public function doLabel ($label) {}
-		public function doBranch ($label) {}
-		public function doBranchIf ($op, $label) {}
-		public function doBranchIfNot ($op, $label) {}
+		public function doLabel ($label = null) {}
+		public function doBranch ($label = null) {}
+		public function doBranchIf ($op, $label = null) {}
+		public function doBranchIfNot ($op, $label = null) {}
 		public function doIf ($op, $positive, $negative) {}
 		public function doIfNot ($op, $positive, $negative) {}
 		public function doWhile ($condition, $block) {}
@@ -73,7 +73,7 @@ namespace JITFU {
 		public function doIsNAN ($op) {}
 		public function doIsFinite ($op) {}
 		public function doIsInf ($op) {}
-		public function doCall ($function, $params, $flags) {}
+		public function doCall ($function, $params, $flags = null) {}
 		public function doAlloca ($op) {}
 		public function doLoad ($op) {}
 		public function doLoadSmall ($op) {}
@@ -92,15 +92,15 @@ namespace JITFU {
 		public function doJumpTable ($value, $table) {}
 		public function doPush ($op) {}
 		public function doPushPtr ($value, $type) {}
-		public function doPop ($items) {}
-		public function doDeferPop ($items) {}
-		public function doFlushDeferPop ($items) {}
-		public function doConvert ($value, $type, $overflow) {}
+		public function doPop ($items = null) {}
+		public function doDeferPop ($items = null) {}
+		public function doFlushDeferPop ($items = null) {}
+		public function doConvert ($value, $type, $overflow = null) {}
 		public function doSize ($value) {}
 		public function doReturn ($op) {}
 		public function doReturnPtr ($value, $type) {}
 		public function doDefaultReturn () {}
 		public function doGetCallStack () {}
-		public function doEcho ($string) {}
+		public function doEcho ($string = null) {}
 	}
 }

@@ -2,7 +2,7 @@
 namespace JITFU {
 	class Exception {
 		final private function __clone () {}
-		public function __construct ($message, $code, $previous) {}
+		public function __construct ($message = null, $code = null, $previous = null) {}
 		final public function getMessage () {}
 		final public function getCode () {}
 		final public function getFile () {}

@@ -36,9 +36,11 @@ function argumentOf($parameter) {
     
     $argument[] = sprintf("$%s", $parameter->getName());
     
-    if ($parameter->isDefaultValueAvailable()) {
-        $argument[] = sprintf
-            ("= %s", $parameter->getDefaultValue());
+    if ($parameter->isOptional()) {
+        $default = $parameter->isDefaultValueAvailable() ? 
+            $parameter->getDefaultValue() : "null";
+        
+        $argument[] = sprintf("= %s", $default);
     }
     
     return implode(" ", $argument);

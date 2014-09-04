@@ -13,7 +13,7 @@ namespace JITFU {
 		public function getIdentifier () {}
 		public function getIndirection () {}
 		public function isPointer () {}
-		public function dump ($output) {}
+		public function dump ($output = null) {}
 		public static function of ($type) {}
 	}
 }

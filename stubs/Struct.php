@@ -15,7 +15,7 @@ namespace JITFU {
 		public function isPointer () {}
 		public function getOffset ($field) {}
 		public function getFieldType ($field) {}
-		public function dump ($output) {}
+		public function dump ($output = null) {}
 		public static function of ($type) {}
 	}
 }

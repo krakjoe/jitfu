@@ -9,13 +9,13 @@ namespace JITFU {
 		const double = 6;
 		const string = 7;
 		const zval = 8;
-		public function __construct ($returns, array $types) {}
+		public function __construct ($returns, array $types = null) {}
 		public function getReturnType () {}
 		public function getParamType ($param) {}
 		public function getIdentifier () {}
 		public function getIndirection () {}
 		public function isPointer () {}
-		public function dump ($output) {}
+		public function dump ($output = null) {}
 		public static function of ($type) {}
 	}
 }

@@ -1,7 +1,7 @@
 <?php
 namespace JITFU {
 	class Value {
-		public function __construct ($function, $value, $type) {}
+		public function __construct ($function, $value, $type = null) {}
 		public function isTemporary () {}
 		public function isLocal () {}
 		public function isConstant () {}
@@ -13,6 +13,6 @@ namespace JITFU {
 		public function setAddressable () {}
 		public function getType () {}
 		public function getFunction () {}
-		public function dump ($output, $prefix) {}
+		public function dump ($output = null, $prefix = null) {}
 	}
 }
