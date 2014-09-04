@@ -18,6 +18,7 @@ git checkout PHP-5.6
     --enable-ctype \
     --enable-dom \
     --enable-tokenizer \
+    --enable-libxml \
     --with-mysql=mysqlnd \
     --with-mysqli=mysqlnd \
     --with-openssl \
