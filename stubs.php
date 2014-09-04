@@ -72,6 +72,10 @@ foreach ($extension->getClasses() as $class) {
     fprintf($handle, "<?php\n");
     fprintf($handle, "namespace %s {\n", namespaceOf($class));
     fprintf($handle, "\tclass %s {\n", classOf($class));
+    foreach ($class->getConstants() as $name => $value) {
+        fprintf(
+            $handle, "\t\tconst %s = %s;\n", $name, $value);
+    }
     foreach ($class->getMethods() as $method) {
         fprintf(
             $handle,
