@@ -7,7 +7,7 @@ before_install:
 before_script:
     - ./travis/compile-php.sh
     - ./travis/compile-libjit.sh
-    - ./travis/compile-ext.sh
+    - (cd /home/travis/jitfu; ./travis/compile-ext.sh)
 
 script:
     - ./travis/run-tests.sh
