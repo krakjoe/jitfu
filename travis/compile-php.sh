@@ -23,7 +23,8 @@ git checkout PHP-5.6
     --with-mysql=mysqlnd \
     --with-mysqli=mysqlnd \
     --with-openssl \
-    --with-pdo-mysql
+    --with-pdo-mysql \
+    --with-curl
 make -j2 --quiet install
 cp php.ini-development $HOME
 mkdir $HOME/php.d
