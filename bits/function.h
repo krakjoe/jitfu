@@ -199,7 +199,7 @@ static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSR
         pval->zfunc = * getThis();
         zval_copy_ctor(&pval->zfunc);
         
-        pval->ztype = *psig->zparams[nparam];
+        pval->ztype = psig->zparams[nparam];
         zval_copy_ctor(&pval->ztype);
 		
 		pval->value = jit_value_get_param(pfunc->func, nparam);
@@ -408,7 +408,7 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 	zval **zmember;
 	php_jit_sized_t *array;
 	php_jit_signature_t *psig = PHP_JIT_FETCH_SIGNATURE(&pfunc->zsig);
-	php_jit_type_t *ptype = PHP_JIT_FETCH_TYPE(psig->zparams[narg]);
+	php_jit_type_t *ptype = PHP_JIT_FETCH_TYPE(&psig->zparams[narg]);
 	
 #define PHP_JIT_INIT_ARGS(type) do { \
 	\
@@ -536,7 +536,7 @@ PHP_METHOD(Func, __invoke) {
 	zend_llist_init(&stack, sizeof(void**), php_jit_invoke_stack_dtor, 0);
 
 	while (narg < nargs) {
-	    ptype = PHP_JIT_FETCH_TYPE(psig->zparams[narg]);
+	    ptype = PHP_JIT_FETCH_TYPE(&psig->zparams[narg]);
 	    
 		if (Z_TYPE_P(args[narg]) == IS_ARRAY) {
 		    php_jit_sized_t *array;
@@ -592,7 +592,7 @@ PHP_METHOD(Func, __invoke) {
 
 	jit_function_apply(pfunc->func, jargs, &result);
     
-    ptype = PHP_JIT_FETCH_TYPE(psig->zreturns);
+    ptype = PHP_JIT_FETCH_TYPE(&psig->zreturns);
     
 	switch (ptype->id) {
 		case PHP_JIT_TYPE_STRING: {

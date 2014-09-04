@@ -21,7 +21,7 @@
 typedef struct _php_jit_struct_t {
 	zend_object         std;
 	jit_type_t          type;
-	zval                **zfields;
+	zval                *zfields;
 	char                **names;
 	zend_uint             nfields;
 } php_jit_struct_t;
@@ -48,7 +48,7 @@ static inline void php_jit_struct_destroy(void *zobject, zend_object_handle hand
 	zend_uint nfield = 0;
 		
 	while (nfield < pstruct->nfields) {
-		zval_ptr_dtor(&pstruct->zfields[nfield]);
+		zval_dtor(&pstruct->zfields[nfield]);
 		nfield++;
 	}
 	
@@ -130,7 +130,7 @@ PHP_METHOD(Struct, __construct) {
 	
 	pstruct->nfields = zend_hash_num_elements(zfields);
 	pstruct->zfields  = 
-		(zval**) ecalloc(pstruct->nfields, sizeof(zval*));
+		(zval*) ecalloc(pstruct->nfields, sizeof(zval));
 	jfields = 
 		(jit_type_t*) ecalloc(pstruct->nfields, sizeof(jit_type_t));
 	
@@ -148,10 +148,11 @@ PHP_METHOD(Struct, __construct) {
 			php_jit_exception("non type found in fields list at %d", nfield);
 			return;
 		}
-		pstruct->zfields[nfield] = *zmember;
-		Z_ADDREF_P(pstruct->zfields[nfield]);
+		pstruct->zfields[nfield] = **zmember;
+		zval_copy_ctor(&pstruct->zfields[nfield]);
 		
-		ptype = PHP_JIT_FETCH_TYPE(pstruct->zfields[nfield]);
+		ptype = 
+		    PHP_JIT_FETCH_TYPE(&pstruct->zfields[nfield]);
 		
 		jfields[nfield] = jit_type_copy(ptype->type);
 		
@@ -269,7 +270,7 @@ PHP_METHOD(Struct, getFieldType) {
 	}
 	
 	if (of < pstruct->nfields) {
-	    ZVAL_ZVAL(return_value, pstruct->zfields[of], 1, 0);
+	    ZVAL_ZVAL(return_value, &pstruct->zfields[of], 1, 0);
 		return;
 	}
 	
