@@ -8,4 +8,5 @@ git checkout PHP-5.6
 ./configure --prefix=$HOME --disable-all --enable-debug --with-config-file-path=$HOME --with-config-file-scan-dir=$HOME/php.d
 make -j2 --quiet install
 cp php.ini-development $HOME
+mkdir $HOME/php.d
 
