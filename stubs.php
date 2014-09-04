@@ -64,6 +64,17 @@ function classOf($thing) {
         return substr($name, strlen($namespace)+1);
     } else return $name;
 }
+function implementationOf($class, $method, $stubs) {
+    if (isset($stubs[$class->getName()][$method->getName()])) {
+        return $stubs[$class->getName()][$method->getName()];
+    } else return "{}";
+}
+
+$stubs = [
+    "JITFU\Type" => [
+        "of" => "{ return new Type; }"
+    ]
+];
 
 $extension = new ReflectionExtension("jitfu");
 
@@ -81,10 +92,11 @@ foreach ($extension->getClasses() as $class) {
     foreach ($class->getMethods() as $method) {
         fprintf(
             $handle,
-            "\t\t%s function %s (%s) {}\n", 
+            "\t\t%s function %s (%s) %s\n", 
             modifiersOf($method),
             nameOf($method),
-            argumentsOf($method));
+            argumentsOf($method),
+            implementationOf($class, $method, $stubs));
     }
     fprintf($handle, "\t}\n");
     fprintf($handle, "}\n");
