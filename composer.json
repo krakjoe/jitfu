@@ -15,7 +15,7 @@
     }],
     "autoload": {
         "psr-4": {
-            "ReckiCT\\": "lib/ReckiCT/"
+            "JITFu\\": "stubs"
         }
     },
 }
