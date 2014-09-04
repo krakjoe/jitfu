@@ -19,6 +19,7 @@ git checkout PHP-5.6
     --enable-dom \
     --enable-tokenizer \
     --enable-libxml \
+    --enable-pdo \
     --with-mysql=mysqlnd \
     --with-mysqli=mysqlnd \
     --with-openssl \
