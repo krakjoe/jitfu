@@ -6,7 +6,7 @@
     "keywords": ["jit"],
     "homepage": "https://github.com/krakjoe/jitfu",
     "support": {
-        "irc": "http://github.com/krakjoe/jitfu"
+        "issues": "http://github.com/krakjoe/jitfu/issues"
     },
     "authors": [{
             "name": "Joe Watkins",
