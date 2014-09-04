@@ -2,7 +2,7 @@ language: c
 
 before_install:
     - sudo apt-get update -qq
-    - sudo apt-get install texinfo curl openssl libxml2 libcurl
+    - sudo apt-get install texinfo curl openssl libxml2
 
 before_script:
     - ./travis/compile-php.sh
