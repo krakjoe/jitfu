@@ -72,7 +72,7 @@ function implementationOf($class, $method, $stubs) {
 
 $stubs = [
     "JITFU\Type" => [
-        "of" => "{ return new Type; }"
+        "of" => "{ return new Type(\$type); }"
     ]
 ];
 

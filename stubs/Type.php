@@ -14,6 +14,6 @@ namespace JITFU {
 		public function getIndirection () {}
 		public function isPointer () {}
 		public function dump ($output = null) {}
-		public static function of ($type) { return new Type; }
+		public static function of ($type) { return new Type($type); }
 	}
 }
