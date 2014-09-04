@@ -16,7 +16,12 @@ git checkout PHP-5.6
     --enable-filter \
     --enable-hash \
     --enable-ctype \
-    --with-openssl
+    --enable-dom \
+    --enable-tokenizer \
+    --with-mysql=mysqlnd \
+    --with-mysqli=mysqlnd \
+    --with-openssl \
+    --with-pdo-mysql
 make -j2 --quiet install
 cp php.ini-development $HOME
 mkdir $HOME/php.d
