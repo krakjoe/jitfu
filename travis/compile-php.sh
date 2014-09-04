@@ -5,6 +5,7 @@ git clone https://github.com/php/php-src $HOME/php/src
 cd $HOME/php/src
 git checkout PHP-5.6
 ./buildconf --force
-./configure --prefix=$HOME --disable-all --enable-debug
+./configure --prefix=$HOME --disable-all --enable-debug --with-config-file-path=$HOME --with-config-file-scan-dir=$HOME/php.d
 make -j2 --quiet install
+cp php.ini-development $HOME
 

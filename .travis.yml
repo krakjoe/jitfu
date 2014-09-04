@@ -2,7 +2,7 @@ language: c
 
 before_install:
     - sudo apt-get update -qq
-    - sudo apt-get install texinfo
+    - sudo apt-get install texinfo curl
 
 before_script:
     - ./travis/compile-php.sh
@@ -11,4 +11,5 @@ before_script:
 
 script:
     - ./travis/run-tests.sh
+    - ./travis/run-recki-tests.sh
 
