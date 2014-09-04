@@ -21,9 +21,9 @@
 typedef struct _php_jit_function_t php_jit_function_t;
 struct _php_jit_function_t {
 	zend_object         std;
-	zval                *zctx;
-	zval                *zsig;
-	zval                *zparent;
+	zval                zctx;
+	zval                zsig;
+	zval                zparent;
 	jit_function_t      func;
 	zend_ulong          st;
 };
@@ -103,12 +103,9 @@ static inline void php_jit_function_destroy(void *zobject, zend_object_handle ha
 	php_jit_function_t *pfunc = 
 		(php_jit_function_t *) zobject;
 
-    zval_ptr_dtor(&pfunc->zctx);
-    zval_ptr_dtor(&pfunc->zsig);
-	
-	if (pfunc->zparent) {
-		zval_ptr_dtor(&pfunc->zparent);
-	}
+    zval_dtor(&pfunc->zctx);
+    zval_dtor(&pfunc->zsig);
+	zval_dtor(&pfunc->zparent);
 	
 	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
 }
@@ -130,6 +127,10 @@ static inline zend_object_value php_jit_function_create(zend_class_entry *ce TSR
 	zend_object_std_init(&pfunc->std, ce TSRMLS_CC);
 	object_properties_init(&pfunc->std, ce);
 
+    ZVAL_NULL(&pfunc->zctx);
+    ZVAL_NULL(&pfunc->zsig);
+    ZVAL_NULL(&pfunc->zparent);
+    
 	value.handle   = zend_objects_store_put(
 		pfunc, 
 		php_jit_function_destroy, 
@@ -161,7 +162,7 @@ static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSR
 	zend_fcall_info_cache fcc;
 	zend_uint             nparam = 0;
 	php_jit_function_t    *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
-	php_jit_signature_t   *psig  = PHP_JIT_FETCH_SIGNATURE(pfunc->zsig);
+	php_jit_signature_t   *psig  = PHP_JIT_FETCH_SIGNATURE(&pfunc->zsig);
 	int result = FAILURE;
 
 	if (pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED) {
@@ -195,11 +196,11 @@ static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSR
 
 		pval = PHP_JIT_FETCH_VALUE(o);
 		
-        pval->zfunc = getThis();
-        Z_ADDREF_P(pval->zfunc);
+        pval->zfunc = * getThis();
+        zval_copy_ctor(&pval->zfunc);
         
-        pval->ztype = psig->zparams[nparam];
-        Z_ADDREF_P(pval->ztype);
+        pval->ztype = *psig->zparams[nparam];
+        zval_copy_ctor(&pval->ztype);
 		
 		pval->value = jit_value_get_param(pfunc->func, nparam);
 
@@ -250,37 +251,32 @@ PHP_METHOD(Func, __construct) {
 	
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
-	pfunc->zctx = zcontext;
-	Z_ADDREF_P(pfunc->zctx);
+	pfunc->zctx = *zcontext;
+	zval_copy_ctor(&pfunc->zctx);
 	pctx  = 
-	    PHP_JIT_FETCH_CONTEXT(pfunc->zctx);
+	    PHP_JIT_FETCH_CONTEXT(&pfunc->zctx);
 	
 	if (!(pctx->st & PHP_JIT_CONTEXT_STARTED)) {
 		jit_context_build_start(pctx->ctx);
 		pctx->st |= PHP_JIT_CONTEXT_STARTED;
 	}
 	
-	pfunc->zsig = zsignature;
-	Z_ADDREF_P(pfunc->zsig);
+	pfunc->zsig = *zsignature;
+	zval_copy_ctor(&pfunc->zsig);
 	psig  = 
-	    PHP_JIT_FETCH_SIGNATURE(pfunc->zsig);
+	    PHP_JIT_FETCH_SIGNATURE(&pfunc->zsig);
 	
 	if (zparent) {
-	    pfunc->zparent = zparent;
-	    Z_ADDREF_P(pfunc->zparent);
-	}
-	
-	if (!zparent) {
-		pfunc->func = jit_function_create
-			(pctx->ctx, psig->type);
-	} else {
+	    pfunc->zparent = *zparent;
+	    zval_copy_ctor(&pfunc->zparent);
+	    
 	    pparent = 
-	        PHP_JIT_FETCH_FUNCTION(pfunc->zparent);
+	        PHP_JIT_FETCH_FUNCTION(&pfunc->zparent);
 	    
 		pfunc->func = jit_function_create_nested
 			(pctx->ctx, psig->type, pparent->func);
-	}
-
+	} else pfunc->func = jit_function_create(pctx->ctx, psig->type);
+	
 	pfunc->st |= PHP_JIT_FUNCTION_CREATED;
 	
 	if (zbuilder) {
@@ -358,7 +354,7 @@ PHP_METHOD(Func, isNested) {
 	
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
-	RETURN_BOOL(pfunc->zparent != NULL);
+	RETURN_BOOL(Z_TYPE(pfunc->zparent) != IS_NULL);
 }
 
 PHP_METHOD(Func, getParent) {
@@ -370,8 +366,8 @@ PHP_METHOD(Func, getParent) {
 	
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
-	if (pfunc->zparent) {
-		ZVAL_ZVAL(return_value, pfunc->zparent, 1, 0);
+	if (Z_TYPE(pfunc->zparent) != IS_NULL) {
+		ZVAL_ZVAL(return_value, &pfunc->zparent, 1, 0);
 	}
 }
 
@@ -384,8 +380,8 @@ PHP_METHOD(Func, getContext) {
 	
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
-	if (pfunc->zctx) {
-		ZVAL_ZVAL(return_value, pfunc->zctx, 1, 0);
+	if (Z_TYPE(pfunc->zctx) != IS_NULL) {
+		ZVAL_ZVAL(return_value, &pfunc->zctx, 1, 0);
 	}
 }
 
@@ -398,8 +394,8 @@ PHP_METHOD(Func, getSignature) {
 	
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
-	if (pfunc->zsig) {
-		ZVAL_ZVAL(return_value, pfunc->zsig, 1, 0);
+	if (Z_TYPE(pfunc->zsig) != IS_NULL) {
+		ZVAL_ZVAL(return_value, &pfunc->zsig, 1, 0);
 	}
 }
 
@@ -411,7 +407,7 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 	void **pargs = NULL;
 	zval **zmember;
 	php_jit_sized_t *array;
-	php_jit_signature_t *psig = PHP_JIT_FETCH_SIGNATURE(pfunc->zsig);
+	php_jit_signature_t *psig = PHP_JIT_FETCH_SIGNATURE(&pfunc->zsig);
 	php_jit_type_t *ptype = PHP_JIT_FETCH_TYPE(psig->zparams[narg]);
 	
 #define PHP_JIT_INIT_ARGS(type) do { \
@@ -502,8 +498,8 @@ PHP_METHOD(Func, __invoke) {
 	zend_llist stack;
 	zend_uint narg = 0;
 	php_jit_function_t *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
-	php_jit_signature_t *psig = PHP_JIT_FETCH_SIGNATURE(pfunc->zsig);
-	php_jit_context_t *pctx   = PHP_JIT_FETCH_CONTEXT(pfunc->zctx);
+	php_jit_signature_t *psig = PHP_JIT_FETCH_SIGNATURE(&pfunc->zsig);
+	php_jit_context_t *pctx   = PHP_JIT_FETCH_CONTEXT(&pfunc->zctx);
 	php_jit_type_t *ptype;
 	
 	if (!(pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED)) {	
@@ -691,8 +687,8 @@ PHP_METHOD(Func, reserveLabel) {
 	object_init_ex(return_value, jit_label_ce);
 	
 	plabel = PHP_JIT_FETCH_LABEL(return_value);
-	plabel->zfunc = getThis();
-	Z_ADDREF_P(plabel->zfunc);
+	plabel->zfunc = *getThis();
+	zval_copy_ctor(&plabel->zfunc);
 	
 	plabel->label = jit_function_reserve_label(pfunc->func);
 }
@@ -817,9 +813,8 @@ PHP_METHOD(Func, doLabel) {
 		object_init_ex(return_value, jit_label_ce);
 		plabel = 
 		    PHP_JIT_FETCH_LABEL(return_value);
-		plabel->zfunc = getThis();
-		Z_ADDREF_P(plabel->zfunc);
-		
+		plabel->zfunc = *getThis();
+		zval_copy_ctor(&plabel->zfunc);
 	} else plabel = PHP_JIT_FETCH_LABEL(zlabel);
 	
 	jit_insn_label(pfunc->func, &plabel->label);
@@ -844,9 +839,10 @@ PHP_METHOD(Func, doBranch) {
 	} else {
 		object_init_ex(return_value, jit_label_ce);
 
-		plabel = PHP_JIT_FETCH_LABEL(return_value);
-		plabel->zfunc = getThis();
-		Z_ADDREF_P(plabel->zfunc);
+		plabel =    
+		    PHP_JIT_FETCH_LABEL(return_value);
+		plabel->zfunc = *getThis();
+		zval_copy_ctor(&plabel->zfunc);
 
 		jit_insn_branch(pfunc->func, &plabel->label);
 	}
@@ -868,9 +864,10 @@ PHP_METHOD(Func, doBranchIf) {
 	if (!zlabel) {
 		object_init_ex(return_value, jit_label_ce);
 		
-		plabel = PHP_JIT_FETCH_LABEL(return_value);
-		plabel->zfunc = getThis();
-		Z_ADDREF_P(plabel->zfunc);
+		plabel = 
+		    PHP_JIT_FETCH_LABEL(return_value);
+		plabel->zfunc = *getThis();
+		zval_copy_ctor(&plabel->zfunc);
 	} else plabel = PHP_JIT_FETCH_LABEL(zlabel);
 	
 	pval = PHP_JIT_FETCH_VALUE(zin);
@@ -895,8 +892,8 @@ PHP_METHOD(Func, doBranchIfNot) {
 		object_init_ex(return_value, jit_label_ce);
 		
 		plabel = PHP_JIT_FETCH_LABEL(return_value);
-		plabel->zfunc = getThis();
-		Z_ADDREF_P(plabel->zfunc);
+		plabel->zfunc = *getThis();
+		zval_copy_ctor(&plabel->zfunc);
 	} else plabel = PHP_JIT_FETCH_LABEL(zlabel);
 	
 	pval = PHP_JIT_FETCH_VALUE(zin);
@@ -1741,7 +1738,7 @@ PHP_METHOD(Func, doLoadElem) {
 	}
 	
 	lval = PHP_JIT_FETCH_VALUE(zin[0]);
-    ptype = PHP_JIT_FETCH_TYPE(lval->ztype);
+    ptype = PHP_JIT_FETCH_TYPE(&lval->ztype);
     
 	if (!ptype->pt) {
 		php_jit_exception("attempt to load from non-pointer");
@@ -1758,10 +1755,10 @@ PHP_METHOD(Func, doLoadElem) {
 		pfunc->func, v, PHP_JIT_FETCH_VALUE_I(zin[1]), ptype->type);
 	
 	pval->ztype = lval->ztype;
-	Z_ADDREF_P(pval->ztype);
+	zval_copy_ctor(&pval->ztype);
 	
-	pval->zfunc = getThis();
-	Z_ADDREF_P(pval->zfunc);
+	pval->zfunc = *getThis();
+	zval_copy_ctor(&pval->zfunc);
 }
 
 PHP_METHOD(Func, doLoadElemAddress) {
@@ -1776,7 +1773,7 @@ PHP_METHOD(Func, doLoadElemAddress) {
 	}
 
 	lval = PHP_JIT_FETCH_VALUE(zin[0]);
-	ptype = PHP_JIT_FETCH_TYPE(lval->ztype);
+	ptype = PHP_JIT_FETCH_TYPE(&lval->ztype);
 	
 	if (!ptype->pt) {
 		php_jit_exception("attempt to load from non-pointer");
@@ -1793,10 +1790,10 @@ PHP_METHOD(Func, doLoadElemAddress) {
 		ptype->type);
 	
 	pval->ztype = lval->ztype;
-	Z_ADDREF_P(pval->ztype);
+	zval_copy_ctor(&pval->ztype);
 	
-	pval->zfunc = getThis();
-	Z_ADDREF_P(pval->zfunc);
+	pval->zfunc = *getThis();
+	zval_copy_ctor(&pval->zfunc);
 }
 
 PHP_METHOD(Func, doLoadRelative) {
@@ -1812,7 +1809,7 @@ PHP_METHOD(Func, doLoadRelative) {
 	}
 	
 	lval = PHP_JIT_FETCH_VALUE(zin);
-	ptype = PHP_JIT_FETCH_TYPE(lval->ztype);
+	ptype = PHP_JIT_FETCH_TYPE(&lval->ztype);
 	
 	if (!ptype->pt) {
 		php_jit_exception("attempt to load from non-pointer");
@@ -1828,10 +1825,10 @@ PHP_METHOD(Func, doLoadRelative) {
 		index,
 		ptype->type);
 	pval->ztype = lval->ztype;
-	Z_ADDREF_P(pval->ztype);
+	zval_copy_ctor(&pval->ztype);
 
-    pval->zfunc = getThis();
-    Z_ADDREF_P(pval->zfunc);
+    pval->zfunc = *getThis();
+    zval_copy_ctor(&pval->zfunc);
 }
 
 PHP_METHOD(Func, doStoreRelative) {
@@ -1873,8 +1870,8 @@ PHP_METHOD(Func, doConvert) {
 		PHP_JIT_FETCH_VALUE_I(zin[0]),
 		PHP_JIT_FETCH_TYPE_I(zin[1]), overflow);
 		
-	pval->ztype = zin[1];
-	Z_ADDREF_P(pval->ztype);
+	pval->ztype = *zin[1];
+	zval_copy_ctor(&pval->ztype);
 }
 
 PHP_METHOD(Func, doStoreElem) {
@@ -1890,7 +1887,7 @@ PHP_METHOD(Func, doStoreElem) {
 	}
 	
 	lval = PHP_JIT_FETCH_VALUE(zin[0]);
-	ptype = PHP_JIT_FETCH_TYPE(lval->ztype);
+	ptype = PHP_JIT_FETCH_TYPE(&lval->ztype);
 	
 	if (!ptype->pt) {
 		php_jit_exception("attempt to store  non-pointer");
@@ -1927,8 +1924,8 @@ PHP_METHOD(Func, doGetCallStack) {
 	
 	pval = PHP_JIT_FETCH_VALUE(return_value);
 	pval->value = jit_insn_get_call_stack(pfunc->func);
-	pval->zfunc = getThis();
-	Z_ADDREF_P(pval->zfunc);
+	pval->zfunc = *getThis();
+	zval_copy_ctor(&pval->zfunc);
 }
 
 PHP_METHOD(Func, doReturn) {
@@ -1955,7 +1952,7 @@ PHP_METHOD(Func, doSize) {
 	}
 	
 	lval = PHP_JIT_FETCH_VALUE(zin);
-	ptype = PHP_JIT_FETCH_TYPE(lval->ztype);
+	ptype = PHP_JIT_FETCH_TYPE(&lval->ztype);
 	
 	if (!ptype->pt) {
 		if (ptype->id != PHP_JIT_TYPE_STRING) {
@@ -2072,7 +2069,7 @@ PHP_METHOD(Func, doCall) {
 		php_jit_function_t *pcall = 
 			PHP_JIT_FETCH_FUNCTION(zcall);
 		php_jit_signature_t *psig = 
-		    PHP_JIT_FETCH_SIGNATURE(pcall->zsig);
+		    PHP_JIT_FETCH_SIGNATURE(&pcall->zsig);
 		php_jit_value_t *pval =
 			PHP_JIT_FETCH_VALUE(return_value);
 		
@@ -2091,8 +2088,8 @@ PHP_METHOD(Func, doCall) {
 			psig->type,
 			args, arg, flags);
 
-		pval->zfunc = getThis();
-		Z_ADDREF_P(pval->zfunc);
+		pval->zfunc = *getThis();
+		zval_copy_ctor(&pval->zfunc);
 	}
 
 	efree(args);
@@ -2113,7 +2110,7 @@ PHP_METHOD(Func, doEcho) {
 	}
 	
 	pval = PHP_JIT_FETCH_VALUE(zmessage);
-	ptype = PHP_JIT_FETCH_TYPE(pval->ztype);
+	ptype = PHP_JIT_FETCH_TYPE(&pval->ztype);
 	
 	if (ptype->id != PHP_JIT_TYPE_STRING) {
 		php_jit_exception("unexpected Value, must be a string");

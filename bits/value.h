@@ -20,9 +20,9 @@
 
 typedef struct _php_jit_value_t {
 	zend_object std;
-	zval               *zfunc;
-	zval               *ztype;
-	jit_value_t         value;
+	zval               zfunc;
+	zval               ztype;
+	jit_value_t        value;
 	zval               *zv;
 } php_jit_value_t;
 
@@ -47,13 +47,8 @@ static inline void php_jit_value_destroy(void *zobject, zend_object_handle handl
 	php_jit_value_t *pval = 
 		(php_jit_value_t *) zobject;
 
-	if (pval->zfunc) {
-		zval_ptr_dtor(&pval->zfunc);
-	}
-	
-	if (pval->ztype) {
-		zval_ptr_dtor(&pval->ztype);
-	}
+	zval_dtor(&pval->zfunc);
+	zval_dtor(&pval->ztype);
 	
 	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
 }
@@ -78,6 +73,9 @@ static inline zend_object_value php_jit_value_create(zend_class_entry *ce TSRMLS
 	
 	zend_object_std_init(&pval->std, ce TSRMLS_CC);
 	object_properties_init(&pval->std, ce);
+	
+	ZVAL_NULL(&pval->zfunc);
+	ZVAL_NULL(&pval->ztype);
 	
 	value.handle   = zend_objects_store_put(
 		pval, 
@@ -126,15 +124,15 @@ PHP_METHOD(Value, __construct) {
 	}
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
-	pval->zfunc = zfunction;
-	Z_ADDREF_P(pval->zfunc);
+	pval->zfunc = *zfunction;
+	zval_copy_ctor(&pval->zfunc);
 	pfunc = 
-	    PHP_JIT_FETCH_FUNCTION(pval->zfunc);
+	    PHP_JIT_FETCH_FUNCTION(&pval->zfunc);
 	    
-	pval->ztype = ztype;
-	Z_ADDREF_P(pval->ztype);
+	pval->ztype = *ztype;
+	zval_copy_ctor(&pval->ztype);
     ptype =
-        PHP_JIT_FETCH_TYPE(pval->ztype);
+        PHP_JIT_FETCH_TYPE(&pval->ztype);
 
     pval->zv = zvalue;
     
@@ -294,8 +292,8 @@ PHP_METHOD(Value, getType) {
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (pval && pval->ztype) {
-		ZVAL_ZVAL(return_value, pval->ztype, 1, 0);
+	if (Z_TYPE(pval->ztype) != IS_NULL) {
+		ZVAL_ZVAL(return_value, &pval->ztype, 1, 0);
 	}
 }
 
@@ -308,8 +306,8 @@ PHP_METHOD(Value, getFunction) {
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
-	if (pval && pval->zfunc) {
-		ZVAL_ZVAL(return_value, pval->zfunc, 1, 0);
+	if (Z_TYPE(pval->zfunc) != IS_NULL) {
+		ZVAL_ZVAL(return_value, &pval->zfunc, 1, 0);
 	}
 }
 

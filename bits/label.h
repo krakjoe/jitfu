@@ -20,7 +20,7 @@
 
 typedef struct _php_jit_label_t {
 	zend_object         std;
-	zval                *zfunc;
+	zval                zfunc;
 	jit_label_t         label;
 } php_jit_label_t;
 
@@ -45,9 +45,7 @@ static inline void php_jit_label_destroy(void *zobject, zend_object_handle handl
 	php_jit_label_t *plabel = 
 		(php_jit_label_t *) zobject;
 
-	if (plabel->zfunc) {
-		zval_ptr_dtor(&plabel->zfunc);
-	}
+	zval_dtor(&plabel->zfunc);
 	
 	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
 }
@@ -70,7 +68,9 @@ static inline zend_object_value php_jit_label_create(zend_class_entry *ce TSRMLS
 	object_properties_init(&plabel->std, ce);
 
 	plabel->label = jit_label_undefined;
-		
+	
+	ZVAL_NULL(&plabel->zfunc);
+	
 	intern.handle = zend_objects_store_put(
 		plabel, 
 		php_jit_label_destroy, 
@@ -104,10 +104,11 @@ PHP_METHOD(Label, __construct) {
 	}
 	
 	plabel = PHP_JIT_FETCH_LABEL(getThis());
-	plabel->zfunc = zfunction;
-	Z_ADDREF_P(plabel->zfunc);
+	plabel->zfunc = *zfunction;
+	zval_copy_ctor(&plabel->zfunc);
+	
 	pfunc = 
-	    PHP_JIT_FETCH_FUNCTION(plabel->zfunc);
+	    PHP_JIT_FETCH_FUNCTION(&plabel->zfunc);
 	
 	jit_insn_label(pfunc->func, &plabel->label);
 }
@@ -126,8 +127,8 @@ PHP_METHOD(Label, equal) {
 	plabels[0] = PHP_JIT_FETCH_LABEL(getThis());
 	plabels[1] = PHP_JIT_FETCH_LABEL(zlabel);
 	
-	pfuncs[0]  = PHP_JIT_FETCH_FUNCTION(plabels[0]->zfunc);
-	pfuncs[1]  = PHP_JIT_FETCH_FUNCTION(plabels[1]->zfunc);
+	pfuncs[0]  = PHP_JIT_FETCH_FUNCTION(&plabels[0]->zfunc);
+	pfuncs[1]  = PHP_JIT_FETCH_FUNCTION(&plabels[1]->zfunc);
 	
 	if (pfuncs[0]->func != pfuncs[1]->func) {
 		RETURN_FALSE;
