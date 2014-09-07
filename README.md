@@ -112,15 +112,17 @@ On *my machine*, this is ~60 times faster than PHP.
 Installation Instructions
 =========================
 
-This extension is being developed against the latest *libjit* sources, it is advisable to install a fresh copy of *libjit* even if the system has one present.
+This extension is being developed against the latest *libjit* sources, it is advisable to install a fresh copy of *libjit* even if the system has one present:
 
-    git clone git://git.sv.gnu.org/libjit.git libijt-fu
-    cd libjit-fu
+    git clone git://git.sv.gnu.org/libjit.git
+    cd libjit
     ./auto_gen.sh
     ./configure --prefix=/opt
     make
     sudo make install
-    
+
+Now you can build the PHP extension:
+
     git clone https://github.com/krakjoe/jitfu
     cd jitfu
     phpize
