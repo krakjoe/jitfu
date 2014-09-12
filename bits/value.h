@@ -293,7 +293,8 @@ PHP_METHOD(Value, getType) {
 	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
 	if (Z_TYPE(pval->ztype) != IS_NULL) {
-		ZVAL_ZVAL(return_value, &pval->ztype, 1, 0);
+	    ZVAL_COPY_VALUE(return_value, &pval->ztype);
+	    zval_copy_ctor(return_value);
 	}
 }
 
@@ -307,7 +308,8 @@ PHP_METHOD(Value, getFunction) {
 	pval = PHP_JIT_FETCH_VALUE(getThis());
 	
 	if (Z_TYPE(pval->zfunc) != IS_NULL) {
-		ZVAL_ZVAL(return_value, &pval->zfunc, 1, 0);
+	    ZVAL_COPY_VALUE(return_value, &pval->zfunc);
+	    zval_copy_ctor(return_value);
 	}
 }
 

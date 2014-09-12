@@ -165,7 +165,8 @@ PHP_METHOD(Signature, getReturnType) {
 	
 	psig = PHP_JIT_FETCH_SIGNATURE(getThis());
 	
-	ZVAL_ZVAL(return_value, &psig->zreturns, 1, 0);
+	ZVAL_COPY_VALUE(return_value, &psig->zreturns);
+	zval_copy_ctor(return_value);
 }
 
 PHP_METHOD(Signature, getParamType) {
@@ -178,8 +179,9 @@ PHP_METHOD(Signature, getParamType) {
 	}
 	
 	psig = PHP_JIT_FETCH_SIGNATURE(getThis());
-	
-	ZVAL_ZVAL(return_value, &psig->zparams[param], 1, 0);
+
+	ZVAL_COPY_VALUE(return_value, &psig->zparams[param]);
+	zval_copy_ctor(return_value);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_signature_construct_arginfo, 0, 0, 1) 

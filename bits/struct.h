@@ -270,7 +270,8 @@ PHP_METHOD(Struct, getFieldType) {
 	}
 	
 	if (of < pstruct->nfields) {
-	    ZVAL_ZVAL(return_value, &pstruct->zfields[of], 1, 0);
+	    ZVAL_COPY_VALUE(return_value, &pstruct->zfields[of]);
+	    zval_copy_ctor(return_value);
 		return;
 	}
 	

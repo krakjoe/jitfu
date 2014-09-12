@@ -367,7 +367,8 @@ PHP_METHOD(Func, getParent) {
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
 	if (Z_TYPE(pfunc->zparent) != IS_NULL) {
-		ZVAL_ZVAL(return_value, &pfunc->zparent, 1, 0);
+	    ZVAL_COPY_VALUE(return_value, &pfunc->zparent);
+	    zval_copy_ctor(return_value);
 	}
 }
 
@@ -381,7 +382,8 @@ PHP_METHOD(Func, getContext) {
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
 	if (Z_TYPE(pfunc->zctx) != IS_NULL) {
-		ZVAL_ZVAL(return_value, &pfunc->zctx, 1, 0);
+	    ZVAL_COPY_VALUE(return_value, &pfunc->zctx);
+	    zval_copy_ctor(return_value);
 	}
 }
 
@@ -395,7 +397,8 @@ PHP_METHOD(Func, getSignature) {
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
 	if (Z_TYPE(pfunc->zsig) != IS_NULL) {
-		ZVAL_ZVAL(return_value, &pfunc->zsig, 1, 0);
+	    ZVAL_COPY_VALUE(return_value, &pfunc->zsig);
+	    zval_copy_ctor(return_value);
 	}
 }
 
