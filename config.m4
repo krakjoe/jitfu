@@ -24,7 +24,6 @@ if test "$PHP_JITFU" != "no"; then
     AC_MSG_ERROR([Please reinstall the libjit distribution])
   fi
 
-  AC_MSG_CHECKING([... in $libdir ...])
   PHP_ADD_INCLUDE($JITFU_DIR/include)
 
   LIBNAME=jit # you may want to change this
@@ -35,19 +34,13 @@ if test "$PHP_JITFU" != "no"; then
     PHP_ADD_LIBRARY_WITH_PATH($LIBNAME, $JITFU_DIR/lib, JITFU_SHARED_LIBADD)
     AC_DEFINE(HAVE_JITLIB,1,[ ])
   ],[
-    PHP_CHECK_LIBRARY($LIBNAME,$LIBSYMBOL,
-  [
-    PHP_ADD_LIBRARY_WITH_PATH($LIBNAME, $JITFU_DIR/lib64, JITFU_SHARED_LIBADD)
-      AC_DEFINE(HAVE_JITLIB,1,[ ])
-    ],[
-      AC_MSG_ERROR([wrong libjit version or libjit not found])
-    ],[
-      -L$JITFU_DIR/lib64 -lm
-    ])
+    AC_MSG_ERROR([wrong libjit version or libjit not found])
   ],[
-    -L$JITFU_DIR/$libdir -lm
+    -L$JITFU_DIR/lib -lm
   ])
   
-  PHP_NEW_EXTENSION(jitfu, jitfu.c, $ext_shared)
   PHP_SUBST(JITFU_SHARED_LIBADD)
+
+  PHP_NEW_EXTENSION(jitfu, jitfu.c, $ext_shared)
 fi
+
