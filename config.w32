@@ -1,0 +1,9 @@
+// $Id$
+// vim:ft=javascript
+
+ARG_WITH("jitfu", "JIT-Fu support", "no");
+
+if (PHP_JITFU != "no" && CHECK_LIB("libjit.lib", "jitfu", PHP_JITFU)) {
+	EXTENSION('jitfu', 'jitfu.c', PHP_JITFU_SHARED, "");
+	PHP_INSTALL_HEADERS("ext/jitfu/", "php_jitfu.h");
+}
