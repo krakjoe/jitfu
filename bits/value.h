@@ -317,7 +317,9 @@ PHP_METHOD(Value, dump) {
 	zval *zoutput = NULL, *zprefix = NULL;
 	php_jit_value_t *pval;
 	php_stream *pstream = NULL;
-	
+
+	JIT_WIN32_NOT_IMPLEMENTED();
+
 	if (php_jit_parameters("|rz", &zoutput, &zprefix) != SUCCESS) {
 		php_jit_exception("unexpected parameters, expected ([resource output = STDOUT, string prefix = NULL])");
 		return;
