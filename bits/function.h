@@ -653,7 +653,9 @@ PHP_METHOD(Func, dump) {
 	zval *zname = NULL, *zoutput = NULL;
 	php_jit_function_t *pfunc;
 	php_stream *pstream = NULL;
-	
+
+	JIT_WIN32_NOT_IMPLEMENTED();
+
 	if (php_jit_parameters("z|r", &zname, &zoutput) != SUCCESS || 
 		(!zname || Z_TYPE_P(zname) != IS_STRING)) {
 		php_jit_exception("unexpected parameters, expected (string name [, resource output = STDOUT])");

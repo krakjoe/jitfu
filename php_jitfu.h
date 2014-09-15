@@ -64,6 +64,12 @@ extern zend_class_entry *jit_exception_ce;
 #define php_jit_exception(s, ...)     zend_throw_exception_ex(jit_exception_ce, 0 TSRMLS_CC, s, ##__VA_ARGS__)
 #define php_jit_parameters(s, ...)    zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, s, ##__VA_ARGS__)
 
+#ifdef PHP_WIN32
+# define JIT_WIN32_NOT_IMPLEMENTED() php_jit_exception("functionality not yet implemented on the Windows platform"); return
+#else
+# define JIT_WIN32_NOT_IMPLEMENTED()
+#endif
+
 #endif	/* PHP_JITFU_H */
 
 /*

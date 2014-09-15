@@ -288,7 +288,9 @@ PHP_METHOD(Type, dump) {
 	zval *zoutput = NULL;
 	php_jit_type_t *ptype;
 	php_stream *pstream = NULL;
-	
+
+	JIT_WIN32_NOT_IMPLEMENTED();
+
 	if (php_jit_parameters("|r", &zoutput) != SUCCESS) {
 		php_jit_exception("unexpected parameters, expected ([resource output = STDOUT])");
 		return;
