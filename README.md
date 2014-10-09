@@ -55,13 +55,15 @@ $function = new Func($context, new Signature($integer, [$integer]), function($ar
 			$this->doCall($this, [$this->doSub($args[0], $two)])));	
 });
 
-$function->dump("Fibonacci");
+if (stripos('win', PHP_OS) !== 0) {
+	$function->dump("Fibonacci");
+}
 
 var_dump($function(40)); /* __invoke with magicalness */
 ?>
 ```
 
-The code above will yield something like the following output:
+The code above will yield something like the following output on Linux:
 
 ```
 [joe@localhost jit]$ time php -dextension=jitfu.so objects.php 
@@ -112,6 +114,9 @@ On *my machine*, this is ~60 times faster than PHP.
 Installation Instructions
 =========================
 
+Linux
+-----
+
 This extension is being developed against the latest *libjit* sources, it is advisable to install a fresh copy of *libjit* even if the system has one present:
 
     git clone git://git.sv.gnu.org/libjit.git
@@ -129,13 +134,23 @@ Now you can build the PHP extension:
     ./configure --with-jitfu=/opt
     make
     sudo make install
-    
+
 The example sessions above will result in a build of libjit and JIT-Fu
+
+Windows
+-------
+
+Snapshots of the master branch are built at 1-2 AM UTC on Mondays. Currently only VC11 x86 builds against PHP 5.5 and 5.6 are available, these should work with the packages that can be downloaded from [windows.php.net](http://windows.php.net/). The bundled libjit is built as an self-contained binary with MinGW from a patched version of the master branch.
+
+- Download the appropriate package for your PHP installation from [here](http://dl.daverandom.com/win32/php/jitfu/).
+- Place `php_jitfu.dll` in your configured `extension_dir`.
+- Place `libjit.dll` in a directory that appears in your `%PATH%`.
+
+**Note**: The `dump()` methods are currently unavailable on Windows. Calling these methods on Windows will result in a `JITFU\Exception` being thrown.
 
 TODO
 ====
 
   * integration tests for as much as possible
-  * bother with windows ... anyone ?
   * other cool things, probably
   * pecl & phpdoc
