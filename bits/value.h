@@ -28,7 +28,7 @@ typedef struct _php_jit_value_t {
 
 zend_class_entry *jit_value_ce;
 
-void php_jit_minit_value(int module_number TSRMLS_DC);
+void php_jit_minit_value(int module_number);
 
 #define PHP_JIT_FETCH_VALUE_O(o) ((php_jit_value_t*) ((char*) o - XtOffsetOf(php_jit_value_t, std)))
 #define PHP_JIT_FETCH_VALUE(from) PHP_JIT_FETCH_VALUE_O(Z_OBJ_P(from))
@@ -42,7 +42,7 @@ extern zend_object_handlers php_jit_value_handlers;
 #define HAVE_BITS_VALUE
 zend_object_handlers php_jit_value_handlers;
 
-static inline void php_jit_value_free(zend_object *object TSRMLS_DC) {
+static inline void php_jit_value_free(zend_object *object) {
 	php_jit_value_t *pval = 
 		(php_jit_value_t *) PHP_JIT_FETCH_VALUE_O(object);
 
@@ -50,14 +50,14 @@ static inline void php_jit_value_free(zend_object *object TSRMLS_DC) {
 	zval_ptr_dtor(&pval->ztype);
 	zval_ptr_dtor(&pval->zv);
 	
-	zend_object_std_dtor(&pval->std TSRMLS_CC);
+	zend_object_std_dtor(&pval->std);
 }
 
-static inline zend_object* php_jit_value_create(zend_class_entry *ce TSRMLS_DC) {
+static inline zend_object* php_jit_value_create(zend_class_entry *ce) {
 	php_jit_value_t *pval = 
 		(php_jit_value_t*) ecalloc(1, sizeof(php_jit_value_t) + zend_object_properties_size(ce));
 	
-	zend_object_std_init(&pval->std, ce TSRMLS_CC);
+	zend_object_std_init(&pval->std, ce);
 	object_properties_init(&pval->std, ce);
 	
 	ZVAL_UNDEF(&pval->zfunc);
@@ -69,11 +69,11 @@ static inline zend_object* php_jit_value_create(zend_class_entry *ce TSRMLS_DC) 
 	return &pval->std;
 }
 
-void php_jit_minit_value(int module_number TSRMLS_DC) {
+void php_jit_minit_value(int module_number) {
 	zend_class_entry ce;
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Value", php_jit_value_methods);
-	jit_value_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	jit_value_ce = zend_register_internal_class(&ce);
 	jit_value_ce->create_object = php_jit_value_create;
 	
 	memcpy(

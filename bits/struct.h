@@ -32,7 +32,7 @@ zend_class_entry *jit_struct_ce;
 #define PHP_JIT_FETCH_STRUCT(from) PHP_JIT_FETCH_STRUCT_O(Z_OBJ_P(from))
 #define PHP_JIT_FETCH_STRUCT_I(from) (PHP_JIT_FETCH_STRUCT(from))->struct
 
-void php_jit_minit_struct(int module_number TSRMLS_DC);
+void php_jit_minit_struct(int module_number);
 
 extern zend_function_entry php_jit_struct_methods[];
 extern zend_object_handlers php_jit_struct_handlers;
@@ -70,14 +70,14 @@ static inline void php_jit_struct_free(zend_object *object) {
 		efree(pstruct->names);
 	}
 
-	zend_object_std_dtor(&pstruct->std TSRMLS_CC);
+	zend_object_std_dtor(&pstruct->std);
 }
 
-static inline zend_object* php_jit_struct_create(zend_class_entry *ce TSRMLS_DC) {
+static inline zend_object* php_jit_struct_create(zend_class_entry *ce) {
 	php_jit_struct_t *pstruct = 
 		(php_jit_struct_t*) ecalloc(1, sizeof(php_jit_struct_t) + zend_object_properties_size(ce));
 	
-	zend_object_std_init(&pstruct->std, ce TSRMLS_CC);
+	zend_object_std_init(&pstruct->std, ce);
 	object_properties_init(&pstruct->std, ce);
 	
 	pstruct->std.handlers = &php_jit_struct_handlers;
@@ -85,11 +85,11 @@ static inline zend_object* php_jit_struct_create(zend_class_entry *ce TSRMLS_DC)
 	return &pstruct->std;
 }
 
-void php_jit_minit_struct(int module_number TSRMLS_DC) {
+void php_jit_minit_struct(int module_number) {
 	zend_class_entry ce;
 
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Struct", php_jit_struct_methods);
-	jit_struct_ce = zend_register_internal_class_ex(&ce, jit_type_ce TSRMLS_CC);
+	jit_struct_ce = zend_register_internal_class_ex(&ce, jit_type_ce);
 	jit_struct_ce->create_object = php_jit_struct_create;
 
 	memcpy(
@@ -132,7 +132,7 @@ PHP_METHOD(Struct, __construct) {
 		
 		if (!zmember || 
 			Z_TYPE_P(zmember) != IS_OBJECT || 
-			!instanceof_function(Z_OBJCE_P(zmember), jit_type_ce TSRMLS_CC)) {
+			!instanceof_function(Z_OBJCE_P(zmember), jit_type_ce)) {
 			php_jit_exception("non type found in fields list at %d", nfield);
 			return;
 		}

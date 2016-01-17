@@ -26,7 +26,7 @@ typedef struct _php_jit_context_t {
 
 zend_class_entry *jit_context_ce;
 
-void php_jit_minit_context(int module_number TSRMLS_DC);
+void php_jit_minit_context(int module_number);
 
 #define PHP_JIT_FETCH_CONTEXT_O(o) ((php_jit_context_t*) ((char*) o - XtOffsetOf(php_jit_context_t, std)))
 #define PHP_JIT_FETCH_CONTEXT(from) PHP_JIT_FETCH_CONTEXT_O(Z_OBJ_P(from))
@@ -46,16 +46,16 @@ static inline void php_jit_context_free(zend_object *zobject) {
 	php_jit_context_t *pcontext = 
 		PHP_JIT_FETCH_CONTEXT_O(zobject);
 
-	zend_object_std_dtor(&pcontext->std TSRMLS_CC);
+	zend_object_std_dtor(&pcontext->std);
 
 	jit_context_destroy(pcontext->ctx);
 }
 
-static inline zend_object* php_jit_context_create(zend_class_entry *ce TSRMLS_DC) {
+static inline zend_object* php_jit_context_create(zend_class_entry *ce) {
 	php_jit_context_t *pcontext = 
 		(php_jit_context_t*) ecalloc(1, sizeof(php_jit_context_t) + zend_object_properties_size(ce));
 	
-	zend_object_std_init(&pcontext->std, ce TSRMLS_CC);
+	zend_object_std_init(&pcontext->std, ce);
 	object_properties_init(&pcontext->std, ce);
 	
 	pcontext->ctx = jit_context_create();
@@ -65,11 +65,11 @@ static inline zend_object* php_jit_context_create(zend_class_entry *ce TSRMLS_DC
 	return &pcontext->std;
 }
 
-void php_jit_minit_context(int module_number TSRMLS_DC) {
+void php_jit_minit_context(int module_number) {
 	zend_class_entry ce;
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Context", php_jit_context_methods);
-	jit_context_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	jit_context_ce = zend_register_internal_class(&ce);
 	jit_context_ce->create_object = php_jit_context_create;
 	
 	memcpy(
@@ -97,7 +97,7 @@ PHP_METHOD(Context, start) {
 	pcontext = PHP_JIT_FETCH_CONTEXT(getThis());
 	
 	if (pcontext->st & PHP_JIT_CONTEXT_STARTED) {
-		zend_throw_exception_ex(NULL, 0 TSRMLS_CC, 
+		zend_throw_exception_ex(NULL, 0, 
 			"this context was already started");
 		return;
 	}
@@ -117,7 +117,7 @@ PHP_METHOD(Context, finish) {
 	pcontext = PHP_JIT_FETCH_CONTEXT(getThis());
 	
 	if (pcontext->st & PHP_JIT_CONTEXT_FINISHED) {
-		zend_throw_exception_ex(NULL, 0 TSRMLS_CC,
+		zend_throw_exception_ex(NULL, 0,
 			"this context was already finished");
 		return;
 	}

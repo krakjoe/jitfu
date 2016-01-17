@@ -12,8 +12,9 @@ $int = Type::of(Type::int);
 new Signature(null, [$int, $int]);
 ?>
 --EXPECTF--
-Fatal error: Uncaught exception 'JITFU\Exception' with message 'invalid parameters, expected (Type returns, Type[] parameters)' in %s:%d
+Fatal error: Uncaught JITFU\Exception: invalid parameters, expected (Type returns, Type[] parameters) in %s:%d
 Stack trace:
 #0 %s(%d): JITFU\Signature->__construct(NULL, Array)
 #1 {main}
   thrown in %s on line %d
+

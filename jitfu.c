@@ -92,7 +92,7 @@ static inline void* php_jit_exception_handler(int type) {
 	TSRMLS_FETCH();
 	
 	zend_throw_exception_ex
-		(jit_exception_ce, type TSRMLS_CC, php_jit_exception_type(type));
+		(jit_exception_ce, type, php_jit_exception_type(type));
 }
 
 /* {{{ PHP_MINIT_FUNCTION
@@ -107,16 +107,16 @@ PHP_MINIT_FUNCTION(jitfu)
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Exception", NULL);
 	
-	php_jit_minit_context(module_number TSRMLS_CC);
-	php_jit_minit_type(module_number TSRMLS_CC);
-	php_jit_minit_struct(module_number TSRMLS_CC);
-	php_jit_minit_signature(module_number TSRMLS_CC);
-	php_jit_minit_function(module_number TSRMLS_CC);
-	php_jit_minit_value(module_number TSRMLS_CC);
-	php_jit_minit_label(module_number TSRMLS_CC);
+	php_jit_minit_context(module_number);
+	php_jit_minit_type(module_number);
+	php_jit_minit_struct(module_number);
+	php_jit_minit_signature(module_number);
+	php_jit_minit_function(module_number);
+	php_jit_minit_value(module_number);
+	php_jit_minit_label(module_number);
 
 	jit_exception_ce = zend_register_internal_class_ex
-		(&ce, zend_exception_get_default(TSRMLS_C) TSRMLS_CC);
+		(&ce, zend_exception_get_default());
 	
 	return SUCCESS;
 }

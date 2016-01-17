@@ -12,7 +12,7 @@ $int = Type::of(Type::int);
 new Signature($int, [$int, null]);
 ?>
 --EXPECTF--
-Fatal error: Uncaught exception 'JITFU\Exception' with message 'unexpected type for parameter 1' in %s:%d
+Fatal error: Uncaught JITFU\Exception: unexpected type for parameter 1 in %s:%d
 Stack trace:
 #0 %s(%d): JITFU\Signature->__construct(Object(JITFU\Type), Array)
 #1 {main}

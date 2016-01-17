@@ -10,7 +10,7 @@ new Type(null);
 
 ?>
 --EXPECTF--
-Fatal error: Uncaught exception 'JITFU\Exception' with message 'unexpected parameters, expected (int|Type of [, bool pointer = false])' in %s:%d
+Fatal error: Uncaught JITFU\Exception: unexpected parameters, expected (int|Type of [, bool pointer = false]) in %s:%d
 Stack trace:
 #0 %s(%d): JITFU\Type->__construct(NULL)
 #1 {main}

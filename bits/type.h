@@ -55,7 +55,7 @@ jit_type_t jit_type_pzval;
 #define PHP_JIT_TYPE_ZVAL	    8
 
 jit_type_t php_jit_type(short type);
-void php_jit_minit_type(int module_number TSRMLS_DC);
+void php_jit_minit_type(int module_number);
 
 extern zend_function_entry php_jit_type_methods[];
 extern zend_object_handlers php_jit_type_handlers;
@@ -83,7 +83,7 @@ jit_type_t php_jit_type(short type) {
 	return jit_type_void;
 }
 
-static inline void php_jit_type_free(zend_object *zobject TSRMLS_DC) {
+static inline void php_jit_type_free(zend_object *zobject) {
 	php_jit_type_t *ptype = 
 		(php_jit_type_t *) PHP_JIT_FETCH_TYPE_O(zobject);
 
@@ -91,14 +91,14 @@ static inline void php_jit_type_free(zend_object *zobject TSRMLS_DC) {
 		jit_type_free(ptype->type);
 	}
 	
-	zend_object_std_dtor(zobject TSRMLS_CC);
+	zend_object_std_dtor(zobject);
 }
 
-static inline zend_object* php_jit_type_create(zend_class_entry *ce TSRMLS_DC) {
+static inline zend_object* php_jit_type_create(zend_class_entry *ce) {
 	php_jit_type_t *ptype = 
 		(php_jit_type_t*) ecalloc(1, sizeof(php_jit_type_t) + zend_object_properties_size(ce));
 	
-	zend_object_std_init(&ptype->std, ce TSRMLS_CC);
+	zend_object_std_init(&ptype->std, ce);
 	object_properties_init(&ptype->std, ce);
 	
 	ptype->std.handlers = &php_jit_type_handlers;
@@ -106,21 +106,21 @@ static inline zend_object* php_jit_type_create(zend_class_entry *ce TSRMLS_DC) {
 	return &ptype->std;
 }
 
-void php_jit_minit_type(int module_number TSRMLS_DC) {
+void php_jit_minit_type(int module_number) {
 	zend_class_entry ce;
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Type", php_jit_type_methods);
-	jit_type_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	jit_type_ce = zend_register_internal_class(&ce);
 	jit_type_ce->create_object = php_jit_type_create;
 	
-	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("void"),    PHP_JIT_TYPE_VOID TSRMLS_CC);
-	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("int"),     PHP_JIT_TYPE_INT TSRMLS_CC);
-	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("uint"),    PHP_JIT_TYPE_UINT TSRMLS_CC);
-	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("ulong"),   PHP_JIT_TYPE_ULONG TSRMLS_CC);
-	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("long"),    PHP_JIT_TYPE_LONG TSRMLS_CC);
-	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("double"),  PHP_JIT_TYPE_DOUBLE TSRMLS_CC);
-	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("string"),  PHP_JIT_TYPE_STRING TSRMLS_CC);
-	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("zval"),    PHP_JIT_TYPE_ZVAL TSRMLS_CC);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("void"),    PHP_JIT_TYPE_VOID);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("int"),     PHP_JIT_TYPE_INT);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("uint"),    PHP_JIT_TYPE_UINT);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("ulong"),   PHP_JIT_TYPE_ULONG);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("long"),    PHP_JIT_TYPE_LONG);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("double"),  PHP_JIT_TYPE_DOUBLE);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("string"),  PHP_JIT_TYPE_STRING);
+	zend_declare_class_constant_long(jit_type_ce, ZEND_STRL("zval"),    PHP_JIT_TYPE_ZVAL);
 	
 	memcpy(
 		&php_jit_type_handlers,

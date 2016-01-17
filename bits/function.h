@@ -30,7 +30,7 @@ struct _php_jit_function_t {
 
 zend_class_entry *jit_function_ce;
 
-void php_jit_minit_function(int module_number TSRMLS_DC);
+void php_jit_minit_function(int module_number);
 
 #define PHP_JIT_FETCH_FUNCTION_O(o) ((php_jit_function_t*) ((char*) o - XtOffsetOf(php_jit_function_t, std)))
 #define PHP_JIT_FETCH_FUNCTION(from) PHP_JIT_FETCH_FUNCTION_O(Z_OBJ_P(from))
@@ -57,7 +57,7 @@ typedef jit_value_t (*php_jit_binary_func_t) (jit_function_t, jit_value_t, jit_v
 typedef jit_value_t (*php_jit_unary_func_t)  (jit_function_t, jit_value_t);
 
 /* {{{ */
-static inline void php_jit_do_mem_op(php_jit_mem_func_t func, php_jit_function_t *pfunc, zval *zin[3], zval *return_value TSRMLS_DC) {
+static inline void php_jit_do_mem_op(php_jit_mem_func_t func, php_jit_function_t *pfunc, zval *zin[3], zval *return_value) {
 	jit_value_t in[3];
 	int result;
 	
@@ -72,7 +72,7 @@ static inline void php_jit_do_mem_op(php_jit_mem_func_t func, php_jit_function_t
 } /* }}} */
 
 /* {{{ */
-static inline void php_jit_do_binary_op(php_jit_binary_func_t func, php_jit_function_t *pfunc, zval *zin[2], zval *return_value TSRMLS_DC) {
+static inline void php_jit_do_binary_op(php_jit_binary_func_t func, php_jit_function_t *pfunc, zval *zin[2], zval *return_value) {
 	jit_value_t in[2];
 	php_jit_value_t *pval;
 	
@@ -86,7 +86,7 @@ static inline void php_jit_do_binary_op(php_jit_binary_func_t func, php_jit_func
 } /* }}} */
 
 /* {{{ */
-static inline void php_jit_do_unary_op(php_jit_unary_func_t func, php_jit_function_t *pfunc, zval *zin, zval *return_value TSRMLS_DC) {
+static inline void php_jit_do_unary_op(php_jit_unary_func_t func, php_jit_function_t *pfunc, zval *zin, zval *return_value) {
 	jit_value_t in;
 	php_jit_value_t *pval;
 
@@ -98,7 +98,7 @@ static inline void php_jit_do_unary_op(php_jit_unary_func_t func, php_jit_functi
 	pval->value = func(pfunc->func, in);
 } /* }}} */
 
-static inline void php_jit_function_free(zend_object *zobject TSRMLS_DC) {
+static inline void php_jit_function_free(zend_object *zobject) {
 	php_jit_function_t *pfunc = 
 		(php_jit_function_t *) PHP_JIT_FETCH_FUNCTION_O(zobject);
 
@@ -106,14 +106,14 @@ static inline void php_jit_function_free(zend_object *zobject TSRMLS_DC) {
     zval_ptr_dtor(&pfunc->zsig);
 	zval_ptr_dtor(&pfunc->zparent);
 
-	zend_object_std_dtor(&pfunc->std TSRMLS_CC);
+	zend_object_std_dtor(&pfunc->std);
 }
 
-static inline zend_object* php_jit_function_create(zend_class_entry *ce TSRMLS_DC) {
+static inline zend_object* php_jit_function_create(zend_class_entry *ce) {
 	php_jit_function_t *pfunc = 
 		(php_jit_function_t*) ecalloc(1, sizeof(php_jit_function_t) + zend_object_properties_size(ce));
 	
-	zend_object_std_init(&pfunc->std, ce TSRMLS_CC);
+	zend_object_std_init(&pfunc->std, ce);
 	object_properties_init(&pfunc->std, ce);
 
     ZVAL_NULL(&pfunc->zctx);
@@ -125,11 +125,11 @@ static inline zend_object* php_jit_function_create(zend_class_entry *ce TSRMLS_D
 	return &pfunc->std;
 }
 
-void php_jit_minit_function(int module_number TSRMLS_DC) {
+void php_jit_minit_function(int module_number) {
 	zend_class_entry ce;
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Func", php_jit_function_methods);
-	jit_function_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	jit_function_ce = zend_register_internal_class(&ce);
 	jit_function_ce->create_object = php_jit_function_create;
 	
 	memcpy(
@@ -141,7 +141,7 @@ void php_jit_minit_function(int module_number TSRMLS_DC) {
 	php_jit_function_handlers.free_obj = php_jit_function_free;
 }
 
-static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSRMLS_DC) {
+static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder) {
 	zval retval, 
 		 *tmp_ptr = NULL,
 		 params;
@@ -159,9 +159,9 @@ static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSR
 	}
 	
 	/* bind builder function to current scope and object */
-	zend_create_closure(&closure, (zend_function*) zend_get_closure_method_def(zbuilder TSRMLS_CC), Z_OBJCE_P(this_ptr), Z_OBJCE_P(this_ptr), this_ptr TSRMLS_CC);
+	zend_create_closure(&closure, (zend_function*) zend_get_closure_method_def(zbuilder), Z_OBJCE_P(this_ptr), Z_OBJCE_P(this_ptr), this_ptr);
 
-	if (zend_fcall_info_init(&closure, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
+	if (zend_fcall_info_init(&closure, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL) != SUCCESS) {
 		php_jit_exception("failed to initialzied builder function call");
 		zval_dtor(&closure);
 		return;
@@ -191,9 +191,9 @@ static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSR
 	}
 
 	/* call builder function */
-	zend_fcall_info_argn(&fci TSRMLS_CC, 1, &params);
+	zend_fcall_info_argn(&fci, 1, &params);
 
-	result = zend_call_function(&fci, &fcc TSRMLS_CC);
+	result = zend_call_function(&fci, &fcc);
 	
 	if (result == FAILURE) {
 		php_jit_exception("failed to call builder function");
@@ -261,7 +261,7 @@ PHP_METHOD(Func, __construct) {
 	pfunc->st |= PHP_JIT_FUNCTION_CREATED;
 	
 	if (zbuilder) {
-		php_jit_function_implement(getThis(), zbuilder TSRMLS_CC);
+		php_jit_function_implement(getThis(), zbuilder);
 	}
 }
 
@@ -285,7 +285,7 @@ PHP_METHOD(Func, implement) {
 		return;
 	}
 	
-	php_jit_function_implement(getThis(), zbuilder TSRMLS_CC);
+	php_jit_function_implement(getThis(), zbuilder);
 }
 
 PHP_METHOD(Func, compile) {
@@ -298,13 +298,13 @@ PHP_METHOD(Func, compile) {
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
 	if (!(pfunc->st & PHP_JIT_FUNCTION_IMPLEMENTED)) {
-		zend_throw_exception_ex(NULL, 0 TSRMLS_CC, 
+		zend_throw_exception_ex(NULL, 0, 
 			"this function is not implemented");
 		return;
 	}
 	
 	if (pfunc->st & PHP_JIT_FUNCTION_COMPILED) {
-		zend_throw_exception_ex(NULL, 0 TSRMLS_CC, 
+		zend_throw_exception_ex(NULL, 0, 
 			"this function was already compiled");
 		return;
 	}
@@ -383,7 +383,7 @@ PHP_METHOD(Func, getSignature) {
 	}
 }
 
-static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zend_llist *stack, zval *member, zend_ulong narg TSRMLS_DC) {
+static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zend_llist *stack, zval *member, zend_ulong narg) {
 	HashTable *uht = Z_ARRVAL_P(member);
 	HashPosition pos;
 	zend_ulong nuargs = zend_hash_num_elements(uht), 
@@ -439,7 +439,7 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 			}
 			
 			inner = php_jit_array_args
-			    (pfunc, stack, zmember, narg TSRMLS_CC);
+			    (pfunc, stack, zmember, narg);
 			array->data[nuarg] = inner;
 		} else {
 		    switch (ptype->id) {
@@ -534,7 +534,7 @@ PHP_METHOD(Func, __invoke) {
 			}
             
             array = (php_jit_sized_t*) php_jit_array_args
-			    (pfunc, &stack, &args[narg], narg TSRMLS_CC);
+			    (pfunc, &stack, &args[narg], narg);
             
 			jargs[narg] = &array;
 		} else switch (ptype->id) {
@@ -712,7 +712,7 @@ PHP_METHOD(Func, doWhile) {
 		fci.params = NULL;
 		fci.param_count = 0;
 		
-		result = zend_call_function(&fci, &fcc TSRMLS_CC);
+		result = zend_call_function(&fci, &fcc);
 		
 		if (result == FAILURE) {
 			php_jit_exception("failed to call builder");
@@ -753,7 +753,7 @@ PHP_METHOD(Func, doIf) {
 	zpfci.params = NULL;
 	zpfci.param_count = 0;
 	
-	result = zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
+	result = zend_call_function(&zpfci, &zpfcc);
 	
 	if (result == FAILURE) {
 		php_jit_exception("failed to call builder function");
@@ -772,7 +772,7 @@ PHP_METHOD(Func, doIf) {
 		znfci.params = NULL;
 		znfci.param_count = 0;
 
-		result = zend_call_function(&znfci, &znfcc TSRMLS_CC);
+		result = zend_call_function(&znfci, &znfcc);
 		
 		if (result == FAILURE) {
 			php_jit_exception("failed to call builder function");
@@ -913,7 +913,7 @@ PHP_METHOD(Func, doIfNot) {
 	zpfci.params = NULL;
 	zpfci.param_count = 0;
 	
-	result = zend_call_function(&zpfci, &zpfcc TSRMLS_CC);
+	result = zend_call_function(&zpfci, &zpfcc);
 	
 	if (result == FAILURE) {
 		php_jit_exception("failed to call positive builder function");
@@ -932,7 +932,7 @@ PHP_METHOD(Func, doIfNot) {
 		znfci.params = NULL;
 		znfci.param_count = 0;
 
-		result = zend_call_function(&znfci, &znfcc TSRMLS_CC);
+		result = zend_call_function(&znfci, &znfcc);
 		
 		if (result == FAILURE) {
 			php_jit_exception("failed to call negative builder function");
@@ -989,7 +989,7 @@ PHP_METHOD(Func, doJumpTable) {
 		
 		jit_insn_label(pfunc->func, &labels[nlabel]);
 		
-		if (zend_fcall_info_init(zmember, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
+		if (zend_fcall_info_init(zmember, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL) != SUCCESS) {
 			php_jit_exception("member at %d is not callable", nlabel);
 			nlabel++;
 			continue;
@@ -1000,7 +1000,7 @@ PHP_METHOD(Func, doJumpTable) {
 		fci.params = NULL;
 		fci.param_count = 0;
 		
-		result = zend_call_function(&fci, &fcc TSRMLS_CC);
+		result = zend_call_function(&fci, &fcc);
 		
 		if (result == FAILURE) {
 			php_jit_exception("failed to call builder function");
@@ -1027,7 +1027,7 @@ PHP_METHOD(Func, doEq) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_eq, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_eq, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doNe) {
@@ -1038,7 +1038,7 @@ PHP_METHOD(Func, doNe) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_ne, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_ne, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doLt) {
@@ -1049,7 +1049,7 @@ PHP_METHOD(Func, doLt) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_lt, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_lt, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doLe) {
@@ -1060,7 +1060,7 @@ PHP_METHOD(Func, doLe) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_le, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_le, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doGt) {
@@ -1071,7 +1071,7 @@ PHP_METHOD(Func, doGt) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_gt, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_gt, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doGe) {
@@ -1082,7 +1082,7 @@ PHP_METHOD(Func, doGe) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_ge, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_ge, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doCmpl) {
@@ -1093,7 +1093,7 @@ PHP_METHOD(Func, doCmpl) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_cmpl, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_cmpl, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doCmpg) {
@@ -1104,7 +1104,7 @@ PHP_METHOD(Func, doCmpg) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_cmpg, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_cmpg, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doMul) {
@@ -1115,7 +1115,7 @@ PHP_METHOD(Func, doMul) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_mul, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_mul, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doMulOvf) {
@@ -1126,7 +1126,7 @@ PHP_METHOD(Func, doMulOvf) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_mul_ovf, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_mul_ovf, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doAdd) {
@@ -1137,7 +1137,7 @@ PHP_METHOD(Func, doAdd) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_add, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_add, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doAddOvf) {
@@ -1148,7 +1148,7 @@ PHP_METHOD(Func, doAddOvf) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_add_ovf, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_add_ovf, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doSub) {
@@ -1159,7 +1159,7 @@ PHP_METHOD(Func, doSub) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_sub, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_sub, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doSubOvf) {
@@ -1170,7 +1170,7 @@ PHP_METHOD(Func, doSubOvf) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_sub_ovf, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_sub_ovf, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doDiv) {
@@ -1181,7 +1181,7 @@ PHP_METHOD(Func, doDiv) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_div, this_func, zin, return_value TSRMLS_CC);	
+	php_jit_do_binary_op(jit_insn_div, this_func, zin, return_value);	
 }
 
 PHP_METHOD(Func, doPow) {
@@ -1192,7 +1192,7 @@ PHP_METHOD(Func, doPow) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_pow, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_pow, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doRem) {
@@ -1203,7 +1203,7 @@ PHP_METHOD(Func, doRem) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_rem, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_rem, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doRemIEEE) {
@@ -1214,7 +1214,7 @@ PHP_METHOD(Func, doRemIEEE) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_rem_ieee, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_rem_ieee, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doNeg) {
@@ -1225,7 +1225,7 @@ PHP_METHOD(Func, doNeg) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_neg, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_neg, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doAnd) {
@@ -1236,7 +1236,7 @@ PHP_METHOD(Func, doAnd) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_and, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_and, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doOr) {
@@ -1247,7 +1247,7 @@ PHP_METHOD(Func, doOr) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_or, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_or, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doXor) {
@@ -1258,7 +1258,7 @@ PHP_METHOD(Func, doXor) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_xor, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_xor, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doShl) {
@@ -1269,7 +1269,7 @@ PHP_METHOD(Func, doShl) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_shl, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_shl, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doShr) {
@@ -1280,7 +1280,7 @@ PHP_METHOD(Func, doShr) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_shr, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_shr, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doUshr) {
@@ -1291,7 +1291,7 @@ PHP_METHOD(Func, doUshr) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_ushr, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_ushr, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doSshr) {
@@ -1302,7 +1302,7 @@ PHP_METHOD(Func, doSshr) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_sshr, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_sshr, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doToBool) {
@@ -1313,7 +1313,7 @@ PHP_METHOD(Func, doToBool) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_to_bool, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_to_bool, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doToNotBool) {
@@ -1324,7 +1324,7 @@ PHP_METHOD(Func, doToNotBool) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_to_not_bool, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_to_not_bool, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doAcos) {
@@ -1335,7 +1335,7 @@ PHP_METHOD(Func, doAcos) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_acos, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_acos, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doAsin) {
@@ -1346,7 +1346,7 @@ PHP_METHOD(Func, doAsin) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_asin, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_asin, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doAtan) {
@@ -1357,7 +1357,7 @@ PHP_METHOD(Func, doAtan) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_atan, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_atan, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doAtan2) {
@@ -1368,7 +1368,7 @@ PHP_METHOD(Func, doAtan2) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_atan2, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_atan2, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doMin) {
@@ -1379,7 +1379,7 @@ PHP_METHOD(Func, doMin) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_min, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_min, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doMax) {
@@ -1390,7 +1390,7 @@ PHP_METHOD(Func, doMax) {
 		return;
 	}
 	
-	php_jit_do_binary_op(jit_insn_max, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_binary_op(jit_insn_max, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doCeil) {
@@ -1401,7 +1401,7 @@ PHP_METHOD(Func, doCeil) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_ceil, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_ceil, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doCos) {
@@ -1412,7 +1412,7 @@ PHP_METHOD(Func, doCos) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_cos, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_cos, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doCosh) {
@@ -1423,7 +1423,7 @@ PHP_METHOD(Func, doCosh) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_cosh, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_cosh, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doExp) {
@@ -1434,7 +1434,7 @@ PHP_METHOD(Func, doExp) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_exp, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_exp, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doFloor) {
@@ -1445,7 +1445,7 @@ PHP_METHOD(Func, doFloor) {
 		return;
 	}
 
-	php_jit_do_unary_op(jit_insn_floor, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_floor, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doLog) {
@@ -1456,7 +1456,7 @@ PHP_METHOD(Func, doLog) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_log, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_log, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doLog10) {
@@ -1467,7 +1467,7 @@ PHP_METHOD(Func, doLog10) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_log10, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_log10, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doRint) {
@@ -1478,7 +1478,7 @@ PHP_METHOD(Func, doRint) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_rint, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_rint, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doRound) {
@@ -1489,7 +1489,7 @@ PHP_METHOD(Func, doRound) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_round, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_round, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doSin) {
@@ -1500,7 +1500,7 @@ PHP_METHOD(Func, doSin) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_sin, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_sin, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doSinh) {
@@ -1511,7 +1511,7 @@ PHP_METHOD(Func, doSinh) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_sinh, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_sinh, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doSqrt) {
@@ -1522,7 +1522,7 @@ PHP_METHOD(Func, doSqrt) {
 		return;
 	}
 
-	php_jit_do_unary_op(jit_insn_sqrt, this_func, zin, return_value TSRMLS_CC);	
+	php_jit_do_unary_op(jit_insn_sqrt, this_func, zin, return_value);	
 }
 
 PHP_METHOD(Func, doTan) {
@@ -1533,7 +1533,7 @@ PHP_METHOD(Func, doTan) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_tan, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_tan, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doTanh) {
@@ -1544,7 +1544,7 @@ PHP_METHOD(Func, doTanh) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_tan, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_tan, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doAbs) {
@@ -1555,7 +1555,7 @@ PHP_METHOD(Func, doAbs) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_abs, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_abs, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doSign) {
@@ -1566,7 +1566,7 @@ PHP_METHOD(Func, doSign) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_sign, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_sign, this_func, zin, return_value);
 }
 
 
@@ -1578,7 +1578,7 @@ PHP_METHOD(Func, doIsNAN) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_is_nan, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_is_nan, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doIsFinite) {
@@ -1589,7 +1589,7 @@ PHP_METHOD(Func, doIsFinite) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_is_finite, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_is_finite, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doIsInf) {
@@ -1600,7 +1600,7 @@ PHP_METHOD(Func, doIsInf) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_is_inf, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_is_inf, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doAlloca) {
@@ -1611,7 +1611,7 @@ PHP_METHOD(Func, doAlloca) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_alloca, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_alloca, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doLoad) {
@@ -1622,7 +1622,7 @@ PHP_METHOD(Func, doLoad) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_load, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_load, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doLoadSmall) {
@@ -1633,7 +1633,7 @@ PHP_METHOD(Func, doLoadSmall) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_load_small, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_load_small, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doDup) {
@@ -1644,7 +1644,7 @@ PHP_METHOD(Func, doDup) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_dup, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_dup, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doStore) {
@@ -1669,7 +1669,7 @@ PHP_METHOD(Func, doAddressof) {
 		return;
 	}
 	
-	php_jit_do_unary_op(jit_insn_address_of, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_unary_op(jit_insn_address_of, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doCheckNull) {
@@ -1691,7 +1691,7 @@ PHP_METHOD(Func, doMemcpy) {
 		return;
 	}
 	
-	php_jit_do_mem_op(jit_insn_memcpy, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_mem_op(jit_insn_memcpy, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doMemmove) {
@@ -1702,7 +1702,7 @@ PHP_METHOD(Func, doMemmove) {
 		return;
 	}
 	
-	php_jit_do_mem_op(jit_insn_memmove, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_mem_op(jit_insn_memmove, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doMemset) {
@@ -1713,7 +1713,7 @@ PHP_METHOD(Func, doMemset) {
 		return;
 	}
 	
-	php_jit_do_mem_op(jit_insn_memset, this_func, zin, return_value TSRMLS_CC);
+	php_jit_do_mem_op(jit_insn_memset, this_func, zin, return_value);
 }
 
 PHP_METHOD(Func, doLoadElem) {

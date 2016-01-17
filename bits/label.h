@@ -30,7 +30,7 @@ zend_class_entry *jit_label_ce;
 #define PHP_JIT_FETCH_LABEL(from) PHP_JIT_FETCH_LABEL_O(Z_OBJ_P(from))
 #define PHP_JIT_FETCH_LABEL_I(from) (PHP_JIT_FETCH_LABEL(from))->type
 
-void php_jit_minit_label(int module_number TSRMLS_DC);
+void php_jit_minit_label(int module_number);
 
 extern zend_function_entry php_jit_label_methods[];
 extern zend_object_handlers php_jit_label_handlers;
@@ -40,20 +40,20 @@ extern zend_object_handlers php_jit_label_handlers;
 #define HAVE_BITS_LABEL
 zend_object_handlers php_jit_label_handlers;
 
-static inline void php_jit_label_free(zend_object *zobject TSRMLS_DC) {
+static inline void php_jit_label_free(zend_object *zobject) {
 	php_jit_label_t *plabel = 
-		(php_jit_label_t *) zobject;
+		(php_jit_label_t *) PHP_JIT_FETCH_LABEL_O(zobject);
 
 	zval_ptr_dtor(&plabel->zfunc);	
 	
-	zend_object_std_dtor(&plabel->std TSRMLS_CC);
+	zend_object_std_dtor(zobject);
 }
 
-static inline zend_object* php_jit_label_create(zend_class_entry *ce TSRMLS_DC) {
+static inline zend_object* php_jit_label_create(zend_class_entry *ce) {
 	php_jit_label_t *plabel = 
 		(php_jit_label_t*) ecalloc(1, sizeof(php_jit_label_t) + zend_object_properties_size(ce));
 	
-	zend_object_std_init(&plabel->std, ce TSRMLS_CC);
+	zend_object_std_init(&plabel->std, ce);
 	object_properties_init(&plabel->std, ce);
 
 	plabel->label = jit_label_undefined;
@@ -65,11 +65,11 @@ static inline zend_object* php_jit_label_create(zend_class_entry *ce TSRMLS_DC) 
 	return &plabel->std;
 }
 
-void php_jit_minit_label(int module_number TSRMLS_DC) {
+void php_jit_minit_label(int module_number) {
 	zend_class_entry ce;
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Label", php_jit_label_methods);
-	jit_label_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	jit_label_ce = zend_register_internal_class(&ce);
 	jit_label_ce->create_object = php_jit_label_create;
 	
 	memcpy(
