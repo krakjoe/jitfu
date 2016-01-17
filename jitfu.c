@@ -62,6 +62,9 @@ zend_module_entry jitfu_module_entry = {
 /* }}} */
 
 #ifdef COMPILE_DL_JITFU
+#ifdef ZTS
+	ZEND_TSRMLS_CACHE_DEFINE();
+#endif
 ZEND_GET_MODULE(jitfu)
 #endif
 
@@ -113,7 +116,7 @@ PHP_MINIT_FUNCTION(jitfu)
 	php_jit_minit_label(module_number TSRMLS_CC);
 
 	jit_exception_ce = zend_register_internal_class_ex
-		(&ce, zend_exception_get_default(TSRMLS_C), NULL TSRMLS_CC);
+		(&ce, zend_exception_get_default(TSRMLS_C) TSRMLS_CC);
 	
 	return SUCCESS;
 }
@@ -123,6 +126,9 @@ PHP_MINIT_FUNCTION(jitfu)
  */
 PHP_RINIT_FUNCTION(jitfu)
 {
+#ifdef ZTS
+	ZEND_TSRMLS_CACHE_UPDATE();
+#endif
 	zend_hash_init(&JG(types), 8, NULL, ZVAL_PTR_DTOR, 0);
 }
 /* }}} */

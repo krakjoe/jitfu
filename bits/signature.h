@@ -21,17 +21,16 @@
 zend_class_entry *jit_signature_ce;
 
 typedef struct _php_jit_signature_t {
-	zend_object std;
 	jit_type_t       type;
 	zval             zreturns;
 	zval             *zparams;
-	zend_uint        nparams;
+	zend_ulong        nparams;
+	zend_object std;
 } php_jit_signature_t;
 
-#define PHP_JIT_FETCH_SIGNATURE(from) \
-	(php_jit_signature_t*) zend_object_store_get_object((from) TSRMLS_CC)
-#define PHP_JIT_FETCH_SIGNATURE_I(from) \
-	(PHP_JIT_FETCH_SIGNATURE(from))->type
+#define PHP_JIT_FETCH_SIGNATURE_O(o) ((php_jit_signature_t*) ((char*) o - XtOffsetOf(php_jit_signature_t, std)))
+#define PHP_JIT_FETCH_SIGNATURE(from) PHP_JIT_FETCH_SIGNATURE_O(Z_OBJ_P(from))
+#define PHP_JIT_FETCH_SIGNATURE_I(from) (PHP_JIT_FETCH_SIGNATURE(from))->type
 
 void php_jit_minit_signature(int module_number TSRMLS_DC);
 
@@ -44,76 +43,65 @@ extern zend_object_handlers php_jit_signature_handlers;
 
 zend_object_handlers php_jit_signature_handlers;
 
-static inline void php_jit_signature_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
+static inline void php_jit_signature_free(zend_object *zobject TSRMLS_DC) {
 	php_jit_signature_t *psig = 
-		(php_jit_signature_t *) zobject;
-	zend_uint param = 0;
+		(php_jit_signature_t *) PHP_JIT_FETCH_SIGNATURE_O(zobject);
+	zend_ulong param = 0;
 	
 	while (param < psig->nparams) {
-		zval_dtor(&psig->zparams[param]);
+		zval_ptr_dtor(&psig->zparams[param]);
 		param++;
 	}
 	
-	zval_dtor(&psig->zreturns);
-	
-	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
-}
-
-static inline void php_jit_signature_free(void *zobject TSRMLS_DC) {
-	php_jit_signature_t *psig = 
-		(php_jit_signature_t *) zobject;
-	
-	zend_object_std_dtor(&psig->std TSRMLS_CC);
+	zval_ptr_dtor(&psig->zreturns);	
 	
 	jit_type_free(psig->type);
 	
 	if (psig->zparams) {
 		efree(psig->zparams);	
 	}
-	
-	efree(psig);
+
+	zend_object_std_dtor(&psig->std TSRMLS_CC);
 }
 
-static inline zend_object_value php_jit_signature_create(zend_class_entry *ce TSRMLS_DC) {
-	zend_object_value intern;
+static inline zend_object* php_jit_signature_create(zend_class_entry *ce TSRMLS_DC) {
 	php_jit_signature_t *psig = 
-		(php_jit_signature_t*) ecalloc(1, sizeof(php_jit_signature_t));
+		(php_jit_signature_t*) ecalloc(1, sizeof(php_jit_signature_t) + zend_object_properties_size(ce));
 	
 	zend_object_std_init(&psig->std, ce TSRMLS_CC);
 	object_properties_init(&psig->std, ce);
     
     ZVAL_NULL(&psig->zreturns);
 
-	intern.handle   = zend_objects_store_put(
-		psig,
-		php_jit_signature_destroy, 
-		php_jit_signature_free, NULL TSRMLS_CC);
-	intern.handlers = &php_jit_signature_handlers;
+	psig->std.handlers = &php_jit_signature_handlers;
 	
-	return intern;
+	return &psig->std;
 }
 
 void php_jit_minit_signature(int module_number TSRMLS_DC) {
 	zend_class_entry ce;
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Signature", php_jit_signature_methods);
-	jit_signature_ce = zend_register_internal_class_ex(&ce, jit_type_ce, NULL TSRMLS_CC);
+	jit_signature_ce = zend_register_internal_class_ex(&ce, jit_type_ce TSRMLS_CC);
 	jit_signature_ce->create_object = php_jit_signature_create;
 	
 	memcpy(
 		&php_jit_signature_handlers,
 		zend_get_std_object_handlers(), 
 		sizeof(php_jit_signature_handlers));
+	
+	php_jit_signature_handlers.offset = XtOffsetOf(php_jit_signature_t, std);
+	php_jit_signature_handlers.free_obj = php_jit_signature_free;
 }
 
 PHP_METHOD(Signature, __construct) {
-	zval *ztype, **zztype;
+	zval *ztype, *zztype;
 	php_jit_signature_t *psig;
 	php_jit_type_t      *preturns;
 	HashTable *ztypes;
 	HashPosition position;
 	jit_type_t *params;
-	zend_uint   param = 0;
+	zend_ulong   param = 0;
 	
 	if (php_jit_parameters("OH", &ztype, jit_type_ce, &ztypes) != SUCCESS) {
 		php_jit_exception("invalid parameters, expected (Type returns, Type[] parameters)");
@@ -121,11 +109,10 @@ PHP_METHOD(Signature, __construct) {
 	}
 	
 	psig = PHP_JIT_FETCH_SIGNATURE(getThis());
-	psig->zreturns = *ztype;
-	zval_copy_ctor(&psig->zreturns);
+	ZVAL_COPY(&psig->zreturns, ztype);
 	preturns =
 	    PHP_JIT_FETCH_TYPE(&psig->zreturns);
-	    
+	
 	psig->nparams = zend_hash_num_elements(ztypes);	
 	psig->zparams = (zval*)
 		ecalloc(psig->nparams, sizeof(zval));
@@ -134,19 +121,17 @@ PHP_METHOD(Signature, __construct) {
 		ecalloc(psig->nparams, sizeof(jit_type_t));
 	
 	for (zend_hash_internal_pointer_reset_ex(ztypes, &position);
-		zend_hash_get_current_data_ex(ztypes, (void**)&zztype, &position) == SUCCESS;
+		(zztype = zend_hash_get_current_data_ex(ztypes, &position));
 		zend_hash_move_forward_ex(ztypes, &position)) {
 		
-		if ((!zztype || Z_TYPE_PP(zztype) != IS_OBJECT) ||
-			!instanceof_function(Z_OBJCE_PP(zztype), jit_type_ce TSRMLS_CC)) {
+		if ((!zztype || Z_TYPE_P(zztype) != IS_OBJECT) ||
+			!instanceof_function(Z_OBJCE_P(zztype), jit_type_ce TSRMLS_CC)) {
 			php_jit_exception("unexpected type for parameter %d", param);
 			efree(params);
 			return;
 		}
-		
-		psig->zparams[param] = **zztype;
-		zval_copy_ctor(&psig->zparams[param]);
-		
+		ZVAL_COPY(&psig->zparams[param], zztype);
+
 		params[param] = 
 		    PHP_JIT_FETCH_TYPE_I(&psig->zparams[param]);
 		param++;
@@ -165,8 +150,7 @@ PHP_METHOD(Signature, getReturnType) {
 	
 	psig = PHP_JIT_FETCH_SIGNATURE(getThis());
 	
-	ZVAL_COPY_VALUE(return_value, &psig->zreturns);
-	zval_copy_ctor(return_value);
+	ZVAL_COPY(return_value, &psig->zreturns);
 }
 
 PHP_METHOD(Signature, getParamType) {
@@ -180,8 +164,7 @@ PHP_METHOD(Signature, getParamType) {
 	
 	psig = PHP_JIT_FETCH_SIGNATURE(getThis());
 
-	ZVAL_COPY_VALUE(return_value, &psig->zparams[param]);
-	zval_copy_ctor(return_value);
+	ZVAL_COPY(return_value, &psig->zparams[param]);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(php_jit_signature_construct_arginfo, 0, 0, 1) 

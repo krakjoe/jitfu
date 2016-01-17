@@ -20,22 +20,21 @@
 
 typedef struct _php_jit_function_t php_jit_function_t;
 struct _php_jit_function_t {
-	zend_object         std;
 	zval                zctx;
 	zval                zsig;
 	zval                zparent;
 	jit_function_t      func;
 	zend_ulong          st;
+	zend_object         std;
 };
 
 zend_class_entry *jit_function_ce;
 
 void php_jit_minit_function(int module_number TSRMLS_DC);
 
-#define PHP_JIT_FETCH_FUNCTION(from) \
-	(php_jit_function_t*) zend_object_store_get_object((from) TSRMLS_CC)
-#define PHP_JIT_FETCH_FUNCTION_I(from) \
-	(PHP_JIT_FETCH_FUNCTION(from))->func
+#define PHP_JIT_FETCH_FUNCTION_O(o) ((php_jit_function_t*) ((char*) o - XtOffsetOf(php_jit_function_t, std)))
+#define PHP_JIT_FETCH_FUNCTION(from) PHP_JIT_FETCH_FUNCTION_O(Z_OBJ_P(from))
+#define PHP_JIT_FETCH_FUNCTION_I(from) (PHP_JIT_FETCH_FUNCTION(from))->func
 	
 #define PHP_JIT_FUNCTION_CREATED     (1<<1)
 #define PHP_JIT_FUNCTION_COMPILED    (1<<2)
@@ -99,30 +98,20 @@ static inline void php_jit_do_unary_op(php_jit_unary_func_t func, php_jit_functi
 	pval->value = func(pfunc->func, in);
 } /* }}} */
 
-static inline void php_jit_function_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
+static inline void php_jit_function_free(zend_object *zobject TSRMLS_DC) {
 	php_jit_function_t *pfunc = 
-		(php_jit_function_t *) zobject;
+		(php_jit_function_t *) PHP_JIT_FETCH_FUNCTION_O(zobject);
 
-    zval_dtor(&pfunc->zctx);
-    zval_dtor(&pfunc->zsig);
-	zval_dtor(&pfunc->zparent);
-	
-	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
-}
-
-static inline void php_jit_function_free(void *zobject TSRMLS_DC) {
-	php_jit_function_t *pfunc = 
-		(php_jit_function_t *) zobject;
+	zval_ptr_dtor(&pfunc->zctx);
+    zval_ptr_dtor(&pfunc->zsig);
+	zval_ptr_dtor(&pfunc->zparent);
 
 	zend_object_std_dtor(&pfunc->std TSRMLS_CC);
-
-	efree(pfunc);
 }
 
-static inline zend_object_value php_jit_function_create(zend_class_entry *ce TSRMLS_DC) {
-	zend_object_value value;
+static inline zend_object* php_jit_function_create(zend_class_entry *ce TSRMLS_DC) {
 	php_jit_function_t *pfunc = 
-		(php_jit_function_t*) ecalloc(1, sizeof(php_jit_function_t));
+		(php_jit_function_t*) ecalloc(1, sizeof(php_jit_function_t) + zend_object_properties_size(ce));
 	
 	zend_object_std_init(&pfunc->std, ce TSRMLS_CC);
 	object_properties_init(&pfunc->std, ce);
@@ -131,13 +120,9 @@ static inline zend_object_value php_jit_function_create(zend_class_entry *ce TSR
     ZVAL_NULL(&pfunc->zsig);
     ZVAL_NULL(&pfunc->zparent);
     
-	value.handle   = zend_objects_store_put(
-		pfunc, 
-		php_jit_function_destroy, 
-		php_jit_function_free, NULL TSRMLS_CC);
-	value.handlers = &php_jit_function_handlers;
+	pfunc->std.handlers = &php_jit_function_handlers;
 	
-	return value;
+	return &pfunc->std;
 }
 
 void php_jit_minit_function(int module_number TSRMLS_DC) {
@@ -151,17 +136,20 @@ void php_jit_minit_function(int module_number TSRMLS_DC) {
 		&php_jit_function_handlers,
 		zend_get_std_object_handlers(), 
 		sizeof(php_jit_function_handlers));
+
+	php_jit_function_handlers.offset = XtOffsetOf(php_jit_function_t, std);
+	php_jit_function_handlers.free_obj = php_jit_function_free;
 }
 
 static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSRMLS_DC) {
-	zval *retval_ptr = NULL, 
+	zval retval, 
 		 *tmp_ptr = NULL,
-		 *params = NULL;
+		 params;
 	zval closure;
 	zend_fcall_info       fci;
 	zend_fcall_info_cache fcc;
-	zend_uint             nparam = 0;
-	php_jit_function_t    *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
+	zend_ulong             nparam = 0;
+	php_jit_function_t    *pfunc = PHP_JIT_FETCH_FUNCTION(this_ptr);
 	php_jit_signature_t   *psig  = PHP_JIT_FETCH_SIGNATURE(&pfunc->zsig);
 	int result = FAILURE;
 
@@ -171,40 +159,33 @@ static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSR
 	}
 	
 	/* bind builder function to current scope and object */
-	zend_create_closure(&closure, (zend_function*) zend_get_closure_method_def(zbuilder TSRMLS_CC), Z_OBJCE_P(this_ptr), this_ptr TSRMLS_CC);
+	zend_create_closure(&closure, (zend_function*) zend_get_closure_method_def(zbuilder TSRMLS_CC), Z_OBJCE_P(this_ptr), Z_OBJCE_P(this_ptr), this_ptr TSRMLS_CC);
 
 	if (zend_fcall_info_init(&closure, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
 		php_jit_exception("failed to initialzied builder function call");
 		zval_dtor(&closure);
 		return;
 	}
+
+	ZVAL_UNDEF(&retval);
+	array_init(&params);
 	
-	MAKE_STD_ZVAL(params);
-	
-	/* build params for builder function */
-	array_init(params);
-	
-	fci.retval_ptr_ptr = &retval_ptr;
+	fci.retval = &retval;
 	
 	while (nparam < psig->nparams) {
-		zval *o;
+		zval o;
 		php_jit_value_t *pval;
-		
-		MAKE_STD_ZVAL(o);
 
-		object_init_ex(o, jit_value_ce);
+		object_init_ex(&o, jit_value_ce);
 
-		pval = PHP_JIT_FETCH_VALUE(o);
+		pval = PHP_JIT_FETCH_VALUE(&o);
 		
-        pval->zfunc = * getThis();
-        zval_copy_ctor(&pval->zfunc);
-        
-        pval->ztype = psig->zparams[nparam];
-        zval_copy_ctor(&pval->ztype);
+		ZVAL_COPY(&pval->zfunc, this_ptr);
+        ZVAL_COPY(&pval->ztype, &psig->zparams[nparam]);
 		
 		pval->value = jit_value_get_param(pfunc->func, nparam);
 
-		add_next_index_zval(params, o);
+		add_next_index_zval(&params, &o);
 
 		nparam++;
 	}
@@ -225,8 +206,8 @@ static inline void php_jit_function_implement(zval *this_ptr, zval *zbuilder TSR
 	/* cleanup */
 	zend_fcall_info_args_clear(&fci, 1);
 	
-	if (retval_ptr) {
-		zval_ptr_dtor(&retval_ptr);
+	if (Z_TYPE(retval) != IS_UNDEF) {
+		zval_ptr_dtor(&retval);
 	}
 
 	zval_ptr_dtor(&params);
@@ -402,13 +383,13 @@ PHP_METHOD(Func, getSignature) {
 	}
 }
 
-static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zend_llist *stack, zval *member, zend_uint narg TSRMLS_DC) {
+static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zend_llist *stack, zval *member, zend_ulong narg TSRMLS_DC) {
 	HashTable *uht = Z_ARRVAL_P(member);
 	HashPosition pos;
 	zend_ulong nuargs = zend_hash_num_elements(uht), 
 			   nuarg = 0;
 	void **pargs = NULL;
-	zval **zmember;
+	zval *zmember;
 	php_jit_sized_t *array;
 	php_jit_signature_t *psig = PHP_JIT_FETCH_SIGNATURE(&pfunc->zsig);
 	php_jit_type_t *ptype = PHP_JIT_FETCH_TYPE(&psig->zparams[narg]);
@@ -445,10 +426,10 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 	zend_llist_add_element(stack, &array->data);
 
 	for (zend_hash_internal_pointer_reset_ex(uht, &pos);
-		zend_hash_get_current_data_ex(uht, (void**) &zmember, &pos) == SUCCESS;
+		(zmember = zend_hash_get_current_data_ex(uht, &pos));
 		zend_hash_move_forward_ex(uht, &pos)) {
 		
-		if (Z_TYPE_PP(zmember) == IS_ARRAY) {
+		if (Z_TYPE_P(zmember) == IS_ARRAY) {
 		    php_jit_sized_t *inner;
 		    
 			if (!ptype->pt) {
@@ -458,24 +439,24 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 			}
 			
 			inner = php_jit_array_args
-			    (pfunc, stack, *zmember, narg TSRMLS_CC);
+			    (pfunc, stack, zmember, narg TSRMLS_CC);
 			array->data[nuarg] = inner;
 		} else {
 		    switch (ptype->id) {
 		        case PHP_JIT_TYPE_DOUBLE: {
-		            memcpy(&array->data[nuarg], &Z_LVAL_PP(zmember), sizeof(double));
+		            memcpy(&array->data[nuarg], &Z_LVAL_P(zmember), sizeof(double));
 		        } break;
 		        
 		        case PHP_JIT_TYPE_UINT:
 		        case PHP_JIT_TYPE_INT:
 		        case PHP_JIT_TYPE_ULONG:
 			    case PHP_JIT_TYPE_LONG: {
-			        memcpy(&array->data[nuarg], &Z_LVAL_PP(zmember), sizeof(long));
+			        memcpy(&array->data[nuarg], &Z_LVAL_P(zmember), sizeof(long));
 			    } break;
 			    
 			    case PHP_JIT_TYPE_STRING: {
 				    php_jit_sized_t *s =
-					    (php_jit_sized_t*) &(*zmember)->value.str;
+					    (php_jit_sized_t*) Z_STR_P(zmember);
 				    array->data[nuarg] = s;
 			    } break;
 			    
@@ -494,12 +475,12 @@ static inline void php_jit_invoke_stack_dtor(void *ptr) {
 }
 
 PHP_METHOD(Func, __invoke) {
-	zend_uint nargs = ZEND_NUM_ARGS();
-	zval **args = NULL;
+	zend_ulong nargs = ZEND_NUM_ARGS();
+	zval *args = NULL;
 	void **jargs = NULL;
 	void *result;
 	zend_llist stack;
-	zend_uint narg = 0;
+	zend_ulong narg = 0;
 	php_jit_function_t *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	php_jit_signature_t *psig = PHP_JIT_FETCH_SIGNATURE(&pfunc->zsig);
 	php_jit_context_t *pctx   = PHP_JIT_FETCH_CONTEXT(&pfunc->zctx);
@@ -526,7 +507,7 @@ PHP_METHOD(Func, __invoke) {
 		return;
 	}
 	
-	args = (zval**) emalloc(sizeof(zval*) * nargs);
+	args = (zval*) emalloc(sizeof(zval) * nargs);
 
 	if (zend_get_parameters_array(ht, nargs, args) != SUCCESS) {
 		php_jit_exception("failed to fetch parameters from stack, expected %d", psig->nparams);
@@ -541,7 +522,7 @@ PHP_METHOD(Func, __invoke) {
 	while (narg < nargs) {
 	    ptype = PHP_JIT_FETCH_TYPE(&psig->zparams[narg]);
 	    
-		if (Z_TYPE_P(args[narg]) == IS_ARRAY) {
+		if (Z_TYPE(args[narg]) == IS_ARRAY) {
 		    php_jit_sized_t *array;
 		    
 			if (!ptype->pt) {
@@ -553,7 +534,7 @@ PHP_METHOD(Func, __invoke) {
 			}
             
             array = (php_jit_sized_t*) php_jit_array_args
-			    (pfunc, &stack, args[narg], narg TSRMLS_CC);
+			    (pfunc, &stack, &args[narg], narg TSRMLS_CC);
             
 			jargs[narg] = &array;
 		} else switch (ptype->id) {
@@ -561,32 +542,32 @@ PHP_METHOD(Func, __invoke) {
 			case PHP_JIT_TYPE_INT:
 			case PHP_JIT_TYPE_ULONG:
 			case PHP_JIT_TYPE_LONG: {
-				if (Z_TYPE_P(args[narg]) != IS_LONG) {
-					convert_to_long(args[narg]);
+				if (Z_TYPE(args[narg]) != IS_LONG) {
+					convert_to_long(&args[narg]);
 				}
 				
-				jargs[narg] = &Z_LVAL_P(args[narg]);
+				jargs[narg] = &Z_LVAL(args[narg]);
 			} break;
 
 			case PHP_JIT_TYPE_DOUBLE:
-				if (Z_TYPE_P(args[narg]) != IS_DOUBLE) {
-					convert_to_double(args[narg]);
+				if (Z_TYPE(args[narg]) != IS_DOUBLE) {
+					convert_to_double(&args[narg]);
 				}
 				
-				jargs[narg] = &Z_DVAL_P(args[narg]);
+				jargs[narg] = &Z_DVAL(args[narg]);
 			break;
 			
 			case PHP_JIT_TYPE_STRING: {
 				php_jit_sized_t *s;
 				
-				if (Z_TYPE_P(args[narg]) != IS_STRING) {
-					convert_to_string(args[narg]);
+				if (Z_TYPE(args[narg]) != IS_STRING) {
+					convert_to_string(&args[narg]);
 				}
 
-				s = (php_jit_sized_t*) &args[narg]->value.str;
+				s = (php_jit_sized_t*) &Z_STR(args[narg]);
 				jargs[narg] = &s;
 			} break;
-			
+
 			case PHP_JIT_TYPE_ZVAL: jargs[narg] = &args[narg]; break;
 		}
 
@@ -603,7 +584,7 @@ PHP_METHOD(Func, __invoke) {
 				php_jit_sized_t *s =
 					(php_jit_sized_t*) result;
 
-				ZVAL_STRINGL(return_value, (char*) (s)->data, (s)->length, 1);
+				ZVAL_STR(return_value, (zend_string*)s);
 			}
 		} break;
 
@@ -669,7 +650,7 @@ PHP_METHOD(Func, dump) {
 		return;
 	}
 	
-	php_stream_from_zval(pstream, &zoutput);
+	php_stream_from_zval(pstream, zoutput);
 	
 	if (php_stream_can_cast(pstream, PHP_STREAM_AS_STDIO|PHP_STREAM_CAST_TRY_HARD) == SUCCESS) {
 		FILE *stdio;
@@ -725,9 +706,9 @@ PHP_METHOD(Func, doWhile) {
 	
 	jit_insn_branch_if_not(pfunc->func, compare, &label[1]);
 	{
-		zval *retval_ptr = NULL;
-		
-		fci.retval_ptr_ptr = &retval_ptr;
+		zval retval;
+		ZVAL_UNDEF(&retval);
+		fci.retval = &retval;
 		fci.params = NULL;
 		fci.param_count = 0;
 		
@@ -738,8 +719,8 @@ PHP_METHOD(Func, doWhile) {
 			return;
 		}
 		
-		if (retval_ptr) {
-			zval_ptr_dtor(&retval_ptr);
+		if (Z_TYPE(retval) != IS_UNDEF) {
+			zval_ptr_dtor(&retval);
 		}
 		
 		jit_insn_branch(pfunc->func, &label[0]);
@@ -755,7 +736,7 @@ PHP_METHOD(Func, doIf) {
 	jit_label_t label = jit_label_undefined;
 	zend_fcall_info zpfci, znfci;
 	zend_fcall_info_cache zpfcc, znfcc;
-	zval *zretnull = NULL;
+	zval retval;
 	int result = FAILURE;
 	
 	if (php_jit_parameters("Of|f", &op, jit_value_ce, &zpfci, &zpfcc, &znfci, &znfcc) != SUCCESS) {
@@ -766,8 +747,9 @@ PHP_METHOD(Func, doIf) {
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
 	jit_insn_branch_if_not(pfunc->func, PHP_JIT_FETCH_VALUE_I(op), &label);
-	
-	zpfci.retval_ptr_ptr = &zretnull;
+
+	ZVAL_UNDEF(&retval);
+	zpfci.retval = &retval;
 	zpfci.params = NULL;
 	zpfci.param_count = 0;
 	
@@ -778,14 +760,15 @@ PHP_METHOD(Func, doIf) {
 		return;
 	}
 	
-	if (zretnull) {
-		zval_ptr_dtor(&zretnull);
+	if (Z_TYPE(retval) != IS_UNDEF) {
+		zval_ptr_dtor(&retval);
 	}
 	
 	jit_insn_label(pfunc->func, &label);
 	
 	if (ZEND_NUM_ARGS() > 3) {
-		znfci.retval_ptr_ptr = &zretnull;
+		ZVAL_UNDEF(&retval);
+		znfci.retval = &retval;
 		znfci.params = NULL;
 		znfci.param_count = 0;
 
@@ -796,8 +779,8 @@ PHP_METHOD(Func, doIf) {
 			return;
 		}
 
-		if (zretnull) {
-			zval_ptr_dtor(&zretnull);
+		if (Z_TYPE(retval) != IS_UNDEF) {
+			zval_ptr_dtor(&retval);
 		}
 	}
 }
@@ -913,7 +896,7 @@ PHP_METHOD(Func, doIfNot) {
 	jit_label_t label = jit_label_undefined;
 	zend_fcall_info zpfci, znfci;
 	zend_fcall_info_cache zpfcc, znfcc;
-	zval *zretnull = NULL;
+	zval retval;
 	int result = FAILURE;
 	
 	if (php_jit_parameters("Of|f", &op, jit_value_ce, &zpfci, &zpfcc, &znfci, &znfcc) != SUCCESS) {
@@ -924,8 +907,9 @@ PHP_METHOD(Func, doIfNot) {
 	pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	
 	jit_insn_branch_if(pfunc->func, PHP_JIT_FETCH_VALUE_I(op), &label);
-	
-	zpfci.retval_ptr_ptr = &zretnull;
+
+	ZVAL_UNDEF(&retval);
+	zpfci.retval = &retval;
 	zpfci.params = NULL;
 	zpfci.param_count = 0;
 	
@@ -936,14 +920,15 @@ PHP_METHOD(Func, doIfNot) {
 		return;
 	}
 
-	if (zretnull) {
-		zval_ptr_dtor(&zretnull);
+	if (Z_TYPE(retval) != IS_UNDEF) {
+		zval_ptr_dtor(&retval);
 	}
 	
 	jit_insn_label(pfunc->func, &label);
 	
 	if (ZEND_NUM_ARGS() > 3) {
-		znfci.retval_ptr_ptr = &zretnull;
+		ZVAL_UNDEF(&retval);
+		znfci.retval = &retval;
 		znfci.params = NULL;
 		znfci.param_count = 0;
 
@@ -954,21 +939,21 @@ PHP_METHOD(Func, doIfNot) {
 			return;
 		}
 
-		if (zretnull) {
-			zval_ptr_dtor(&zretnull);
+		if (Z_TYPE(retval) != IS_UNDEF) {
+			zval_ptr_dtor(&retval);
 		}
 	}
 }
 
 PHP_METHOD(Func, doJumpTable) {
 	zval *zvalue = NULL, 
-		 **zmember = NULL;
+		 *zmember = NULL;
 	HashTable *table = NULL;
 	HashPosition position;
 	php_jit_function_t *pfunc = PHP_JIT_FETCH_FUNCTION(getThis());
 	jit_label_t *labels = NULL, after = jit_label_undefined;
-	zend_uint nlabels = 0;
-	zend_uint nlabel = 0;
+	zend_ulong nlabels = 0;
+	zend_ulong nlabel = 0;
 	
 	if (php_jit_parameters("OH", &zvalue, jit_value_ce, &table) != SUCCESS) {
 		php_jit_exception("unexpected parameters, expected (Value op, array table)");
@@ -995,22 +980,23 @@ PHP_METHOD(Func, doJumpTable) {
 	nlabel = 0;
 	
 	for (zend_hash_internal_pointer_reset_ex(table, &position);
-		zend_hash_get_current_data_ex(table, (void**)&zmember, &position) == SUCCESS;
+		(zmember = zend_hash_get_current_data_ex(table, &position));
 		zend_hash_move_forward_ex(table, &position)) {
 		zend_fcall_info fci;
 		zend_fcall_info_cache fcc;
-		zval *retval_ptr = NULL;
+		zval retval;
 		int result = FAILURE;
 		
 		jit_insn_label(pfunc->func, &labels[nlabel]);
 		
-		if (zend_fcall_info_init(*zmember, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
+		if (zend_fcall_info_init(zmember, IS_CALLABLE_CHECK_SILENT, &fci, &fcc, NULL, NULL TSRMLS_CC) != SUCCESS) {
 			php_jit_exception("member at %d is not callable", nlabel);
 			nlabel++;
 			continue;
 		}
-		
-		fci.retval_ptr_ptr = &retval_ptr;
+
+		ZVAL_UNDEF(&retval);
+		fci.retval = &retval;
 		fci.params = NULL;
 		fci.param_count = 0;
 		
@@ -1021,8 +1007,8 @@ PHP_METHOD(Func, doJumpTable) {
 			return;
 		}
 		
-		if (retval_ptr) {
-			zval_ptr_dtor(&retval_ptr);
+		if (Z_TYPE(retval) != IS_UNDEF) {
+			zval_ptr_dtor(&retval);
 		}
 		
 		nlabel++;
@@ -2047,9 +2033,9 @@ PHP_METHOD(Func, doCall) {
 	zval *zcall = NULL, *zsignature = NULL;
 	HashTable *zparams;
 	HashPosition position;
-	zval **zparam;
+	zval *zparam;
 	jit_value_t *args;
-	zend_uint arg = 0;
+	zend_ulong arg = 0;
 	long flags = 0;
 	
 	if (php_jit_parameters("OH|l", &zcall, jit_function_ce, &zparams, &flags) != SUCCESS) {
@@ -2060,9 +2046,9 @@ PHP_METHOD(Func, doCall) {
 	args = (jit_value_t*) ecalloc(zend_hash_num_elements(zparams), sizeof(jit_value_t));
 
 	for (zend_hash_internal_pointer_reset_ex(zparams, &position);
-		zend_hash_get_current_data_ex(zparams, (void**)&zparam, &position) == SUCCESS;
+		(zparam = zend_hash_get_current_data_ex(zparams, &position));
 		zend_hash_move_forward_ex(zparams, &position)) {
-		args[arg] = PHP_JIT_FETCH_VALUE_I(*zparam);
+		args[arg] = PHP_JIT_FETCH_VALUE_I(zparam);
 		arg++;
 	}
 
@@ -2093,8 +2079,7 @@ PHP_METHOD(Func, doCall) {
 			psig->type,
 			args, arg, flags);
 
-		pval->zfunc = *getThis();
-		zval_copy_ctor(&pval->zfunc);
+		ZVAL_COPY(&pval->zfunc, getThis());
 	}
 
 	efree(args);

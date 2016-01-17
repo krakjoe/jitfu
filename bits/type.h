@@ -19,12 +19,12 @@
 #define HAVE_BITS_TYPE_H
 
 typedef struct _php_jit_type_t {
-	zend_object         std;
 	jit_type_t          type;
 	/* must be first three members */
 	zend_ulong          id;
 	zend_ulong          pt;
 	zend_bool           copied;
+	zend_object         std;
 } php_jit_type_t;
 
 zend_class_entry *jit_type_ce;
@@ -41,10 +41,9 @@ jit_type_t jit_type_zvalue;
 jit_type_t jit_type_zval;
 jit_type_t jit_type_pzval;
 
-#define PHP_JIT_FETCH_TYPE(from) \
-	(php_jit_type_t*) zend_object_store_get_object((from) TSRMLS_CC)
-#define PHP_JIT_FETCH_TYPE_I(from) \
-	(PHP_JIT_FETCH_TYPE(from))->type
+#define PHP_JIT_FETCH_TYPE_O(o) ((php_jit_type_t*) ((char*) o - XtOffsetOf(php_jit_type_t, std)))
+#define PHP_JIT_FETCH_TYPE(from) PHP_JIT_FETCH_TYPE_O(Z_OBJ_P(from))
+#define PHP_JIT_FETCH_TYPE_I(from) (PHP_JIT_FETCH_TYPE(from))->type
 
 #define PHP_JIT_TYPE_VOID  		1
 #define PHP_JIT_TYPE_UINT       2
@@ -84,38 +83,27 @@ jit_type_t php_jit_type(short type) {
 	return jit_type_void;
 }
 
-static inline void php_jit_type_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
-	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
-}
-
-static inline void php_jit_type_free(void *zobject TSRMLS_DC) {
+static inline void php_jit_type_free(zend_object *zobject TSRMLS_DC) {
 	php_jit_type_t *ptype = 
-		(php_jit_type_t *) zobject;
+		(php_jit_type_t *) PHP_JIT_FETCH_TYPE_O(zobject);
 
-	zend_object_std_dtor(&ptype->std TSRMLS_CC);
-	
 	if (ptype->copied) {
 		jit_type_free(ptype->type);
 	}
 	
-	efree(ptype);
+	zend_object_std_dtor(zobject TSRMLS_CC);
 }
 
-static inline zend_object_value php_jit_type_create(zend_class_entry *ce TSRMLS_DC) {
-	zend_object_value intern;
+static inline zend_object* php_jit_type_create(zend_class_entry *ce TSRMLS_DC) {
 	php_jit_type_t *ptype = 
-		(php_jit_type_t*) ecalloc(1, sizeof(php_jit_type_t));
+		(php_jit_type_t*) ecalloc(1, sizeof(php_jit_type_t) + zend_object_properties_size(ce));
 	
 	zend_object_std_init(&ptype->std, ce TSRMLS_CC);
 	object_properties_init(&ptype->std, ce);
 	
-	intern.handle   = zend_objects_store_put(
-		ptype, 
-		php_jit_type_destroy, 
-		php_jit_type_free, NULL TSRMLS_CC);
-	intern.handlers = &php_jit_type_handlers;
+	ptype->std.handlers = &php_jit_type_handlers;
 	
-	return intern;
+	return &ptype->std;
 }
 
 void php_jit_minit_type(int module_number TSRMLS_DC) {
@@ -138,7 +126,10 @@ void php_jit_minit_type(int module_number TSRMLS_DC) {
 		&php_jit_type_handlers,
 		zend_get_std_object_handlers(),
 		sizeof(php_jit_type_handlers));
-	
+
+	php_jit_type_handlers.offset = XtOffsetOf(php_jit_type_t, std);
+	php_jit_type_handlers.free_obj = php_jit_type_free;
+
 	REGISTER_LONG_CONSTANT("JIT_TYPE_VOID",      PHP_JIT_TYPE_VOID,        CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_INT",       PHP_JIT_TYPE_INT,         CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_TYPE_UINT",      PHP_JIT_TYPE_UINT,        CONST_CS|CONST_PERSISTENT);
@@ -229,7 +220,7 @@ PHP_METHOD(Type, __construct) {
 
 PHP_METHOD(Type, of) {
 	long ztype = 0;
-	zval **zcache = NULL;
+	zval *zcache = NULL;
 	php_jit_type_t *ptype;
 	
 	if (php_jit_parameters("l", &ztype) != SUCCESS || !ztype) {
@@ -237,15 +228,15 @@ PHP_METHOD(Type, of) {
 		return;
 	}
 	
-	if (zend_hash_index_find(&JG(types), ztype, (void**)&zcache) != SUCCESS) {
+	if (!(zcache = zend_hash_index_find(&JG(types), ztype))) {
 	 	object_init_ex(return_value, jit_type_ce);
 	 	ptype = PHP_JIT_FETCH_TYPE(return_value);
 	 	ptype->id = ztype;
 	 	ptype->type = php_jit_type(ztype);
 	 	zend_hash_index_update(
-	 		&JG(types), ztype, (void**) &return_value, sizeof(zval*), NULL);
+	 		&JG(types), ztype, return_value);
 	 	Z_ADDREF_P(return_value);
-	 } else ZVAL_ZVAL(return_value, *zcache, 1, 0);
+	 } else ZVAL_COPY(return_value, zcache);
 }
 
 PHP_METHOD(Type, getIdentifier) {
@@ -303,7 +294,7 @@ PHP_METHOD(Type, dump) {
 		return;
 	}
 	
-	php_stream_from_zval(pstream, &zoutput);
+	php_stream_from_zval(pstream, zoutput);
 	
 	if (php_stream_can_cast(pstream, PHP_STREAM_AS_STDIO|PHP_STREAM_CAST_TRY_HARD) == SUCCESS) {
 		FILE *stdio;

@@ -19,21 +19,20 @@
 #define HAVE_BITS_VALUE_H
 
 typedef struct _php_jit_value_t {
-	zend_object std;
 	zval               zfunc;
 	zval               ztype;
 	jit_value_t        value;
-	zval               *zv;
+	zval               zv;
+	zend_object std;
 } php_jit_value_t;
 
 zend_class_entry *jit_value_ce;
 
 void php_jit_minit_value(int module_number TSRMLS_DC);
 
-#define PHP_JIT_FETCH_VALUE(from) \
-	((php_jit_value_t*) zend_object_store_get_object((from) TSRMLS_CC))
-#define PHP_JIT_FETCH_VALUE_I(from) \
-	(PHP_JIT_FETCH_VALUE(from))->value
+#define PHP_JIT_FETCH_VALUE_O(o) ((php_jit_value_t*) ((char*) o - XtOffsetOf(php_jit_value_t, std)))
+#define PHP_JIT_FETCH_VALUE(from) PHP_JIT_FETCH_VALUE_O(Z_OBJ_P(from))
+#define PHP_JIT_FETCH_VALUE_I(from) (PHP_JIT_FETCH_VALUE(from))->value
 
 extern zend_function_entry php_jit_value_methods[];
 extern zend_object_handlers php_jit_value_handlers;
@@ -43,47 +42,31 @@ extern zend_object_handlers php_jit_value_handlers;
 #define HAVE_BITS_VALUE
 zend_object_handlers php_jit_value_handlers;
 
-static inline void php_jit_value_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
+static inline void php_jit_value_free(zend_object *object TSRMLS_DC) {
 	php_jit_value_t *pval = 
-		(php_jit_value_t *) zobject;
+		(php_jit_value_t *) PHP_JIT_FETCH_VALUE_O(object);
 
-	zval_dtor(&pval->zfunc);
-	zval_dtor(&pval->ztype);
+	zval_ptr_dtor(&pval->zfunc);
+	zval_ptr_dtor(&pval->ztype);
+	zval_ptr_dtor(&pval->zv);
 	
-	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
-}
-
-static inline void php_jit_value_free(void *zobject TSRMLS_DC) {
-	php_jit_value_t *pval = 
-		(php_jit_value_t *) zobject;
-
 	zend_object_std_dtor(&pval->std TSRMLS_CC);
-
-	if (pval->zv) {
-		zval_ptr_dtor(&pval->zv);
-	}
-	
-	efree(pval);
 }
 
-static inline zend_object_value php_jit_value_create(zend_class_entry *ce TSRMLS_DC) {
-	zend_object_value value;
+static inline zend_object* php_jit_value_create(zend_class_entry *ce TSRMLS_DC) {
 	php_jit_value_t *pval = 
-		(php_jit_value_t*) ecalloc(1, sizeof(php_jit_value_t));
+		(php_jit_value_t*) ecalloc(1, sizeof(php_jit_value_t) + zend_object_properties_size(ce));
 	
 	zend_object_std_init(&pval->std, ce TSRMLS_CC);
 	object_properties_init(&pval->std, ce);
 	
-	ZVAL_NULL(&pval->zfunc);
-	ZVAL_NULL(&pval->ztype);
+	ZVAL_UNDEF(&pval->zfunc);
+	ZVAL_UNDEF(&pval->ztype);
+	ZVAL_UNDEF(&pval->zv);
 	
-	value.handle   = zend_objects_store_put(
-		pval, 
-		php_jit_value_destroy, 
-		php_jit_value_free, NULL TSRMLS_CC);
-	value.handlers = &php_jit_value_handlers;
+	pval->std.handlers = &php_jit_value_handlers;
 	
-	return value;
+	return &pval->std;
 }
 
 void php_jit_minit_value(int module_number TSRMLS_DC) {
@@ -97,6 +80,9 @@ void php_jit_minit_value(int module_number TSRMLS_DC) {
 		&php_jit_value_handlers,
 		zend_get_std_object_handlers(), 
 		sizeof(php_jit_value_handlers));
+
+	php_jit_value_handlers.offset = XtOffsetOf(php_jit_value_t, std);
+	php_jit_value_handlers.free_obj = php_jit_value_free;
 }
 
 PHP_METHOD(Value, __construct) {
@@ -124,47 +110,42 @@ PHP_METHOD(Value, __construct) {
 	}
 	
 	pval = PHP_JIT_FETCH_VALUE(getThis());
-	pval->zfunc = *zfunction;
-	zval_copy_ctor(&pval->zfunc);
+	ZVAL_COPY(&pval->zfunc, zfunction);
 	pfunc = 
 	    PHP_JIT_FETCH_FUNCTION(&pval->zfunc);
-	    
-	pval->ztype = *ztype;
-	zval_copy_ctor(&pval->ztype);
+	ZVAL_COPY(&pval->ztype, ztype);
     ptype =
         PHP_JIT_FETCH_TYPE(&pval->ztype);
-
-    pval->zv = zvalue;
+	ZVAL_COPY(&pval->zv, zvalue);
     
-	if (pval->zv) {
-	    Z_ADDREF_P(pval->zv);
-	    
+	if (Z_TYPE(pval->zv) != IS_UNDEF) {
+
 		switch (ptype->id) {
 			case PHP_JIT_TYPE_UINT:
 			case PHP_JIT_TYPE_INT:
 			case PHP_JIT_TYPE_LONG:
 			case PHP_JIT_TYPE_ULONG:
-				if (Z_TYPE_P(pval->zv) != IS_LONG) {
-					convert_to_long(pval->zv);
+				if (Z_TYPE(pval->zv) != IS_LONG) {
+					convert_to_long(&pval->zv);
 				}
-				
+					
 				pval->value = jit_value_create_nint_constant
-					(pfunc->func, ptype->type, Z_LVAL_P(pval->zv));
+					(pfunc->func, ptype->type, Z_LVAL(pval->zv));
 			break;
 			
 			case PHP_JIT_TYPE_DOUBLE:
-				if (Z_TYPE_P(zvalue) != IS_DOUBLE) {
-					convert_to_double(pval->zv);
+				if (Z_TYPE(pval->zv) != IS_DOUBLE) {
+					convert_to_double(&pval->zv);
 				}
 				
 				pval->value = jit_value_create_float64_constant
-					(pfunc->func, ptype->type, Z_DVAL_P(pval->zv));
+					(pfunc->func, ptype->type, Z_DVAL(pval->zv));
 			break;
 			
 			default: {
 				jit_constant_t con;
 
-				con.un.ptr_value = &pval->zv->value;
+				con.un.ptr_value = &pval->zv.value;
 				con.type         = ptype->type;
 
 				pval->value = jit_value_create_constant(pfunc->func, &con);
@@ -334,7 +315,7 @@ PHP_METHOD(Value, dump) {
 		return;
 	}
 	
-	php_stream_from_zval(pstream, &zoutput);
+	php_stream_from_zval(pstream, zoutput);
 
 	if (php_stream_can_cast(pstream, PHP_STREAM_AS_STDIO|PHP_STREAM_CAST_TRY_HARD) == SUCCESS) {
 		FILE *stdio;

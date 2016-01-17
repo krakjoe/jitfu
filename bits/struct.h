@@ -19,19 +19,18 @@
 #define HAVE_BITS_STRUCT_H
 
 typedef struct _php_jit_struct_t {
-	zend_object         std;
 	jit_type_t          type;
 	zval                *zfields;
-	char                **names;
-	zend_uint             nfields;
+	zend_string         **names;
+	zend_ulong          nfields;
+	zend_object         std;
 } php_jit_struct_t;
 
 zend_class_entry *jit_struct_ce;
 
-#define PHP_JIT_FETCH_STRUCT(from) \
-	(php_jit_struct_t*) zend_object_store_get_object((from) TSRMLS_CC)
-#define PHP_JIT_FETCH_STRUCT_I(from) \
-	(PHP_JIT_FETCH_STRUCT(from))->struct
+#define PHP_JIT_FETCH_STRUCT_O(o) ((php_jit_struct_t*) ((char*) o - XtOffsetOf(php_jit_struct_t, std)))
+#define PHP_JIT_FETCH_STRUCT(from) PHP_JIT_FETCH_STRUCT_O(Z_OBJ_P(from))
+#define PHP_JIT_FETCH_STRUCT_I(from) (PHP_JIT_FETCH_STRUCT(from))->struct
 
 void php_jit_minit_struct(int module_number TSRMLS_DC);
 
@@ -43,23 +42,15 @@ extern zend_object_handlers php_jit_struct_handlers;
 #define HAVE_BITS_STRUCT
 zend_object_handlers php_jit_struct_handlers;
 
-static inline void php_jit_struct_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
-	php_jit_struct_t *pstruct = (php_jit_struct_t*) zobject;
-	zend_uint nfield = 0;
+static inline void php_jit_struct_free(zend_object *object) {
+	php_jit_struct_t *pstruct = 
+		(php_jit_struct_t *) PHP_JIT_FETCH_STRUCT_O(object);
+	zend_ulong nfield = 0;
 		
 	while (nfield < pstruct->nfields) {
-		zval_dtor(&pstruct->zfields[nfield]);
+		zval_ptr_dtor(&pstruct->zfields[nfield]);
 		nfield++;
 	}
-	
-	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
-}
-
-static inline void php_jit_struct_free(void *zobject TSRMLS_DC) {
-	php_jit_struct_t *pstruct = 
-		(php_jit_struct_t *) zobject;
-
-	zend_object_std_dtor(&pstruct->std TSRMLS_CC);
 	
 	jit_type_free(pstruct->type);
 	
@@ -68,56 +59,54 @@ static inline void php_jit_struct_free(void *zobject TSRMLS_DC) {
 	}
 	
 	if (pstruct->names) {
-		zend_uint nfield = 0;
+		zend_ulong nfield = 0;
 		
 		while (nfield < pstruct->nfields) {
-			efree
+			zend_string_release
 				(pstruct->names[nfield]);
 			nfield++;
 		}
 		
 		efree(pstruct->names);
 	}
-	
-	efree(pstruct);
+
+	zend_object_std_dtor(&pstruct->std TSRMLS_CC);
 }
 
-static inline zend_object_value php_jit_struct_create(zend_class_entry *ce TSRMLS_DC) {
-	zend_object_value intern;
+static inline zend_object* php_jit_struct_create(zend_class_entry *ce TSRMLS_DC) {
 	php_jit_struct_t *pstruct = 
-		(php_jit_struct_t*) ecalloc(1, sizeof(php_jit_struct_t));
+		(php_jit_struct_t*) ecalloc(1, sizeof(php_jit_struct_t) + zend_object_properties_size(ce));
 	
 	zend_object_std_init(&pstruct->std, ce TSRMLS_CC);
 	object_properties_init(&pstruct->std, ce);
 	
-	intern.handle   = zend_objects_store_put(
-		pstruct, 
-		php_jit_struct_destroy, 
-		php_jit_struct_free, NULL TSRMLS_CC);
-	intern.handlers = &php_jit_struct_handlers;
+	pstruct->std.handlers = &php_jit_struct_handlers;
 	
-	return intern;
+	return &pstruct->std;
 }
 
 void php_jit_minit_struct(int module_number TSRMLS_DC) {
 	zend_class_entry ce;
 
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Struct", php_jit_struct_methods);
-	jit_struct_ce = zend_register_internal_class_ex(&ce, jit_type_ce, NULL TSRMLS_CC);
+	jit_struct_ce = zend_register_internal_class_ex(&ce, jit_type_ce TSRMLS_CC);
 	jit_struct_ce->create_object = php_jit_struct_create;
 
 	memcpy(
 		&php_jit_struct_handlers,
 		zend_get_std_object_handlers(),
 		sizeof(php_jit_struct_handlers));
+
+	php_jit_struct_handlers.offset = XtOffsetOf(php_jit_struct_t, std);
+	php_jit_struct_handlers.free_obj = php_jit_struct_free;
 }
 
 PHP_METHOD(Struct, __construct) {
 	HashTable *zfields;
 	HashPosition zposition;
 	php_jit_struct_t *pstruct;
-	zval **zmember;
-	zend_uint nfield = 0;
+	zval *zmember;
+	zend_ulong nfield = 0;
 	jit_type_t *jfields;
 	char **jnames = NULL;
 	
@@ -135,39 +124,37 @@ PHP_METHOD(Struct, __construct) {
 		(jit_type_t*) ecalloc(pstruct->nfields, sizeof(jit_type_t));
 	
 	for (zend_hash_internal_pointer_reset_ex(zfields, &zposition);
-		zend_hash_get_current_data_ex(zfields, (void**) &zmember, &zposition) == SUCCESS;
+		(zmember = zend_hash_get_current_data_ex(zfields, &zposition));
 		zend_hash_move_forward_ex(zfields, &zposition)) {
 		zend_ulong znidx = 0L;
-		char *zname = NULL;
-		int   znlength = 0;
+		zend_string *zname = NULL;
 		php_jit_type_t *ptype;
 		
 		if (!zmember || 
-			Z_TYPE_PP(zmember) != IS_OBJECT || 
-			!instanceof_function(Z_OBJCE_PP(zmember), jit_type_ce TSRMLS_CC)) {
+			Z_TYPE_P(zmember) != IS_OBJECT || 
+			!instanceof_function(Z_OBJCE_P(zmember), jit_type_ce TSRMLS_CC)) {
 			php_jit_exception("non type found in fields list at %d", nfield);
 			return;
 		}
-		pstruct->zfields[nfield] = **zmember;
-		zval_copy_ctor(&pstruct->zfields[nfield]);
+		ZVAL_COPY(&pstruct->zfields[nfield], zmember);
 		
 		ptype = 
 		    PHP_JIT_FETCH_TYPE(&pstruct->zfields[nfield]);
 		
 		jfields[nfield] = jit_type_copy(ptype->type);
 		
-		if (zend_hash_get_current_key_ex(zfields, &zname, &znlength, &znidx, 0, &zposition) == HASH_KEY_IS_STRING) {
-			if (!zname || !znlength) {
+		if (zend_hash_get_current_key_ex(zfields, &zname, &znidx, &zposition) == HASH_KEY_IS_STRING) {
+			if (!zname || !ZSTR_LEN(zname)) {
 				php_jit_exception("invalid name found in fields list at %d", nfield);
 				efree(jfields);
 				return;
 			}
 			
 			if (!pstruct->names) {
-				pstruct->names = ecalloc(pstruct->nfields, sizeof(char*));
+				pstruct->names = ecalloc(pstruct->nfields, sizeof(zend_string*));
 			}
 			
-			pstruct->names[nfield] = estrndup(zname, znlength);
+			pstruct->names[nfield] = zend_string_copy(zname);
 		} else {
 			if (pstruct->names) {
 				php_jit_exception("un-named type found in fields list at %d", nfield);
@@ -182,7 +169,7 @@ PHP_METHOD(Struct, __construct) {
 	pstruct->type = jit_type_create_struct(jfields, pstruct->nfields, 0);
 	
 	if (pstruct->names) {
-		jit_type_set_names(pstruct->type, pstruct->names, pstruct->nfields);	
+		jit_type_set_names(pstruct->type, (char**) pstruct->names, pstruct->nfields);	
 	}
 	
 	efree(jfields);
@@ -204,7 +191,7 @@ PHP_METHOD(Struct, isPointer) {
 PHP_METHOD(Struct, getOffset) {
 	zval *zoffset;
 	php_jit_struct_t *pstruct;
-	zend_uint of = 0;
+	zend_ulong of = 0;
 	
 	if (php_jit_parameters("z", &zoffset) != SUCCESS || !zoffset) {
 		php_jit_exception("unexpected parameters, expected (string|integer field)");
@@ -242,7 +229,7 @@ PHP_METHOD(Struct, getOffset) {
 PHP_METHOD(Struct, getFieldType) {
 	zval *zoffset;
 	php_jit_struct_t *pstruct;
-	zend_uint of = 0;
+	zend_ulong of = 0;
 	
 	if (php_jit_parameters("z", &zoffset) != SUCCESS || !zoffset) {
 		php_jit_exception("unexpected parameters, expected (string|integer field)");

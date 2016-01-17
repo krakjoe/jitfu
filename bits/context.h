@@ -19,19 +19,18 @@
 #define HAVE_BITS_CONTEXT_H
 
 typedef struct _php_jit_context_t {
-	zend_object         std;
 	jit_context_t       ctx;
 	zend_ulong          st;
+	zend_object         std;
 } php_jit_context_t;
 
 zend_class_entry *jit_context_ce;
 
 void php_jit_minit_context(int module_number TSRMLS_DC);
 
-#define PHP_JIT_FETCH_CONTEXT(from) \
-	(php_jit_context_t*) zend_object_store_get_object((from) TSRMLS_CC)
-#define PHP_JIT_FETCH_CONTEXT_I(from) \
-	(PHP_JIT_FETCH_CONTEXT(from))->ctx
+#define PHP_JIT_FETCH_CONTEXT_O(o) ((php_jit_context_t*) ((char*) o - XtOffsetOf(php_jit_context_t, std)))
+#define PHP_JIT_FETCH_CONTEXT(from) PHP_JIT_FETCH_CONTEXT_O(Z_OBJ_P(from))
+#define PHP_JIT_FETCH_CONTEXT_I(from) (PHP_JIT_FETCH_CONTEXT(from))->ctx
 	
 #define PHP_JIT_CONTEXT_STARTED  (1<<1)
 #define PHP_JIT_CONTEXT_FINISHED (1<<2)
@@ -43,39 +42,27 @@ extern zend_object_handlers php_jit_context_handlers;
 #define HAVE_BITS_CONTEXT
 zend_object_handlers php_jit_context_handlers;
 
-static inline void php_jit_context_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
-	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
-}
-
-static inline void php_jit_context_free(void *zobject TSRMLS_DC) {
+static inline void php_jit_context_free(zend_object *zobject) {
 	php_jit_context_t *pcontext = 
-		(php_jit_context_t *) zobject;
+		PHP_JIT_FETCH_CONTEXT_O(zobject);
 
 	zend_object_std_dtor(&pcontext->std TSRMLS_CC);
 
 	jit_context_destroy(pcontext->ctx);
-
-	efree(pcontext);
 }
 
-static inline zend_object_value php_jit_context_create(zend_class_entry *ce TSRMLS_DC) {
-	zend_object_value value;
-	
+static inline zend_object* php_jit_context_create(zend_class_entry *ce TSRMLS_DC) {
 	php_jit_context_t *pcontext = 
-		(php_jit_context_t*) ecalloc(1, sizeof(php_jit_context_t));
+		(php_jit_context_t*) ecalloc(1, sizeof(php_jit_context_t) + zend_object_properties_size(ce));
 	
 	zend_object_std_init(&pcontext->std, ce TSRMLS_CC);
 	object_properties_init(&pcontext->std, ce);
 	
 	pcontext->ctx = jit_context_create();
-		
-	value.handle   = zend_objects_store_put(
-		pcontext,
-		php_jit_context_destroy, 
-		php_jit_context_free, NULL TSRMLS_CC);
-	value.handlers = &php_jit_context_handlers;
 	
-	return value;
+	pcontext->std.handlers = &php_jit_context_handlers;
+	
+	return &pcontext->std;
 }
 
 void php_jit_minit_context(int module_number TSRMLS_DC) {
@@ -89,6 +76,8 @@ void php_jit_minit_context(int module_number TSRMLS_DC) {
 		&php_jit_context_handlers,
 		zend_get_std_object_handlers(), 
 		sizeof(php_jit_context_handlers));
+
+	php_jit_context_handlers.offset = XtOffsetOf(php_jit_context_t, std);
 	
 	REGISTER_LONG_CONSTANT("JIT_OPTION_CACHE_LIMIT", JIT_OPTION_CACHE_LIMIT, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("JIT_OPTION_CACHE_PAGE_SIZE", JIT_OPTION_CACHE_PAGE_SIZE, CONST_CS|CONST_PERSISTENT);

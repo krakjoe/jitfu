@@ -41,6 +41,6 @@ if test "$PHP_JITFU" != "no"; then
   
   PHP_SUBST(JITFU_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(jitfu, jitfu.c, $ext_shared)
+  PHP_NEW_EXTENSION(jitfu, jitfu.c, $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
 fi
 

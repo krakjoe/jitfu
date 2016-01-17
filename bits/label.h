@@ -19,17 +19,16 @@
 #define HAVE_BITS_LABEL_H
 
 typedef struct _php_jit_label_t {
-	zend_object         std;
 	zval                zfunc;
 	jit_label_t         label;
+	zend_object         std;
 } php_jit_label_t;
 
 zend_class_entry *jit_label_ce;
 
-#define PHP_JIT_FETCH_LABEL(from) \
-	(php_jit_label_t*) zend_object_store_get_object((from) TSRMLS_CC)
-#define PHP_JIT_FETCH_LABEL_I(from) \
-	(PHP_JIT_FETCH_LABEL(from))->type
+#define PHP_JIT_FETCH_LABEL_O(o) ((php_jit_label_t*) ((char*) o - XtOffsetOf(php_jit_label_t, std)))
+#define PHP_JIT_FETCH_LABEL(from) PHP_JIT_FETCH_LABEL_O(Z_OBJ_P(from))
+#define PHP_JIT_FETCH_LABEL_I(from) (PHP_JIT_FETCH_LABEL(from))->type
 
 void php_jit_minit_label(int module_number TSRMLS_DC);
 
@@ -41,28 +40,18 @@ extern zend_object_handlers php_jit_label_handlers;
 #define HAVE_BITS_LABEL
 zend_object_handlers php_jit_label_handlers;
 
-static inline void php_jit_label_destroy(void *zobject, zend_object_handle handle TSRMLS_DC) {
+static inline void php_jit_label_free(zend_object *zobject TSRMLS_DC) {
 	php_jit_label_t *plabel = 
 		(php_jit_label_t *) zobject;
 
-	zval_dtor(&plabel->zfunc);
+	zval_ptr_dtor(&plabel->zfunc);	
 	
-	zend_objects_destroy_object(zobject, handle TSRMLS_CC);
-}
-
-static inline void php_jit_label_free(void *zobject TSRMLS_DC) {
-	php_jit_label_t *plabel = 
-		(php_jit_label_t *) zobject;
-
 	zend_object_std_dtor(&plabel->std TSRMLS_CC);
-
-	efree(plabel);
 }
 
-static inline zend_object_value php_jit_label_create(zend_class_entry *ce TSRMLS_DC) {
-	zend_object_value intern;
+static inline zend_object* php_jit_label_create(zend_class_entry *ce TSRMLS_DC) {
 	php_jit_label_t *plabel = 
-		(php_jit_label_t*) ecalloc(1, sizeof(php_jit_label_t));
+		(php_jit_label_t*) ecalloc(1, sizeof(php_jit_label_t) + zend_object_properties_size(ce));
 	
 	zend_object_std_init(&plabel->std, ce TSRMLS_CC);
 	object_properties_init(&plabel->std, ce);
@@ -71,13 +60,9 @@ static inline zend_object_value php_jit_label_create(zend_class_entry *ce TSRMLS
 	
 	ZVAL_NULL(&plabel->zfunc);
 	
-	intern.handle = zend_objects_store_put(
-		plabel, 
-		php_jit_label_destroy, 
-		php_jit_label_free, NULL TSRMLS_CC);
-	intern.handlers = &php_jit_label_handlers;
+	plabel->std.handlers = &php_jit_label_handlers;
 	
-	return intern;
+	return &plabel->std;
 }
 
 void php_jit_minit_label(int module_number TSRMLS_DC) {
@@ -91,6 +76,9 @@ void php_jit_minit_label(int module_number TSRMLS_DC) {
 		&php_jit_label_handlers,
 		zend_get_std_object_handlers(), 
 		sizeof(php_jit_label_handlers));
+
+	php_jit_label_handlers.offset = XtOffsetOf(php_jit_label_t, std);
+	php_jit_label_handlers.free_obj = php_jit_label_free;
 }
 
 PHP_METHOD(Label, __construct) {
