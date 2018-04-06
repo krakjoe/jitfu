@@ -3,6 +3,9 @@ dnl config.m4 for extension jit
 
 PHP_ARG_WITH(jitfu, for JIT-Fu support,
 [  --with-jitfu             Include JIT-Fu support])
+PHP_ARG_WITH(jitfu-coverage,      whether to enable jitfu coverage support,
+[  --with-jitfu-coverage   Enable jitfu coverage support], no, no)
+
 
 if test "$PHP_JITFU" != "no"; then
   SEARCH_PATH="/usr/local /usr"     # you might want to change this
@@ -41,6 +44,19 @@ if test "$PHP_JITFU" != "no"; then
   
   PHP_SUBST(JITFU_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(jitfu, jitfu.c, $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
+  PHP_ADD_BUILD_DIR($ext_builddir/bits)
+  PHP_ADD_INCLUDE($ext_builddir)
+
+
+  PHP_NEW_EXTENSION(jitfu, jitfu.c bits/context.c bits/function.c bits/label.c bits/signature.c bits/struct.c bits/type.c bits/value.c, $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
+
+  AC_MSG_CHECKING([jitfu coverage])
+  if test "$PHP_JITFU_COVERAGE" != "no"; then
+    AC_MSG_RESULT([enabled])
+
+    PHP_ADD_MAKEFILE_FRAGMENT
+  else
+    AC_MSG_RESULT([disabled])
+  fi
 fi
 

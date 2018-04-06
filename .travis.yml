@@ -1,15 +1,55 @@
-language: c
+language: php
+compiler:
+  - gcc
+addons:
+  apt:
+    packages:
+      - valgrind
+php:
+  - 7.0
+  - 7.1
+  - 7.2
+  - nightly
+
+env:
+  global:
+    - REPORT_EXIT_STATUS=1
+    - CONF="without-jitfu-coverage"
+    - RULE="all"
+    - DEF="-q --show-diff"
+    - MEMCHECK="-m --show-mem"
+  matrix:
+    - OPCACHE=0 TEST_PHP_ARGS="$DEF"
+    - OPCACHE=1 TEST_PHP_ARGS="$DEF"
+    - OPCACHE=0 TEST_PHP_ARGS="$DEF $MEMCHECK"
+    - OPCACHE=0 TEST_PHP_ARGS="$DEF" CONF="with-jitfu-coverage" RULE="jitfu-test-coverage-travis"
+
+matrix:
+  allow_failures:
+    - php: nightly
+      env: OPCACHE=0 TEST_PHP_ARGS="$DEF $MEMCHECK"
 
 before_install:
-    - sudo apt-get update -qq
-    - sudo apt-get install texinfo curl openssl libxml2
+  - test $CONF != "with-jitfu-coverage" || pip install --user cpp-coveralls
 
 before_script:
-    - ./travis/compile-php.sh
-    - ./travis/compile-libjit.sh
-    - (cd /home/travis/jitfu; ./travis/compile-ext.sh)
+  - echo "variables_order=EGPCS"                 >> $HOME/.phpenv/versions/$TRAVIS_PHP_VERSION/etc/php.ini
+  - echo                                          > $HOME/.phpenv/versions/$TRAVIS_PHP_VERSION/etc/conf.d/xdebug.ini
+  - echo "extension=jitfu.so"                     > $HOME/.phpenv/versions/$TRAVIS_PHP_VERSION/etc/conf.d/jitfu.ini
+  - git clone --depth 1 git://git.sv.gnu.org/libjit.git $HOME/libjit-src
+  - cd $HOME/libjit-src
+  - mkdir $HOME/libjit
+  - ./bootstrap
+  - ./configure --prefix=$HOME/libjit
+  - make
+  - make install
 
 script:
-    - ./travis/run-tests.sh
-    - ./travis/run-recki-tests.sh
+  - cd $TRAVIS_BUILD_DIR
+  - phpize
+  - wget -q -O run-tests.php https://raw.githubusercontent.com/php/php-src/master/run-tests.php
+  - ./configure --$CONF --with-jitfu=$HOME/libjit
+  - make $RULE
+  - make install
+  - php run-tests.php -P
 

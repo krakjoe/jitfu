@@ -1,8 +1,8 @@
 /*
   +----------------------------------------------------------------------+
-  | PHP Version 5                                                        |
+  | PHP Version 7                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2014 Joe Watkins <krakjoe@php.net>                     |
+  | Copyright (c) 2018 Joe Watkins <krakjoe@php.net>                     |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -107,13 +107,13 @@ PHP_MINIT_FUNCTION(jitfu)
 	
 	INIT_NS_CLASS_ENTRY(ce, "JITFU", "Exception", NULL);
 	
-	php_jit_minit_context(module_number);
-	php_jit_minit_type(module_number);
-	php_jit_minit_struct(module_number);
-	php_jit_minit_signature(module_number);
-	php_jit_minit_function(module_number);
-	php_jit_minit_value(module_number);
-	php_jit_minit_label(module_number);
+	PHP_MINIT(JITFU_Context)(INIT_FUNC_ARGS_PASSTHRU);
+	PHP_MINIT(JITFU_Type)(INIT_FUNC_ARGS_PASSTHRU);
+	PHP_MINIT(JITFU_Struct)(INIT_FUNC_ARGS_PASSTHRU);
+	PHP_MINIT(JITFU_Signature)(INIT_FUNC_ARGS_PASSTHRU);
+	PHP_MINIT(JITFU_Func)(INIT_FUNC_ARGS_PASSTHRU);
+	PHP_MINIT(JITFU_Value)(INIT_FUNC_ARGS_PASSTHRU);
+	PHP_MINIT(JITFU_Label)(INIT_FUNC_ARGS_PASSTHRU);
 
 	jit_exception_ce = zend_register_internal_class_ex
 		(&ce, zend_exception_get_default());
