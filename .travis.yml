@@ -41,6 +41,7 @@ before_script:
   - cd $HOME/libjit-src
   - mkdir $HOME/libjit
   - rm -rf m4
+  - pkg-config --version
   - autoreconf -i -v
   - ./configure --prefix=$HOME/libjit
   - make
