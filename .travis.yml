@@ -41,7 +41,7 @@ before_script:
   - cd $HOME/libjit-src
   - mkdir $HOME/libjit
   - rm -rf m4
-  - ./bootstrap
+  - autoreconf -i -v
   - ./configure --prefix=$HOME/libjit
   - make
   - make install
