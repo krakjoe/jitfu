@@ -5,7 +5,6 @@ addons:
   apt:
     packages:
       - valgrind
-      - pkg-config
 
 php:
   - 7.0
@@ -41,6 +40,7 @@ before_script:
   - git clone --depth 1 git://git.sv.gnu.org/libjit.git $HOME/libjit-src
   - cd $HOME/libjit-src
   - mkdir $HOME/libjit
+  - rm -rf m4
   - ./bootstrap
   - ./configure --prefix=$HOME/libjit
   - make
