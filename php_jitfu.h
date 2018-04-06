@@ -33,6 +33,7 @@ extern zend_module_entry jitfu_module_entry;
 #endif
 
 #include <jit/jit.h>
+#include <jit/jit-dump.h>
 
 #ifdef ZTS
 #include "TSRM.h"

@@ -404,12 +404,12 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 	if (ptype->pt) {
 		PHP_JIT_INIT_ARGS(php_jit_sized_t);
 	} else switch (ptype->id) {
-		case PHP_JIT_TYPE_INT:      PHP_JIT_INIT_ARGS(int);               break;
+		case PHP_JIT_TYPE_INT:      PHP_JIT_INIT_ARGS(int);                break;
 		case PHP_JIT_TYPE_UINT:     PHP_JIT_INIT_ARGS(uint);               break;
 		case PHP_JIT_TYPE_LONG:     PHP_JIT_INIT_ARGS(long);               break;
 		case PHP_JIT_TYPE_ULONG:    PHP_JIT_INIT_ARGS(ulong);              break;
 		case PHP_JIT_TYPE_DOUBLE:   PHP_JIT_INIT_ARGS(double);             break;
-		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(php_jit_sized_t);   break;
+		case PHP_JIT_TYPE_STRING:   PHP_JIT_INIT_ARGS(zend_string*);       break;
 		case PHP_JIT_TYPE_ZVAL:     PHP_JIT_INIT_ARGS(zval*);              break;
 		
 		default: {
@@ -429,18 +429,14 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 		(zmember = zend_hash_get_current_data_ex(uht, &pos));
 		zend_hash_move_forward_ex(uht, &pos)) {
 		
-		if (Z_TYPE_P(zmember) == IS_ARRAY) {
-		    php_jit_sized_t *inner;
-		    
+		if (Z_TYPE_P(zmember) == IS_ARRAY) {		    
 			if (!ptype->pt) {
 				php_jit_exception(
 					"the argument at %d was not expected to be an array", narg);
 				break;
 			}
 			
-			inner = php_jit_array_args
-			    (pfunc, stack, zmember, narg);
-			array->data[nuarg] = inner;
+			array->data[nuarg] = php_jit_array_args(pfunc, stack, zmember, narg);
 		} else {
 		    switch (ptype->id) {
 		        case PHP_JIT_TYPE_DOUBLE: {
@@ -455,12 +451,10 @@ static inline php_jit_sized_t* php_jit_array_args(php_jit_function_t *pfunc, zen
 			    } break;
 			    
 			    case PHP_JIT_TYPE_STRING: {
-				    php_jit_sized_t *s =
-					    (php_jit_sized_t*) Z_STR_P(zmember);
-				    array->data[nuarg] = s;
+				    array->data[nuarg] = Z_STR_P(zmember);
 			    } break;
 			    
-			    case PHP_JIT_TYPE_ZVAL: memcpy(&array->data[nuarg], zmember, sizeof(zval)); break;
+			    case PHP_JIT_TYPE_ZVAL: array->data[nuarg] = zmember; break;
 		    }
 		}
 
@@ -558,14 +552,7 @@ PHP_METHOD(Func, __invoke) {
 			break;
 			
 			case PHP_JIT_TYPE_STRING: {
-				php_jit_sized_t *s;
-				
-				if (Z_TYPE(args[narg]) != IS_STRING) {
-					convert_to_string(&args[narg]);
-				}
-
-				s = (php_jit_sized_t*) &Z_STR(args[narg]);
-				jargs[narg] = &s;
+				jargs[narg] = &Z_STR(args[narg]);
 			} break;
 
 			case PHP_JIT_TYPE_ZVAL: jargs[narg] = &args[narg]; break;
@@ -581,10 +568,7 @@ PHP_METHOD(Func, __invoke) {
 	switch (ptype->id) {
 		case PHP_JIT_TYPE_STRING: {
 			if (result) {
-				php_jit_sized_t *s =
-					(php_jit_sized_t*) result;
-
-				ZVAL_STR(return_value, (zend_string*)s);
+				ZVAL_STR(return_value, (zend_string*)result);
 			}
 		} break;
 
@@ -1625,17 +1609,6 @@ PHP_METHOD(Func, doLoad) {
 	php_jit_do_unary_op(jit_insn_load, this_func, zin, return_value);
 }
 
-PHP_METHOD(Func, doLoadSmall) {
-	zval *zin = NULL;
-
-	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
-		php_jit_exception("unexpected parameters, expected (Value op1)");
-		return;
-	}
-	
-	php_jit_do_unary_op(jit_insn_load_small, this_func, zin, return_value);
-}
-
 PHP_METHOD(Func, doDup) {
 	zval *zin = NULL;
 
@@ -1934,7 +1907,7 @@ PHP_METHOD(Func, doSize) {
 	zval *zin = NULL;
 	php_jit_value_t *pval, *lval;
 	php_jit_type_t  *ptype;
-	
+
 	jit_nint off = jit_type_get_offset(jit_type_sizable, 1);
 	
 	if (php_jit_parameters("O", &zin, jit_value_ce) != SUCCESS) {
@@ -1950,6 +1923,10 @@ PHP_METHOD(Func, doSize) {
 			php_jit_exception("unexpected Value, can only return size of pointers or strings");
 			return;	
 		}
+	}
+
+	if (ptype->id == PHP_JIT_TYPE_STRING) {
+		off = XtOffsetOf(zend_string, len);
 	}
 
 	object_init_ex(return_value, jit_value_ce);
@@ -2085,6 +2062,12 @@ PHP_METHOD(Func, doCall) {
 	efree(args);
 }
 
+static inline int php_jit_echo(zend_string *s) {
+	zend_write(ZSTR_VAL(s), ZSTR_LEN(s));
+
+	return SUCCESS;
+}
+
 PHP_METHOD(Func, doEcho) {
 	zval *zmessage;
 	php_jit_value_t *pval;
@@ -2093,26 +2076,25 @@ PHP_METHOD(Func, doEcho) {
 	jit_type_t signature;
 	jit_type_t fields[1];
 	jit_value_t args[1];
-	
+
 	if (php_jit_parameters("O", &zmessage, jit_value_ce) != SUCCESS || !zmessage) {
 		php_jit_exception("unexpected parameters, expected (Value value)");
 		return;
 	}
-	
+
 	pval = PHP_JIT_FETCH_VALUE(zmessage);
 	ptype = PHP_JIT_FETCH_TYPE(&pval->ztype);
-	
+
 	if (ptype->id != PHP_JIT_TYPE_STRING) {
 		php_jit_exception("unexpected Value, must be a string");
 		return;
 	}
-	
-	args[0] = jit_insn_load_relative
-		(this_func_j, pval->value, 0, jit_type_sized);
-	fields[0] = jit_type_create_pointer(jit_type_sys_char, 1);
+
+	args[0] = pval->value;
+	fields[0] = ptype->type;	
 	signature = jit_type_create_signature
 		(jit_abi_cdecl, jit_type_sys_int, fields, sizeof(fields)/sizeof(jit_type_t), 0);
-	jit_insn_call_native(this_func_j, NULL, (void*) puts, signature, args, 1, 0);
+	jit_insn_call_native(this_func_j, NULL, (void*) php_jit_echo, signature, args, 1, 0);
 	jit_type_free(signature);
 }
 
@@ -2340,7 +2322,6 @@ zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, doCall,            php_jit_function_doCall_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doAlloca,          php_jit_function_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doLoad,            php_jit_function_unary_arginfo,      ZEND_ACC_PUBLIC)
-	PHP_ME(Func, doLoadSmall,       php_jit_function_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doDup,             php_jit_function_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doStore,           php_jit_function_unary_arginfo,      ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doAddressof,       php_jit_function_unary_arginfo,      ZEND_ACC_PUBLIC)
@@ -2365,7 +2346,7 @@ zend_function_entry php_jit_function_methods[] = {
 	PHP_ME(Func, doReturnPtr,       php_jit_function_doReturnPtr_arginfo,     ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doDefaultReturn,   php_jit_no_arginfo,                      ZEND_ACC_PUBLIC)
 	PHP_ME(Func, doGetCallStack,    php_jit_no_arginfo,                      ZEND_ACC_PUBLIC)
-	PHP_ME(Func, doEcho,    php_jit_function_doEcho_arginfo,                      ZEND_ACC_PUBLIC)
+	PHP_ME(Func, doEcho,            php_jit_function_doEcho_arginfo,         ZEND_ACC_PUBLIC)
 	/* */
 	PHP_FE_END
 };
