@@ -5,6 +5,8 @@ addons:
   apt:
     packages:
       - valgrind
+      - pkg-config
+
 php:
   - 7.0
   - 7.1
